@@ -68,10 +68,10 @@ class CheckerBoardGUI:
     def add_indices(self):
         for i in range(8):
             row_label = tk.Label(
-                self.board_frame, text=str(i), fg="white", font="Helvetica 12 bold"
+                self.board_frame, text=str(i), fg="white", font="Helvetica 15 bold"
             )
             row_label.grid(row=i + 1, column=0, sticky="w")
             col_label = tk.Label(
-                self.board_frame, text=str(i), fg="white", font="Helvetica 12 bold"
+                self.board_frame, text=str(i), fg="white", font="Helvetica 15 bold"
             )
             col_label.grid(row=0, column=i + 1, sticky="n")
