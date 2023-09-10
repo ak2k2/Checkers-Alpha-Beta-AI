@@ -160,41 +160,31 @@ def do_move(board: list, move: str, player: str) -> list:
 
     return board
 
-def generate_all_legal_moves(board: list, player: str) -> list:
-    legal_moves = []
-    capture_moves = []
 
-    # Direction multiplier: For X, it's +1, for O, it's -1
+def generate_all_legal_moves(board: list, player: str, player_positions: list) -> list:
+    legal_moves = set()
+    capture_moves = set()
+
     direction = 1 if player == "X" else -1
 
-    # Get player's positions on the board
-    player_positions = [(row, col) for row in range(8) for col in range(8) if board[row][col] == player]
-
-    for row, col in player_positions:
-        for drow, dcol in [
-            (direction, -1),
-            (direction, 1),
-            (2 * direction, -2),
-            (2 * direction, 2),
-        ]:
+    for row, col in player_positions[player]:
+        for drow, dcol in [(direction, -1), (direction, 1), (2 * direction, -2), (2 * direction, 2)]:
             new_row, new_col = row + drow, col + dcol
             move = f"{row},{col}->{new_row},{new_col}"
 
             try:
-                (
-                    (current_row, current_col),
-                    (new_row, new_col),
-                    is_capture,
-                ) = check_if_legal(board, player, move)
+                (_, _, is_capture) = check_if_legal(board, player, move)
 
                 if is_capture:
-                    capture_moves.append(move)
+                    capture_moves.add(move)
+                    # Captures are mandatory, so we can break early
+                    break
                 else:
-                    legal_moves.append(move)
+                    legal_moves.add(move)
             except:  # Catching specific exception types would be better here
                 continue
 
-    return capture_moves if capture_moves else legal_moves
+    return list(capture_moves) if capture_moves else list(legal_moves)
 
 
 
@@ -220,46 +210,99 @@ def play_sequence_of_moves(board, moves, checker_board_gui):
             player = "X"
 
 
-if __name__ == "__main__":
-    GAME_LOG = []
+def update_player_positions(move_str, player, player_positions):
+    # Parse the move string to get coordinates
+    move_parts = move_str.split("->")
+    current_row, current_col = map(int, move_parts[0].split(","))
+    new_row, new_col = map(int, move_parts[1].split(","))
+
+    # Remove the old position
+    player_positions[player].remove((current_row, current_col))
+
+    # Add the new position
+    player_positions[player].add((new_row, new_col))
+
+    # If a capture occurred, remove the captured piece
+    mid_row, mid_col = ((current_row + new_row) // 2, (current_col + new_col) // 2)
+    if abs(new_row - current_row) == 2:  # This implies a capture
+        opponent = "O" if player == "X" else "X"
+
+        # Remove the captured piece from the opponent's set of positions
+        player_positions[opponent].remove((mid_row, mid_col))
+
+    return player_positions
+
+
+def setup_game():
     board = get_blank_board()
     board = setup_board(board)
+    player_positions = {
+        "X": {
+            (row, col) for row in range(8) for col in range(8) if board[row][col] == "X"
+        },
+        "O": {
+            (row, col) for row in range(8) for col in range(8) if board[row][col] == "O"
+        },
+    }
+    return board, player_positions
+
+
+def player_turn(board, player, player_positions):
+    legal_moves = generate_all_legal_moves(board, player, player_positions)
+    if not legal_moves:
+        return None, None, False  # Return False to indicate no legal moves.
+    chosen_move = np.random.choice(legal_moves).tolist()
+    print(f"{player}'s turn with move {chosen_move}")
+    board = do_move(board, chosen_move, player)
+    player_positions = update_player_positions(chosen_move, player, player_positions)
+    return (
+        board,
+        player_positions,
+        True,
+    )  # Return True to indicate there were legal moves.
+
+
+def determine_winner(X_has_moves, O_has_moves):
+    if not O_has_moves and X_has_moves:
+        return "X wins!"
+    if O_has_moves and not X_has_moves:
+        return "O wins!"
+    if not O_has_moves and not X_has_moves:
+        # TODO: Add the correct board-counting logic here.
+        return "It's a tie!"
+    return None
+
+
+if __name__ == "__main__":
+    GAME_LOG = []
+    board, player_positions = setup_game()
     checker_board_gui = CheckerBoardGUI(board)
+
     t.sleep(2)
+    X_has_moves = True
+    O_has_moves = True
+
     while True:
-        
-        display_board(board, checker_board_gui)
-        X_legal_moves = generate_all_legal_moves(board, "X")
-        if len(X_legal_moves) == 0:
-            break
-        X_rand_choice = np.random.choice(X_legal_moves)
-        print(f"X's turn with move {X_rand_choice}")
-        GAME_LOG.append(X_rand_choice)
-        # t.sleep(0.5)
-        board = do_move(board, X_rand_choice, "X")
         display_board(board, checker_board_gui)
 
-        O_legal_moves = generate_all_legal_moves(board, "O")
-        if len(O_legal_moves) == 0:
+        board, player_positions, X_has_moves = player_turn(board, "X", player_positions)
+        if board is None:
             break
-        O_rand_choice = np.random.choice(O_legal_moves)
-        print(f"O's turn with move {O_rand_choice}")
-        GAME_LOG.append(O_rand_choice)
-        # t.sleep(0.5)
-        board = do_move(board, O_rand_choice, "O")
+        display_board(board, checker_board_gui)
+
+        t.sleep(1)
+
+        board, player_positions, O_has_moves = player_turn(board, "O", player_positions)
+        if board is None:
+            break
+        display_board(board, checker_board_gui)
+
+        t.sleep(1)
+
+        if not X_has_moves and not O_has_moves:
+            break
 
         print("*" * 20)
 
-    print(GAME_LOG)
-
-    if len(O_legal_moves) == 0 and len(X_legal_moves) != 0:
-        print("X wins!")
-    if len(O_legal_moves) != 0 and len(X_legal_moves) == 0:
-        print("O wins!")
-    if len(O_legal_moves) == 0 and len(X_legal_moves) == 0:
-        if board.count("X") > board.count("O"):
-            print("X wins!")
-        elif board.count("X") < board.count("O"):
-            print("O wins!")
-        else:
-            print("It's a tie!")
+    winner = determine_winner(X_has_moves, O_has_moves)
+    print(winner)
