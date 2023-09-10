@@ -18,10 +18,10 @@ class CheckerBoardGUI:
         self.last_moved_piece_coords = None
 
         # Load images
-        white_piece_image = Image.open("gui/assets/white.png").resize((100, 100))
+        white_piece_image = Image.open("gui/assets/black.png").resize((100, 100))
         self.white_piece_image = ImageTk.PhotoImage(white_piece_image)
 
-        black_piece_image = Image.open("gui/assets/black.png").resize((100, 100))
+        black_piece_image = Image.open("gui/assets/white.png").resize((100, 100))
         self.black_piece_image = ImageTk.PhotoImage(black_piece_image)
 
         self.board_frame = tk.Frame(self.root)

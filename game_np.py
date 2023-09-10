@@ -3,26 +3,26 @@ import numpy as np
 from gui.checkerboard_gui import CheckerBoardGUI
 
 
-def get_blank_board() -> list[list[str]]:
-    board = [["." for _ in range(8)] for _ in range(8)]
+def get_blank_board() -> np.ndarray:
+    board = np.full((8, 8), ".", dtype=str)
     return board
 
 
-def setup_board(board: list[list[str]]) -> list[list[str]]:
+def setup_board(board: np.ndarray) -> np.ndarray:
     for row in range(3):
         for col in range(8):
             if (row + col) % 2 != 0:
-                board[row][col] = "X"
+                board[row, col] = "X"
 
     for row in range(5, 8):
         for col in range(8):
             if (row + col) % 2 != 0:
-                board[row][col] = "O"
+                board[row, col] = "O"
     return board
 
 
 def check_if_legal(
-    board: list[list[str]], player: str, move: str
+    board: np.ndarray, player: str, move: str
 ) -> tuple[tuple[int, int], tuple[int, int], bool]:
     if len(move.split("->")) != 2:
         raise Exception("Invalid move format.")
@@ -40,11 +40,11 @@ def check_if_legal(
     if not (0 <= new_row <= 7) or not (0 <= new_col <= 7):
         raise Exception("Invalid new row or column.")
 
-    if board[current_row][current_col] != player:
+    if board[current_row, current_col] != player:
         raise Exception("That is not your piece.")
-    if board[new_row][new_col] == player:
+    if board[new_row, new_col] == player:
         raise Exception("You cannot move to a space you already occupy.")
-    if board[new_row][new_col] == opponent:
+    if board[new_row, new_col] == opponent:
         raise Exception(f"You cannot move into {opponent}'s piece.")
 
     if player == "X" and new_row < current_row:
@@ -63,7 +63,7 @@ def check_if_legal(
     is_capture = False
     if abs(new_row - current_row) == 2 and abs(new_col - current_col) == 2:
         mid_row, mid_col = (current_row + new_row) // 2, (current_col + new_col) // 2
-        if board[mid_row][mid_col] == opponent:
+        if board[mid_row, mid_col] == opponent:
             is_capture = True
         else:
             raise Exception(f"There is no '{opponent}' piece to capture.")
@@ -74,7 +74,7 @@ def check_if_legal(
     return (current_row, current_col), (new_row, new_col), is_capture
 
 
-def player_has_capture(board: list[list[str]], player: str) -> bool:
+def player_has_capture(board: np.ndarray, player: str) -> bool:
     opponent = "O" if player == "X" else "X"
 
     # Direction of possible captures based on player
@@ -86,7 +86,7 @@ def player_has_capture(board: list[list[str]], player: str) -> bool:
 
     for row in range(8):
         for col in range(8):
-            if board[row][col] == player:
+            if board[row, col] == player:
                 # Check each potential capture move
                 for drow, dcol in directions:
                     new_row, new_col = row + drow, col + dcol
@@ -94,16 +94,16 @@ def player_has_capture(board: list[list[str]], player: str) -> bool:
 
                     if 0 <= new_row < 8 and 0 <= new_col < 8:
                         if (
-                            board[new_row][new_col] == "."
-                            and board[mid_row][mid_col] == opponent
+                            board[new_row, new_col] == "."
+                            and board[mid_row, mid_col] == opponent
                         ):
                             return True
     return False
 
 
-def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
+def piece_has_capture(board: np.ndarray, piece: tuple[int, int]) -> bool:
     row, col = piece
-    player = board[row][col]  # either "X" or "O"
+    player = board[row, col]  # either "X" or "O"
     opponent = "O" if player == "X" else "X"  # find the opponent
 
     # List of potential directions to check for captures
@@ -123,8 +123,8 @@ def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 # Check if there is an opponent piece to capture and the landing square is empty
                 if (
-                    board[new_row][new_col] == opponent
-                    and board[jump_row][jump_col] == "."
+                    board[new_row, new_col] == opponent
+                    and board[jump_row, jump_col] == "."
                 ):
                     return True
 
@@ -136,26 +136,23 @@ def make_move(
     current_col: int,
     new_row: int,
     new_col: int,
-    board: list[list[str]],
+    board: np.ndarray,
     player: str,
     is_capture: bool = False,
-) -> list[list[str]]:
+) -> np.ndarray:
     if is_capture:
         mid_row = (new_row + current_row) // 2
         mid_col = (new_col + current_col) // 2
-        board[mid_row][mid_col] = "."
+        board[mid_row, mid_col] = "."
 
-    board[current_row][current_col] = "."
-    board[new_row][new_col] = player
+    board[current_row, current_col] = "."
+    board[new_row, new_col] = player
     return board
 
 
 def do_move(
-    board: list[list[str]],
-    move: str,
-    player: str,
-    checker_board_gui: CheckerBoardGUI = None,
-) -> list[list[str]]:
+    board: np.ndarray, move: str, player: str, checker_board_gui: CheckerBoardGUI = None
+) -> np.ndarray:
     while True:
         try:
             (current_row, current_col), (new_row, new_col), is_capture = check_if_legal(
@@ -177,9 +174,7 @@ def do_move(
 
 
 def generate_all_legal_moves(
-    board: list[list[str]],
-    player: str,
-    player_positions: dict[str, set[tuple[int, int]]],
+    board: np.ndarray, player: str, player_positions: dict[str, set[tuple[int, int]]]
 ) -> list[str]:
     legal_moves = set()
     capture_moves = set()
@@ -211,28 +206,7 @@ def generate_all_legal_moves(
     return list(capture_moves) if capture_moves else list(legal_moves)
 
 
-def generate_capture_moves_from_position(
-    board: list[list[str]], row: int, col: int, player: str
-) -> list[str]:
-    capture_moves = []
-    direction = 1 if player == "X" else -1
-    opponent = "O" if player == "X" else "X"
-
-    for drow, dcol in [(2 * direction, -2), (2 * direction, 2)]:
-        new_row, new_col = row + drow, col + dcol
-        move = f"{row},{col}->{new_row},{new_col}"
-
-        try:
-            (_, _, is_capture) = check_if_legal(board, player, move)
-            if is_capture:
-                capture_moves.append(move)
-        except:
-            continue
-
-    return capture_moves
-
-
-def display_board(board: list[list[str]], checker_board_gui: CheckerBoardGUI):
+def display_board(board: np.ndarray, checker_board_gui: CheckerBoardGUI):
     checker_board_gui.board = board
     checker_board_gui.update_board()
     checker_board_gui.root.update_idletasks()
@@ -240,7 +214,7 @@ def display_board(board: list[list[str]], checker_board_gui: CheckerBoardGUI):
 
 
 def play_sequence_of_moves(
-    board: list[list[str]], moves: list[str], checker_board_gui: CheckerBoardGUI
+    board: np.ndarray, moves: list[str], checker_board_gui: CheckerBoardGUI
 ):
     player = "X"  # Starting player is 'X'
     for move in moves:
@@ -283,26 +257,26 @@ def update_player_positions(
     return player_positions
 
 
-def setup_game() -> tuple[list[list[str]], dict[str, set[tuple[int, int]]]]:
+def setup_game() -> tuple[np.ndarray, dict[str, set[tuple[int, int]]]]:
     board = get_blank_board()
     board = setup_board(board)
     player_positions = {
         "X": {
-            (row, col) for row in range(8) for col in range(8) if board[row][col] == "X"
+            (row, col) for row in range(8) for col in range(8) if board[row, col] == "X"
         },
         "O": {
-            (row, col) for row in range(8) for col in range(8) if board[row][col] == "O"
+            (row, col) for row in range(8) for col in range(8) if board[row, col] == "O"
         },
     }
     return board, player_positions
 
 
 def player_turn(
-    board: list[list[str]],
+    board: np.ndarray,
     player: str,
     player_positions: dict[str, set[tuple[int, int]]],
     checker_board_gui: CheckerBoardGUI,
-) -> tuple[list[list[str]], dict[str, set[tuple[int, int]]], bool]:
+) -> tuple[np.ndarray, dict[str, set[tuple[int, int]]], bool]:
     legal_moves = generate_all_legal_moves(board, player, player_positions)
     if not legal_moves:
         return None, None, False  # Return False to indicate no legal moves.
@@ -328,43 +302,43 @@ def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
     return None
 
 
-def simulate_random_game():
+def simulate_random_game_np():
     board, player_positions = setup_game()
-    checker_board_gui = CheckerBoardGUI(board)
+    # checker_board_gui = CheckerBoardGUI(board)
 
-    t.sleep(2)
+    # t.sleep(2)
     X_has_moves = True
     O_has_moves = True
 
     while True:
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
         board, player_positions, X_has_moves = player_turn(
-            board, "X", player_positions, checker_board_gui
+            board, "X", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        # t.sleep(2)
 
         board, player_positions, O_has_moves = player_turn(
-            board, "O", player_positions, checker_board_gui
+            board, "O", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        # t.sleep(2)
 
         if not X_has_moves and not O_has_moves:
             break
 
-        print("*" * 20)
+        # print("*" * 20)
 
     winner = determine_winner(X_has_moves, O_has_moves)
-    print(winner)
+    # print(winner)
 
 
 if __name__ == "__main__":
-    simulate_random_game()
+    simulate_random_game_np()
