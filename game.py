@@ -35,7 +35,9 @@ def setup_game() -> tuple[list[list[str]], dict[str, set[tuple[int, int]]]]:
     return board, player_positions
 
 
-def player_has_capture(board: list[list[str]], player: str) -> bool:
+def player_has_capture(
+    player: str, player_positions: dict[str, set[tuple[int, int]]]
+) -> bool:
     opponent = "O" if player == "X" else "X"
 
     # Direction of possible captures based on player
@@ -45,22 +47,20 @@ def player_has_capture(board: list[list[str]], player: str) -> bool:
     else:  # 'O'
         directions = [(-2, -2), (-2, 2)]
 
-    for row in range(8):
-        for col in range(8):
-            if board[row][col] == player:
-                # Check each potential capture move
-                for drow, dcol in directions:
-                    new_row, new_col = row + drow, col + dcol
-                    mid_row, mid_col = row + drow // 2, col + dcol // 2
+    # Loop only through player's pieces
+    for row, col in player_positions[player]:
+        # Check each potential capture move
+        for drow, dcol in directions:
+            new_row, new_col = row + drow, col + dcol
+            mid_row, mid_col = row + drow // 2, col + dcol // 2
 
-                    if 0 <= new_row < 8 and 0 <= new_col < 8:
-                        if (
-                            board[new_row][new_col] == "."
-                            and board[mid_row][mid_col] == opponent
-                        ):
-                            return True
+            if 0 <= new_row < 8 and 0 <= new_col < 8:
+                if (mid_row, mid_col) in player_positions[opponent]:
+                    # Check if the destination square is empty
+                    if (new_row, new_col) not in player_positions['X'] and (new_row, new_col) not in player_positions['O']:
+                        return True
+
     return False
-
 
 def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
     row, col = piece
@@ -93,7 +93,10 @@ def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
 
 
 def check_if_legal(
-    board: list[list[str]], player: str, move: str
+    board: list[list[str]],
+    player: str,
+    move: str,
+    player_positions: dict[str, set[tuple[int, int]]],
 ) -> tuple[tuple[int, int], tuple[int, int], bool]:
     if len(move.split("->")) != 2:
         raise Exception("Invalid move format.")
@@ -113,9 +116,11 @@ def check_if_legal(
 
     if board[current_row][current_col] != player:
         raise Exception("That is not your piece.")
-    if board[new_row][new_col] == player:
+
+    if board[new_row][new_col] != ".":
         raise Exception("You cannot move to a space you already occupy.")
-    if board[new_row][new_col] == opponent:
+
+    if board[current_row][current_col] == opponent:
         raise Exception(f"You cannot move into {opponent}'s piece.")
 
     if player == "X" and new_row < current_row:
@@ -139,8 +144,9 @@ def check_if_legal(
         else:
             raise Exception(f"There is no '{opponent}' piece to capture.")
 
-    if player_has_capture(board, player) and not is_capture:
-        raise Exception("You have a capture move available. Captures are mandatory.")
+    if is_capture:
+        if not piece_has_capture(board, (current_row, current_col)):
+            raise Exception("You must capture if you can.")
 
     return (current_row, current_col), (new_row, new_col), is_capture
 
@@ -168,15 +174,19 @@ def make_move(
     board: list[list[str]],
     move: str,
     player: str,
-    checker_board_gui: CheckerBoardGUI = None,
+    checker_board_gui: CheckerBoardGUI,
+    player_positions: dict[str, set[tuple[int, int]]],
 ) -> list[list[str]]:
     while True:
         try:
             (current_row, current_col), (new_row, new_col), is_capture = check_if_legal(
-                board, player, move
+                board, player, move, player_positions
             )
             break
         except:
+            with Exception as e:
+                print(e)
+
             move = input("Please try again: ")
 
     board = update_board(
@@ -200,6 +210,18 @@ def generate_all_legal_moves(
 
     direction = 1 if player == "X" else -1
 
+    capture_moves = []
+    if player_has_capture(player, player_positions):
+        for row, col in player_positions[player]:
+            capture_moves.extend(
+                generate_capture_moves_from_position(
+                    board, row, col, player, player_positions
+                )
+            )
+
+        return capture_moves
+
+
     for row, col in player_positions[player]:
         for drow, dcol in [
             (direction, -1),
@@ -211,7 +233,9 @@ def generate_all_legal_moves(
             move = f"{row},{col}->{new_row},{new_col}"
 
             try:
-                (_, _, is_capture) = check_if_legal(board, player, move)
+                (_, _, is_capture) = check_if_legal(
+                    board, player, move, player_positions
+                )
 
                 if is_capture:
                     capture_moves.add(move)
@@ -226,7 +250,11 @@ def generate_all_legal_moves(
 
 
 def generate_capture_moves_from_position(
-    board: list[list[str]], row: int, col: int, player: str
+    board: list[list[str]],
+    row: int,
+    col: int,
+    player: str,
+    player_positions: dict[str, set[tuple[int, int]]],
 ) -> list[str]:
     capture_moves = []
     direction = 1 if player == "X" else -1
@@ -236,7 +264,7 @@ def generate_capture_moves_from_position(
         move = f"{row},{col}->{new_row},{new_col}"
 
         try:
-            (_, _, is_capture) = check_if_legal(board, player, move)
+            (_, _, is_capture) = check_if_legal(board, player, move, player_positions)
             if is_capture:
                 capture_moves.append(move)
         except:
@@ -307,10 +335,10 @@ def player_turn(
         return None, None, False  # No legal moves.
 
     chosen_move = np.random.choice(legal_moves).tolist()
-    print(f"{player}'s initial move: {chosen_move}")
+    # print(f"{player}'s initial move: {chosen_move}")
 
-    board = make_move(board, chosen_move, player, checker_board_gui)
     player_positions = update_player_positions(chosen_move, player, player_positions)
+    board = make_move(board, chosen_move, player, checker_board_gui, player_positions)
 
     # Extract the new row and column
     new_row, new_col = map(int, chosen_move.split("->")[1].split(","))
@@ -326,17 +354,19 @@ def player_turn(
         # Check for further jumps
         while True:
             additional_jumps = generate_capture_moves_from_position(
-                board, new_row, new_col, player
+                board, new_row, new_col, player, player_positions
             )
             if not additional_jumps:
                 break
 
             chosen_move = np.random.choice(additional_jumps).tolist()
-            print(f"{player}'s additional move: {chosen_move}")
+            # print(f"{player}'s additional move: {chosen_move}")
 
-            board = make_move(board, chosen_move, player, checker_board_gui)
             player_positions = update_player_positions(
                 chosen_move, player, player_positions
+            )
+            board = make_move(
+                board, chosen_move, player, checker_board_gui, player_positions
             )
 
             # Update new_row and new_col after each additional move
@@ -358,37 +388,37 @@ def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
 
 def simulate_random_game():
     board, player_positions = setup_game()
-    checker_board_gui = CheckerBoardGUI(board)
+    # checker_board_gui = CheckerBoardGUI(board)
 
-    t.sleep(2)
+    # t.sleep(2)
     X_has_moves = True
     O_has_moves = True
 
     while True:
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
         board, player_positions, X_has_moves = player_turn(
-            board, "X", player_positions, checker_board_gui
+            board, "X", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(1)
+        # t.sleep(1)
 
         board, player_positions, O_has_moves = player_turn(
-            board, "O", player_positions, checker_board_gui
+            board, "O", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(1)
+        # t.sleep(1)
 
         if not X_has_moves and not O_has_moves:
             break
 
-        print("*" * 20)
+        # print("*" * 20)
 
     winner = determine_winner(X_has_moves, O_has_moves)
     print(winner)
