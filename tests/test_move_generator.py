@@ -100,6 +100,21 @@ class TestPlayerTurn(unittest.TestCase):
         update_board(2, 3, 4, 3, self.board, "X")
         update_player_positions("3,4->4,3", "X", self.player_positions)
         update_board(3, 4, 4, 3, self.board, "X")
+        _, _, X_has_moves = player_turn(self.board, "X", self.player_positions, None)
+
+        # Validate that player X made the move and it was a capture
+        self.assertTrue(X_has_moves)
+
+        self.assertTrue(player_has_capture(self.board, "O"))
+
+    def test_forced_double_capture(self):
+        # Simulate a board state where a double capture is possible for player X
+        update_player_positions("2,3->3,4", "X", self.player_positions)
+        update_board(2, 3, 4, 3, self.board, "X")
+        update_player_positions("3,4->4,5", "X", self.player_positions)
+        update_board(3, 4, 4, 5, self.board, "X")
+        update_player_positions("4,5->5,6", "X", self.player_positions)
+        update_board(4, 5, 5, 6, self.board, "X")
         _, _, O_has_moves = player_turn(self.board, "X", self.player_positions, None)
 
         # Validate that player X made the move and it was a capture
