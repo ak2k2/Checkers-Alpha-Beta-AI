@@ -11,8 +11,13 @@ from parameterized import parameterized
 from game import (
     check_if_legal,
     setup_board,
+    setup_game,
     get_blank_board,
     generate_all_legal_moves,
+    player_turn,
+    update_player_positions,
+    player_has_capture,
+    update_board,
 )
 
 
@@ -83,6 +88,54 @@ class TestGenerateAllLegalMoves(unittest.TestCase):
         self.assertEqual(
             set(O_legal_moves), set(["5,5->4,6", "5,5->4,4"])
         )  # O can only move to 4,4 or 4,6 since the other moves are blocked by X
+
+
+class TestPlayerTurn(unittest.TestCase):
+    def setUp(self):
+        self.board, self.player_positions = setup_game()
+
+    def test_forced_capture(self):
+        # Simulate a board state where a capture is possible for player X
+        update_player_positions("2,3->3,4", "X", self.player_positions)
+        update_board(2, 3, 4, 3, self.board, "X")
+        update_player_positions("3,4->4,3", "X", self.player_positions)
+        update_board(3, 4, 4, 3, self.board, "X")
+        _, _, O_has_moves = player_turn(self.board, "X", self.player_positions, None)
+
+        # Validate that player X made the move and it was a capture
+        self.assertTrue(O_has_moves)
+
+        self.assertTrue(player_has_capture(self.board, "O"))
+
+    def test_legal_moves(self):
+        # Simulate a regular turn for player O without forced captures
+        _, _, O_has_moves = player_turn(self.board, "O", self.player_positions, None)
+
+        # Validate that player O made a move
+        self.assertTrue(O_has_moves)
+
+    def test_update_player_positions(self):
+        # Simulate a turn for player X
+        board, player_positions, _ = player_turn(
+            self.board, "X", self.player_positions, None
+        )
+
+        # Validate that the player_positions dict is updated correctly
+        new_player_positions = {
+            "X": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if board[row][col] == "X"
+            },
+            "O": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if board[row][col] == "O"
+            },
+        }
+        self.assertEqual(player_positions, new_player_positions)
 
 
 if __name__ == "__main__":

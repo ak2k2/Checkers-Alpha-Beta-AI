@@ -131,7 +131,7 @@ def piece_has_capture(board: np.ndarray, piece: tuple[int, int]) -> bool:
     return False
 
 
-def make_move(
+def update_board(
     current_row: int,
     current_col: int,
     new_row: int,
@@ -150,7 +150,7 @@ def make_move(
     return board
 
 
-def do_move(
+def make_move(
     board: np.ndarray, move: str, player: str, checker_board_gui: CheckerBoardGUI = None
 ) -> np.ndarray:
     while True:
@@ -162,7 +162,7 @@ def do_move(
         except:
             move = input("Please try again: ")
 
-    board = make_move(
+    board = update_board(
         current_row, current_col, new_row, new_col, board, player, is_capture
     )
     if checker_board_gui is not None:
@@ -220,7 +220,7 @@ def play_sequence_of_moves(
     for move in moves:
         input("Press Enter for next move...")
         print(f"\n{player}'s turn with move {move}")
-        board = do_move(
+        board = make_move(
             board, move, player, checker_board_gui
         )  # Replace with your move applying logic
         display_board(board, checker_board_gui)
@@ -282,7 +282,7 @@ def player_turn(
         return None, None, False  # Return False to indicate no legal moves.
     chosen_move = np.random.choice(legal_moves).tolist()
     print(f"{player}'s turn with move {chosen_move}")
-    board = do_move(board, chosen_move, player, checker_board_gui)
+    board = make_move(board, chosen_move, player, checker_board_gui)
     player_positions = update_player_positions(chosen_move, player, player_positions)
     return (
         board,

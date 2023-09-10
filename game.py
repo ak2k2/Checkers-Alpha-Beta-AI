@@ -21,57 +21,18 @@ def setup_board(board: list[list[str]]) -> list[list[str]]:
     return board
 
 
-def check_if_legal(
-    board: list[list[str]], player: str, move: str
-) -> tuple[tuple[int, int], tuple[int, int], bool]:
-    if len(move.split("->")) != 2:
-        raise Exception("Invalid move format.")
-    opponent = "O" if player == "X" else "X"
-
-    current_pos, new_pos = move.split("->")
-    if len(current_pos.split(",")) != 2 or len(new_pos.split(",")) != 2:
-        raise Exception("Invalid position format.")
-
-    current_row, current_col = map(int, current_pos.split(","))
-    new_row, new_col = map(int, new_pos.split(","))
-
-    if not (0 <= current_row <= 7) or not (0 <= current_col <= 7):
-        raise Exception("Invalid current row or column.")
-    if not (0 <= new_row <= 7) or not (0 <= new_col <= 7):
-        raise Exception("Invalid new row or column.")
-
-    if board[current_row][current_col] != player:
-        raise Exception("That is not your piece.")
-    if board[new_row][new_col] == player:
-        raise Exception("You cannot move to a space you already occupy.")
-    if board[new_row][new_col] == opponent:
-        raise Exception(f"You cannot move into {opponent}'s piece.")
-
-    if player == "X" and new_row < current_row:
-        raise Exception("You cannot move backwards.")
-    if player == "O" and new_row > current_row:
-        raise Exception("You cannot move backwards.")
-
-    if not abs(new_row - current_row) == abs(new_col - current_col):
-        raise Exception("You can only move diagonally.")
-
-    if not (
-        abs(new_row - current_row) in [1, 2] and abs(new_col - current_col) in [1, 2]
-    ):
-        raise Exception("Invalid move.")
-
-    is_capture = False
-    if abs(new_row - current_row) == 2 and abs(new_col - current_col) == 2:
-        mid_row, mid_col = (current_row + new_row) // 2, (current_col + new_col) // 2
-        if board[mid_row][mid_col] == opponent:
-            is_capture = True
-        else:
-            raise Exception(f"There is no '{opponent}' piece to capture.")
-
-    if player_has_capture(board, player) and not is_capture:
-        raise Exception("You have a capture move available. Captures are mandatory.")
-
-    return (current_row, current_col), (new_row, new_col), is_capture
+def setup_game() -> tuple[list[list[str]], dict[str, set[tuple[int, int]]]]:
+    board = get_blank_board()
+    board = setup_board(board)
+    player_positions = {
+        "X": {
+            (row, col) for row in range(8) for col in range(8) if board[row][col] == "X"
+        },
+        "O": {
+            (row, col) for row in range(8) for col in range(8) if board[row][col] == "O"
+        },
+    }
+    return board, player_positions
 
 
 def player_has_capture(board: list[list[str]], player: str) -> bool:
@@ -131,7 +92,60 @@ def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
     return False
 
 
-def make_move(
+def check_if_legal(
+    board: list[list[str]], player: str, move: str
+) -> tuple[tuple[int, int], tuple[int, int], bool]:
+    if len(move.split("->")) != 2:
+        raise Exception("Invalid move format.")
+    opponent = "O" if player == "X" else "X"
+
+    current_pos, new_pos = move.split("->")
+    if len(current_pos.split(",")) != 2 or len(new_pos.split(",")) != 2:
+        raise Exception("Invalid position format.")
+
+    current_row, current_col = map(int, current_pos.split(","))
+    new_row, new_col = map(int, new_pos.split(","))
+
+    if not (0 <= current_row <= 7) or not (0 <= current_col <= 7):
+        raise Exception("Invalid current row or column.")
+    if not (0 <= new_row <= 7) or not (0 <= new_col <= 7):
+        raise Exception("Invalid new row or column.")
+
+    if board[current_row][current_col] != player:
+        raise Exception("That is not your piece.")
+    if board[new_row][new_col] == player:
+        raise Exception("You cannot move to a space you already occupy.")
+    if board[new_row][new_col] == opponent:
+        raise Exception(f"You cannot move into {opponent}'s piece.")
+
+    if player == "X" and new_row < current_row:
+        raise Exception("You cannot move backwards.")
+    if player == "O" and new_row > current_row:
+        raise Exception("You cannot move backwards.")
+
+    if not abs(new_row - current_row) == abs(new_col - current_col):
+        raise Exception("You can only move diagonally.")
+
+    if not (
+        abs(new_row - current_row) in [1, 2] and abs(new_col - current_col) in [1, 2]
+    ):
+        raise Exception("Invalid move.")
+
+    is_capture = False
+    if abs(new_row - current_row) == 2 and abs(new_col - current_col) == 2:
+        mid_row, mid_col = (current_row + new_row) // 2, (current_col + new_col) // 2
+        if board[mid_row][mid_col] == opponent:
+            is_capture = True
+        else:
+            raise Exception(f"There is no '{opponent}' piece to capture.")
+
+    if player_has_capture(board, player) and not is_capture:
+        raise Exception("You have a capture move available. Captures are mandatory.")
+
+    return (current_row, current_col), (new_row, new_col), is_capture
+
+
+def update_board(
     current_row: int,
     current_col: int,
     new_row: int,
@@ -150,7 +164,7 @@ def make_move(
     return board
 
 
-def do_move(
+def make_move(
     board: list[list[str]],
     move: str,
     player: str,
@@ -165,7 +179,7 @@ def do_move(
         except:
             move = input("Please try again: ")
 
-    board = make_move(
+    board = update_board(
         current_row, current_col, new_row, new_col, board, player, is_capture
     )
     if checker_board_gui is not None:
@@ -216,7 +230,6 @@ def generate_capture_moves_from_position(
 ) -> list[str]:
     capture_moves = []
     direction = 1 if player == "X" else -1
-    opponent = "O" if player == "X" else "X"
 
     for drow, dcol in [(2 * direction, -2), (2 * direction, 2)]:
         new_row, new_col = row + drow, col + dcol
@@ -239,23 +252,23 @@ def display_board(board: list[list[str]], checker_board_gui: CheckerBoardGUI):
     checker_board_gui.root.update()
 
 
-def play_sequence_of_moves(
-    board: list[list[str]], moves: list[str], checker_board_gui: CheckerBoardGUI
-):
-    player = "X"  # Starting player is 'X'
-    for move in moves:
-        input("Press Enter for next move...")
-        print(f"\n{player}'s turn with move {move}")
-        board = do_move(
-            board, move, player, checker_board_gui
-        )  # Replace with your move applying logic
-        display_board(board, checker_board_gui)
+# def play_sequence_of_moves(
+#     board: list[list[str]], moves: list[str], checker_board_gui: CheckerBoardGUI
+# ):
+#     player = "X"  # Starting player is 'X'
+#     for move in moves:
+#         input("Press Enter for next move...")
+#         print(f"\n{player}'s turn with move {move}")
+#         board = make_move(
+#             board, move, player, checker_board_gui
+#         )  # Replace with your move applying logic
+#         display_board(board, checker_board_gui)
 
-        # Switch player for the next round
-        if player == "X":
-            player = "O"
-        else:
-            player = "X"
+#         # Switch player for the next round
+#         if player == "X":
+#             player = "O"
+#         else:
+#             player = "X"
 
 
 def update_player_positions(
@@ -272,29 +285,14 @@ def update_player_positions(
     # Add the new position
     player_positions[player].add((new_row, new_col))
 
-    # If a capture occurred, remove the captured piece
-    mid_row, mid_col = ((current_row + new_row) // 2, (current_col + new_col) // 2)
     if abs(new_row - current_row) == 2:  # This implies a capture
         opponent = "O" if player == "X" else "X"
+        mid_row, mid_col = ((current_row + new_row) // 2, (current_col + new_col) // 2)
 
         # Remove the captured piece from the opponent's set of positions
         player_positions[opponent].remove((mid_row, mid_col))
 
     return player_positions
-
-
-def setup_game() -> tuple[list[list[str]], dict[str, set[tuple[int, int]]]]:
-    board = get_blank_board()
-    board = setup_board(board)
-    player_positions = {
-        "X": {
-            (row, col) for row in range(8) for col in range(8) if board[row][col] == "X"
-        },
-        "O": {
-            (row, col) for row in range(8) for col in range(8) if board[row][col] == "O"
-        },
-    }
-    return board, player_positions
 
 
 def player_turn(
@@ -304,17 +302,47 @@ def player_turn(
     checker_board_gui: CheckerBoardGUI,
 ) -> tuple[list[list[str]], dict[str, set[tuple[int, int]]], bool]:
     legal_moves = generate_all_legal_moves(board, player, player_positions)
+
     if not legal_moves:
-        return None, None, False  # Return False to indicate no legal moves.
+        return None, None, False  # No legal moves.
+
     chosen_move = np.random.choice(legal_moves).tolist()
-    print(f"{player}'s turn with move {chosen_move}")
-    board = do_move(board, chosen_move, player, checker_board_gui)
+    print(f"{player}'s initial move: {chosen_move}")
+
+    board = make_move(board, chosen_move, player, checker_board_gui)
     player_positions = update_player_positions(chosen_move, player, player_positions)
-    return (
-        board,
-        player_positions,
-        True,
-    )  # Return True to indicate there were legal moves.
+
+    # Extract the new row and column
+    new_row, new_col = map(int, chosen_move.split("->")[1].split(","))
+
+    # Check if the move was a capture
+    if (
+        abs(
+            int(chosen_move.split("->")[0].split(",")[0])
+            - int(chosen_move.split("->")[1].split(",")[0])
+        )
+        == 2
+    ):
+        # Check for further jumps
+        while True:
+            additional_jumps = generate_capture_moves_from_position(
+                board, new_row, new_col, player
+            )
+            if not additional_jumps:
+                break
+
+            chosen_move = np.random.choice(additional_jumps).tolist()
+            print(f"{player}'s additional move: {chosen_move}")
+
+            board = make_move(board, chosen_move, player, checker_board_gui)
+            player_positions = update_player_positions(
+                chosen_move, player, player_positions
+            )
+
+            # Update new_row and new_col after each additional move
+            new_row, new_col = map(int, chosen_move.split("->")[1].split(","))
+
+    return board, player_positions, True
 
 
 def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
@@ -346,7 +374,7 @@ def simulate_random_game():
             break
         display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        t.sleep(1)
 
         board, player_positions, O_has_moves = player_turn(
             board, "O", player_positions, checker_board_gui
@@ -355,7 +383,7 @@ def simulate_random_game():
             break
         display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        t.sleep(1)
 
         if not X_has_moves and not O_has_moves:
             break

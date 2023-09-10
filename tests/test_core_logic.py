@@ -14,10 +14,10 @@ from game import (
     get_blank_board,
     player_has_capture,
     piece_has_capture,
+    
 )
 
-
-class TestCheckIfLegal(unittest.TestCase):
+class TestCoreLogic(unittest.TestCase):
     def setUp(self):
         self.board = get_blank_board()
         self.board = setup_board(self.board)
@@ -184,6 +184,7 @@ class TestCheckIfLegal(unittest.TestCase):
         self.assertEqual(
             check_if_legal(self.board, "X", "2,1->4,3"), ((2, 1), (4, 3), True)
         )
+
 
 
 if __name__ == "__main__":
