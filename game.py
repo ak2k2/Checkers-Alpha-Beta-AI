@@ -1,4 +1,4 @@
-from checkerboard_gui import CheckerBoardGUI
+from gui.checkerboard_gui import CheckerBoardGUI
 
 
 def get_blank_board():
@@ -151,13 +151,13 @@ if __name__ == "__main__":
     board = setup_board(board)
     checker_board_gui = CheckerBoardGUI(board)
 
-    while True:
-        display_board(board, checker_board_gui)
-        X_move = input("'X' to move i,j -> i,j: ")
-        board = do_move(board, X_move, "X")
-        display_board(board, checker_board_gui)
-        O_move = input("'O' to move i,j -> i,j: ")
-        board = do_move(board, O_move, "O")
+    # while True:
+    #     display_board(board, checker_board_gui)
+    #     X_move = input("'X' to move i,j -> i,j: ")
+    #     board = do_move(board, X_move, "X")
+    #     display_board(board, checker_board_gui)
+    #     O_move = input("'O' to move i,j -> i,j: ")
+    #     board = do_move(board, O_move, "O")
 
-    # moves = ["2,1->3,2", "5,2->4,3", "2,3->3,4", "5,0->4,1", "3,4->5,2"]
-    # play_sequence_of_moves(board, moves, checker_board_gui)
+    moves = ["2,1->3,2", "5,2->4,3", "2,3->3,4", "5,0->4,1", "3,4->5,2", "6,1->4,3", "2,6->3,6"]
+    play_sequence_of_moves(board, moves, checker_board_gui)

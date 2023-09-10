@@ -1,16 +1,27 @@
 import tkinter as tk
+from PIL import Image, ImageTk, ImageOps
 
 
 class CheckerBoardGUI:
     def __init__(self, board):
         self.root = tk.Tk()
         self.root.title("Checkers Board")
+        self.root.geometry("1200x1200")  # Manually set the dimensions
         self.board = board
         self.frames = []
 
+        # Load images and make them class attributes
+        white_piece_image = Image.open("gui/assets/white.png")
+        white_piece_image = white_piece_image.resize((100, 100))
+        self.white_piece_image = ImageTk.PhotoImage(white_piece_image)
+
+        black_piece_image = Image.open("gui/assets/black.png")
+        black_piece_image = black_piece_image.resize((100, 100))
+        self.black_piece_image = ImageTk.PhotoImage(black_piece_image)
+
         # Create a frame to hold the board, and center it in the window
         self.board_frame = tk.Frame(self.root)
-        self.board_frame.pack(side=tk.TOP, pady=50, padx=50)
+        self.board_frame.pack(side=tk.TOP, pady=40, padx=50)  # Adjusted padding
 
         self.add_indices()
         self.init_board()
@@ -27,9 +38,7 @@ class CheckerBoardGUI:
                 frame = tk.Frame(
                     self.board_frame, width=100, height=100, bg=background_color
                 )
-                frame.grid(
-                    row=row + 1, column=col + 1
-                )  # Shifted down by 1 row and 1 column
+                frame.grid(row=row + 1, column=col + 1)
                 frame.pack_propagate(False)
                 row_frames.append(frame)
             self.frames.append(row_frames)
@@ -43,33 +52,23 @@ class CheckerBoardGUI:
                     widget.destroy()
 
                 piece = self.board[row][col]
-                if piece == "X":
-                    circle_color = "white"
-                elif piece == "O":
-                    circle_color = "black"
-                else:
-                    circle_color = None
+                frame_bg = frame.cget("bg")  # Get background color of the frame
 
-                if circle_color:
-                    canvas = tk.Canvas(
-                        frame,
-                        width=100,
-                        height=100,
-                        bg=frame["bg"],
-                        highlightthickness=0,
-                    )
-                    canvas.pack(fill=tk.BOTH, expand=1)
-                    canvas.create_oval(20, 20, 80, 80, fill=circle_color)
+                if piece == "X":
+                    label = tk.Label(frame, image=self.white_piece_image, bg=frame_bg)
+                    label.pack()
+
+                elif piece == "O":
+                    label = tk.Label(frame, image=self.black_piece_image, bg=frame_bg)
+                    label.pack()
 
     def add_indices(self):
         for i in range(8):
             row_label = tk.Label(
                 self.board_frame, text=str(i), fg="white", font="Helvetica 12 bold"
             )
-            row_label.grid(row=i + 1, column=0, sticky="w")  # Shifted down by 1 row
+            row_label.grid(row=i + 1, column=0, sticky="w")
             col_label = tk.Label(
                 self.board_frame, text=str(i), fg="white", font="Helvetica 12 bold"
             )
-            col_label.grid(
-                row=0, column=i + 1, sticky="n"
-            )  # Shifted to the right by 1 column
+            col_label.grid(row=0, column=i + 1, sticky="n")
