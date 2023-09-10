@@ -122,7 +122,10 @@ def piece_has_capture(board: list, piece: tuple) -> bool:
             # Also check if new_row, new_col is within the board
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 # Check if there is an opponent piece to capture and the landing square is empty
-                if board[new_row][new_col] == opponent and board[jump_row][jump_col] == ".":
+                if (
+                    board[new_row][new_col] == opponent
+                    and board[jump_row][jump_col] == "."
+                ):
                     return True
 
     return False
@@ -158,14 +161,7 @@ def do_move(board: list, move: str, player: str) -> list:
     return board
 
 
-def display_board(board, checker_board_gui):
-    checker_board_gui.board = board
-    checker_board_gui.update_board()
-    checker_board_gui.root.update_idletasks()
-    checker_board_gui.root.update()
-
-
-def generate_random_legal_moves(board: list, player: str) -> list:
+def generate_all_legal_moves(board: list, player: str) -> list:
     legal_moves = []
     capture_moves = []
 
@@ -184,29 +180,28 @@ def generate_random_legal_moves(board: list, player: str) -> list:
                     new_row, new_col = row + drow, col + dcol
                     move = f"{row},{col}->{new_row},{new_col}"
 
-                    print(f"Checking move: {move}")
-
                     try:
                         (
                             (current_row, current_col),
                             (new_row, new_col),
                             is_capture,
                         ) = check_if_legal(board, player, move)
-                        print(f"Move is legal. Is capture: {is_capture}")
 
                         if is_capture:
                             capture_moves.append(move)
                         else:
                             legal_moves.append(move)
-                    except Exception as e:
-                        print(f"Move is not legal due to {e}")
+                    except:  # Catching specific exception types would be better here
+                        continue
 
-    print(f"All legal moves for {player}: {legal_moves}")
-    print(f"All capture moves for {player}: {capture_moves}")
+    return capture_moves if capture_moves else legal_moves
 
-    if capture_moves:
-        return capture_moves
-    return legal_moves
+
+def display_board(board, checker_board_gui):
+    checker_board_gui.board = board
+    checker_board_gui.update_board()
+    checker_board_gui.root.update_idletasks()
+    checker_board_gui.root.update()
 
 
 def play_sequence_of_moves(board, moves, checker_board_gui):
@@ -230,85 +225,85 @@ if __name__ == "__main__":
     board = setup_board(board)
     checker_board_gui = CheckerBoardGUI(board)
     t.sleep(2)
-    # while True:
-    #     display_board(board, checker_board_gui)
-    #     X_legal_moves = generate_random_legal_moves(board, "X")
-    #     if len(X_legal_moves) == 0:
-    #         break
-    #     X_rand_choice = np.random.choice(X_legal_moves)
-    #     print(f"X's turn with move {X_rand_choice}")
-    #     GAME_LOG.append(X_rand_choice)
-    #     t.sleep(0.5)
-    #     board = do_move(board, X_rand_choice, "X")
-    #     display_board(board, checker_board_gui)
+    while True:
+        display_board(board, checker_board_gui)
+        X_legal_moves = generate_all_legal_moves(board, "X")
+        if len(X_legal_moves) == 0:
+            break
+        X_rand_choice = np.random.choice(X_legal_moves)
+        print(f"X's turn with move {X_rand_choice}")
+        GAME_LOG.append(X_rand_choice)
+        t.sleep(0.5)
+        board = do_move(board, X_rand_choice, "X")
+        display_board(board, checker_board_gui)
 
-    #     O_legal_moves = generate_random_legal_moves(board, "O")
-    #     if len(O_legal_moves) == 0:
-    #         break
-    #     O_rand_choice = np.random.choice(O_legal_moves)
-    #     print(f"O's turn with move {O_rand_choice}")
-    #     GAME_LOG.append(O_rand_choice)
-    #     t.sleep(0.5)
-    #     board = do_move(board, O_rand_choice, "O")
+        O_legal_moves = generate_all_legal_moves(board, "O")
+        if len(O_legal_moves) == 0:
+            break
+        O_rand_choice = np.random.choice(O_legal_moves)
+        print(f"O's turn with move {O_rand_choice}")
+        GAME_LOG.append(O_rand_choice)
+        t.sleep(0.5)
+        board = do_move(board, O_rand_choice, "O")
 
-    #     print("*" * 20)
+        print("*" * 20)
 
-    # print(GAME_LOG)
+    print(GAME_LOG)
 
-    # if len(O_legal_moves) == 0 and len(X_legal_moves) != 0:
-    #     print("X wins!")
-    # if len(O_legal_moves) != 0 and len(X_legal_moves) == 0:
-    #     print("O wins!")
-    # if len(O_legal_moves) == 0 and len(X_legal_moves) == 0:
-    #     if board.count("X") > board.count("O"):
-    #         print("X wins!")
-    #     elif board.count("X") < board.count("O"):
-    #         print("O wins!")
-    #     else:
-    #         print("It's a tie!")
+    if len(O_legal_moves) == 0 and len(X_legal_moves) != 0:
+        print("X wins!")
+    if len(O_legal_moves) != 0 and len(X_legal_moves) == 0:
+        print("O wins!")
+    if len(O_legal_moves) == 0 and len(X_legal_moves) == 0:
+        if board.count("X") > board.count("O"):
+            print("X wins!")
+        elif board.count("X") < board.count("O"):
+            print("O wins!")
+        else:
+            print("It's a tie!")
 
-    moves = [
-        "2,5->3,4",
-        "5,4->4,3",
-        "2,1->3,0",
-        "4,3->2,5",
-        "1,4->3,6",
-        "5,0->4,1",
-        "1,2->2,1",
-        "4,1->3,2",
-        "2,1->4,3",
-        "5,2->3,4",
-        "2,3->4,5",
-        "5,6->3,4",
-        "3,6->4,7",
-        "6,7->5,6",
-        "1,0->2,1",
-        "6,3->5,2",
-        "0,1->1,2",
-        "5,6->4,5",
-        "4,7->5,6",
-        "6,5->4,7",
-        "1,6->2,5",
-        "3,4->1,6",
-        "0,7->2,5",
-        "5,2->4,1",
-        "3,0->5,2",
-        "6,1->4,3",
-        "2,1->3,2",
-        "4,3->2,1",
-        "1,2->3,0",
-        "7,2->6,3",
-        "0,3->1,2",
-        "6,3->5,4",
-        "1,2->2,1",
-        "7,4->6,3",
-        "2,1->3,2",
-        "4,5->3,4",
-        "2,5->4,3",
-        "7,6->6,5",
-        "2,7->3,6",
-        "4,7->2,5",
-        "3,2->4,1",
-        "5,4->3,2",
-    ]
-    play_sequence_of_moves(board, moves, checker_board_gui)
+    # moves = [
+    #     "2,5->3,4",
+    #     "5,4->4,3",
+    #     "2,1->3,0",
+    #     "4,3->2,5",
+    #     "1,4->3,6",
+    #     "5,0->4,1",
+    #     "1,2->2,1",
+    #     "4,1->3,2",
+    #     "2,1->4,3",
+    #     "5,2->3,4",
+    #     "2,3->4,5",
+    #     "5,6->3,4",
+    #     "3,6->4,7",
+    #     "6,7->5,6",
+    #     "1,0->2,1",
+    #     "6,3->5,2",
+    #     "0,1->1,2",
+    #     "5,6->4,5",
+    #     "4,7->5,6",
+    #     "6,5->4,7",
+    #     "1,6->2,5",
+    #     "3,4->1,6",
+    #     "0,7->2,5",
+    #     "5,2->4,1",
+    #     "3,0->5,2",
+    #     "6,1->4,3",
+    #     "2,1->3,2",
+    #     "4,3->2,1",
+    #     "1,2->3,0",
+    #     "7,2->6,3",
+    #     "0,3->1,2",
+    #     "6,3->5,4",
+    #     "1,2->2,1",
+    #     "7,4->6,3",
+    #     "2,1->3,2",
+    #     "4,5->3,4",
+    #     "2,5->4,3",
+    #     "7,6->6,5",
+    #     "2,7->3,6",
+    #     "4,7->2,5",
+    #     "3,2->4,1",
+    #     "5,4->3,2",
+    # ]
+    # play_sequence_of_moves(board, moves, checker_board_gui)

@@ -144,16 +144,15 @@ class TestCheckIfLegal(unittest.TestCase):
     def test_X_has_no_capture(self):
         self.board[5][6] = "."
         self.board[3][6] = "X"
-        piece = (7, 7) # this is not a piece so it should return False
+        piece = (7, 7)  # this is not a piece so it should return False
         self.assertFalse(player_has_capture(self.board, "O"))
         self.assertFalse(piece_has_capture(self.board, piece))
-
 
     def test_O_has_no_capture(self):
         # Simulate a board state where 'O' has no capture available
         self.board[5][2] = "."
         self.board[3][2] = "O"
-        piece = (3, 2) # this is a piece but it has no capture available
+        piece = (3, 2)  # this is a piece but it has no capture available
         self.assertFalse(player_has_capture(self.board, "O"))
 
     def test_capture_move_mandatory_for_O(self):
