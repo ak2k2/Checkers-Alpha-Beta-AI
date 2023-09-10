@@ -1,5 +1,11 @@
 import tkinter as tk
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk, ImageDraw
+
+
+def add_overlay(image, overlay_color=(255, 255, 0, 100)):
+    overlay = Image.new("RGBA", image.size, overlay_color)
+    output = Image.alpha_composite(image.convert("RGBA"), overlay)
+    return output
 
 
 class CheckerBoardGUI:
@@ -9,20 +15,17 @@ class CheckerBoardGUI:
         self.root.geometry("1200x1200")  # Manually set the dimensions
         self.board = board
         self.frames = []
+        self.last_moved_piece_coords = None
 
-        # Load images and make them class attributes
-        white_piece_image = Image.open("gui/assets/white.png")
-        white_piece_image = white_piece_image.resize((100, 100))
+        # Load images
+        white_piece_image = Image.open("gui/assets/white.png").resize((100, 100))
         self.white_piece_image = ImageTk.PhotoImage(white_piece_image)
 
-        black_piece_image = Image.open("gui/assets/black.png")
-        black_piece_image = black_piece_image.resize((100, 100))
+        black_piece_image = Image.open("gui/assets/black.png").resize((100, 100))
         self.black_piece_image = ImageTk.PhotoImage(black_piece_image)
 
-        # Create a frame to hold the board, and center it in the window
         self.board_frame = tk.Frame(self.root)
-        self.board_frame.pack(side=tk.TOP, pady=40, padx=50)  # Adjusted padding
-
+        self.board_frame.pack(side=tk.TOP, pady=40, padx=50)
         self.add_indices()
         self.init_board()
 
@@ -30,14 +33,8 @@ class CheckerBoardGUI:
         for row in range(8):
             row_frames = []
             for col in range(8):
-                if (row + col) % 2 == 0:
-                    background_color = "black"
-                else:
-                    background_color = "red"
-
-                frame = tk.Frame(
-                    self.board_frame, width=100, height=100, bg=background_color
-                )
+                color = "black" if (row + col) % 2 == 0 else "red"
+                frame = tk.Frame(self.board_frame, width=100, height=100, bg=color)
                 frame.grid(row=row + 1, column=col + 1)
                 frame.pack_propagate(False)
                 row_frames.append(frame)
@@ -52,14 +49,20 @@ class CheckerBoardGUI:
                     widget.destroy()
 
                 piece = self.board[row][col]
-                frame_bg = frame.cget("bg")  # Get background color of the frame
+                if (row, col) == self.last_moved_piece_coords:
+                    frame.config(bg="yellow")
+                else:
+                    frame.config(bg="black" if (row + col) % 2 == 0 else "red")
 
                 if piece == "X":
-                    label = tk.Label(frame, image=self.white_piece_image, bg=frame_bg)
+                    label = tk.Label(
+                        frame, image=self.white_piece_image, bg=frame.cget("bg")
+                    )
                     label.pack()
-
                 elif piece == "O":
-                    label = tk.Label(frame, image=self.black_piece_image, bg=frame_bg)
+                    label = tk.Label(
+                        frame, image=self.black_piece_image, bg=frame.cget("bg")
+                    )
                     label.pack()
 
     def add_indices(self):

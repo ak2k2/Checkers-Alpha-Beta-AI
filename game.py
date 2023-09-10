@@ -144,7 +144,7 @@ def make_move(
     return board
 
 
-def do_move(board: list, move: str, player: str) -> list:
+def do_move(board: list, move: str, player: str, checker_board_gui: CheckerBoardGUI = None) -> list:
     while True:
         try:
             (current_row, current_col), (new_row, new_col), is_capture = check_if_legal(
@@ -157,7 +157,11 @@ def do_move(board: list, move: str, player: str) -> list:
     board = make_move(
         current_row, current_col, new_row, new_col, board, player, is_capture
     )
-
+    if checker_board_gui is not None:
+        checker_board_gui.last_moved_piece_coords = (
+            new_row,
+            new_col,
+        )  # <--- For dynamic highlighting
     return board
 
 
@@ -168,7 +172,12 @@ def generate_all_legal_moves(board: list, player: str, player_positions: list) -
     direction = 1 if player == "X" else -1
 
     for row, col in player_positions[player]:
-        for drow, dcol in [(direction, -1), (direction, 1), (2 * direction, -2), (2 * direction, 2)]:
+        for drow, dcol in [
+            (direction, -1),
+            (direction, 1),
+            (2 * direction, -2),
+            (2 * direction, 2),
+        ]:
             new_row, new_col = row + drow, col + dcol
             move = f"{row},{col}->{new_row},{new_col}"
 
@@ -187,7 +196,6 @@ def generate_all_legal_moves(board: list, player: str, player_positions: list) -
     return list(capture_moves) if capture_moves else list(legal_moves)
 
 
-
 def display_board(board, checker_board_gui):
     checker_board_gui.board = board
     checker_board_gui.update_board()
@@ -200,7 +208,7 @@ def play_sequence_of_moves(board, moves, checker_board_gui):
     for move in moves:
         input("Press Enter for next move...")
         print(f"\n{player}'s turn with move {move}")
-        board = do_move(board, move, player)  # Replace with your move applying logic
+        board = do_move(board, move, player, checker_board_gui)  # Replace with your move applying logic
         display_board(board, checker_board_gui)
 
         # Switch player for the next round
@@ -247,13 +255,13 @@ def setup_game():
     return board, player_positions
 
 
-def player_turn(board, player, player_positions):
+def player_turn(board, player, player_positions, checker_board_gui):
     legal_moves = generate_all_legal_moves(board, player, player_positions)
     if not legal_moves:
         return None, None, False  # Return False to indicate no legal moves.
     chosen_move = np.random.choice(legal_moves).tolist()
     print(f"{player}'s turn with move {chosen_move}")
-    board = do_move(board, chosen_move, player)
+    board = do_move(board, chosen_move, player, checker_board_gui)
     player_positions = update_player_positions(chosen_move, player, player_positions)
     return (
         board,
@@ -285,14 +293,14 @@ if __name__ == "__main__":
     while True:
         display_board(board, checker_board_gui)
 
-        board, player_positions, X_has_moves = player_turn(board, "X", player_positions)
+        board, player_positions, X_has_moves = player_turn(board, "X", player_positions, checker_board_gui)
         if board is None:
             break
         display_board(board, checker_board_gui)
 
         t.sleep(1)
 
-        board, player_positions, O_has_moves = player_turn(board, "O", player_positions)
+        board, player_positions, O_has_moves = player_turn(board, "O", player_positions, checker_board_gui)
         if board is None:
             break
         display_board(board, checker_board_gui)
