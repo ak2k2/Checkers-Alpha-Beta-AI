@@ -14,8 +14,8 @@ from game import (
     get_blank_board,
     player_has_capture,
     piece_has_capture,
-    
 )
+
 
 class TestCoreLogic(unittest.TestCase):
     def setUp(self):
@@ -51,12 +51,12 @@ class TestCoreLogic(unittest.TestCase):
     def test_invalid_move_not_diagonal_X(self):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "2,1->4,1")
-        self.assertTrue("You can only move diagonally." in str(context.exception))
+        self.assertTrue("Invalid move." in str(context.exception))
 
     def test_invalid_move_not_diagonal_O(self):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "O", "5,0->4,0")
-        self.assertTrue("You can only move diagonally." in str(context.exception))
+        self.assertTrue("Invalid move." in str(context.exception))
 
     def test_invalid_move_not_1_or_2_X(self):
         opponent = "O"
@@ -77,9 +77,7 @@ class TestCoreLogic(unittest.TestCase):
     def test_invalid_move_backwards_X(self):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "2,1->1,0")
-        self.assertTrue(
-            "You cannot move to a space you already occupy." in str(context.exception)
-        )
+        self.assertTrue("That is not your piece." in str(context.exception))
 
     def test_invalid_move_backwards_O(self):
         with self.assertRaises(Exception) as context:
@@ -91,18 +89,18 @@ class TestCoreLogic(unittest.TestCase):
     def test_invalid_current_pos_out_of_bounds(self):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "8,8->3,0")
-        self.assertTrue("Invalid current row or column." in str(context.exception))
+        self.assertTrue("Invalid row or column." in str(context.exception))
 
     def test_invalid_new_pos_out_of_bounds(self):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "2,1->8,8")
-        self.assertTrue("Invalid new row or column." in str(context.exception))
+        self.assertTrue("Invalid row or column." in str(context.exception))
 
     def test_opponent_in_destination(self):
         self.board[4][1] = "O"  # Putting an O here
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "2,1->4,1")
-        self.assertTrue("You cannot move into O's piece." in str(context.exception))
+        self.assertTrue("That space is already occupied." in str(context.exception))
 
     def test_move_opponent_piece(self):
         with self.assertRaises(Exception) as context:
@@ -144,16 +142,45 @@ class TestCoreLogic(unittest.TestCase):
     def test_X_has_no_capture(self):
         self.board[5][6] = "."
         self.board[3][6] = "X"
+        player_positions = {
+            "X": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if self.board[row][col] == "X"
+            },
+            "O": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if self.board[row][col] == "O"
+            },
+        }
         piece = (7, 7)  # this is not a piece so it should return False
-        self.assertFalse(player_has_capture(self.board, "O"))
+        self.assertFalse(player_has_capture("O", player_positions))
         self.assertFalse(piece_has_capture(self.board, piece))
 
     def test_O_has_no_capture(self):
         # Simulate a board state where 'O' has no capture available
         self.board[5][2] = "."
         self.board[3][2] = "O"
+        player_positions = {
+            "X": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if self.board[row][col] == "X"
+            },
+            "O": {
+                (row, col)
+                for row in range(8)
+                for col in range(8)
+                if self.board[row][col] == "O"
+            },
+        }
+
         piece = (3, 2)  # this is a piece but it has no capture available
-        self.assertFalse(player_has_capture(self.board, "O"))
+        self.assertFalse(player_has_capture("O", player_positions))
 
     def test_capture_move_mandatory_for_O(self):
         # Simulating a board state where 'X' has a capture available
@@ -162,8 +189,7 @@ class TestCoreLogic(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "O", "5,6->4,7")  # Not capturing
         self.assertTrue(
-            "You have a capture move available. Captures are mandatory."
-            in str(context.exception)
+            "Captures are mandatory when availible." in str(context.exception)
         )
         # now the capture move is made
         self.assertEqual(
@@ -177,14 +203,12 @@ class TestCoreLogic(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             check_if_legal(self.board, "X", "2,1->3,0")  # Not capturing
         self.assertTrue(
-            "You have a capture move available. Captures are mandatory."
-            in str(context.exception)
+            "Captures are mandatory when availible." in str(context.exception)
         )
         # now the capture move is made
         self.assertEqual(
             check_if_legal(self.board, "X", "2,1->4,3"), ((2, 1), (4, 3), True)
         )
-
 
 
 if __name__ == "__main__":
