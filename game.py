@@ -57,10 +57,14 @@ def player_has_capture(
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 if (mid_row, mid_col) in player_positions[opponent]:
                     # Check if the destination square is empty
-                    if (new_row, new_col) not in player_positions['X'] and (new_row, new_col) not in player_positions['O']:
+                    if (new_row, new_col) not in player_positions["X"] and (
+                        new_row,
+                        new_col,
+                    ) not in player_positions["O"]:
                         return True
 
     return False
+
 
 def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
     row, col = piece
@@ -97,55 +101,54 @@ def check_if_legal(
     player: str,
     move: str,
 ) -> tuple[tuple[int, int], tuple[int, int], bool]:
-    if len(move.split("->")) != 2:
-        raise Exception("Invalid move format.")
-    opponent = "O" if player == "X" else "X"
+    # Extract current and new positions
+    try:
+        current_pos, new_pos = move.split("->")
+        current_row, current_col = map(int, current_pos.split(","))
+        new_row, new_col = map(int, new_pos.split(","))
+    except ValueError:
+        raise Exception("Invalid move or position format.")
 
-    current_pos, new_pos = move.split("->")
-    if len(current_pos.split(",")) != 2 or len(new_pos.split(",")) != 2:
-        raise Exception("Invalid position format.")
+    # Validate rows and columns
+    if (
+        not 0 <= current_row <= 7
+        or not 0 <= current_col <= 7
+        or not 0 <= new_row <= 7
+        or not 0 <= new_col <= 7
+    ):
+        raise Exception("Invalid row or column.")
 
-    current_row, current_col = map(int, current_pos.split(","))
-    new_row, new_col = map(int, new_pos.split(","))
+    current_piece = board[current_row][current_col]
+    new_piece = board[new_row][new_col]
 
-    if not (0 <= current_row <= 7) or not (0 <= current_col <= 7):
-        raise Exception("Invalid current row or column.")
-    if not (0 <= new_row <= 7) or not (0 <= new_col <= 7):
-        raise Exception("Invalid new row or column.")
-
-    if board[current_row][current_col] != player:
+    # Quick checks for the current and new positions
+    if current_piece != player:
         raise Exception("That is not your piece.")
-
-    if board[new_row][new_col] != ".":
+    if new_piece != ".":
         raise Exception("You cannot move to a space you already occupy.")
 
-    if board[current_row][current_col] == opponent:
-        raise Exception(f"You cannot move into {opponent}'s piece.")
+    opponent = "O" if player == "X" else "X"
 
-    if player == "X" and new_row < current_row:
-        raise Exception("You cannot move backwards.")
-    if player == "O" and new_row > current_row:
-        raise Exception("You cannot move backwards.")
-
-    if not abs(new_row - current_row) == abs(new_col - current_col):
-        raise Exception("You can only move diagonally.")
-
-    if not (
-        abs(new_row - current_row) in [1, 2] and abs(new_col - current_col) in [1, 2]
+    # Movement direction
+    if (
+        player == "X"
+        and new_row < current_row
+        or player == "O"
+        and new_row > current_row
     ):
+        raise Exception("You cannot move backwards.")
+
+    # Check diagonal movement
+    row_diff, col_diff = abs(new_row - current_row), abs(new_col - current_col)
+    if row_diff != col_diff or row_diff not in {1, 2}:
         raise Exception("Invalid move.")
 
-    is_capture = False
-    if abs(new_row - current_row) == 2 and abs(new_col - current_col) == 2:
-        mid_row, mid_col = (current_row + new_row) // 2, (current_col + new_col) // 2
-        if board[mid_row][mid_col] == opponent:
-            is_capture = True
-        else:
-            raise Exception(f"There is no '{opponent}' piece to capture.")
-
+    # Check for capture
+    is_capture = row_diff == 2
     if is_capture:
-        if not piece_has_capture(board, (current_row, current_col)):
-            raise Exception("You must capture if you can.")
+        mid_row, mid_col = (current_row + new_row) // 2, (current_col + new_col) // 2
+        if board[mid_row][mid_col] != opponent:
+            raise Exception(f"There is no '{opponent}' piece to capture.")
 
     return (current_row, current_col), (new_row, new_col), is_capture
 
@@ -209,42 +212,32 @@ def generate_all_legal_moves(
 
     direction = 1 if player == "X" else -1
 
-    capture_moves = []
     if player_has_capture(player, player_positions):
         for row, col in player_positions[player]:
-            capture_moves.extend(
+            capture_moves.update(
                 generate_capture_moves_from_position(
                     board, row, col, player, player_positions
                 )
             )
+        return list(capture_moves)
 
-        return capture_moves
-
+    # If we're here, then there are no capture moves.
+    # No need to check for 2-away diagonals.
 
     for row, col in player_positions[player]:
-        for drow, dcol in [
-            (direction, -1),
-            (direction, 1),
-            (2 * direction, -2),
-            (2 * direction, 2),
-        ]:
+        for drow, dcol in [(direction, -1), (direction, 1)]:
             new_row, new_col = row + drow, col + dcol
             move = f"{row},{col}->{new_row},{new_col}"
 
             try:
-                (_, _, is_capture) = check_if_legal(
-                    board, player, move)
-
-                if is_capture:
-                    capture_moves.add(move)
-                    # Captures are mandatory, so we can break early
-                    break
-                else:
-                    legal_moves.add(move)
+                (_, _, is_capture) = check_if_legal(board, player, move)
+                # Since we've already determined there are no capture moves,
+                # we don't need to check for is_capture again.
+                legal_moves.add(move)
             except:  # Catching specific exception types would be better here
                 continue
 
-    return list(capture_moves) if capture_moves else list(legal_moves)
+    return list(legal_moves)
 
 
 def generate_capture_moves_from_position(
@@ -386,40 +379,40 @@ def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
 
 def simulate_random_game():
     board, player_positions = setup_game()
-    checker_board_gui = CheckerBoardGUI(board)
+    # checker_board_gui = CheckerBoardGUI(board)
 
     # t.sleep(2)
     X_has_moves = True
     O_has_moves = True
 
     while True:
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
         board, player_positions, X_has_moves = player_turn(
-            board, "X", player_positions, checker_board_gui
+            board, "X", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        # t.sleep(2)
 
         board, player_positions, O_has_moves = player_turn(
-            board, "O", player_positions, checker_board_gui
+            board, "O", player_positions, checker_board_gui=None
         )
         if board is None:
             break
-        display_board(board, checker_board_gui)
+        # display_board(board, checker_board_gui)
 
-        t.sleep(2)
+        # t.sleep(2)
 
         if not X_has_moves and not O_has_moves:
             break
 
-        print("*" * 20)
+        # print("*" * 20)
 
-    winner = determine_winner(X_has_moves, O_has_moves)
-    print(winner)
+    # winner = determine_winner(X_has_moves, O_has_moves)
+    # print(winner)
 
 
 if __name__ == "__main__":
