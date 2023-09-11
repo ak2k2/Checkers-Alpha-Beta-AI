@@ -96,7 +96,6 @@ def check_if_legal(
     board: list[list[str]],
     player: str,
     move: str,
-    player_positions: dict[str, set[tuple[int, int]]],
 ) -> tuple[tuple[int, int], tuple[int, int], bool]:
     if len(move.split("->")) != 2:
         raise Exception("Invalid move format.")
@@ -180,7 +179,7 @@ def make_move(
     while True:
         try:
             (current_row, current_col), (new_row, new_col), is_capture = check_if_legal(
-                board, player, move, player_positions
+                board, player, move
             )
             break
         except:
@@ -234,8 +233,7 @@ def generate_all_legal_moves(
 
             try:
                 (_, _, is_capture) = check_if_legal(
-                    board, player, move, player_positions
-                )
+                    board, player, move)
 
                 if is_capture:
                     capture_moves.add(move)
@@ -264,7 +262,7 @@ def generate_capture_moves_from_position(
         move = f"{row},{col}->{new_row},{new_col}"
 
         try:
-            (_, _, is_capture) = check_if_legal(board, player, move, player_positions)
+            (_, _, is_capture) = check_if_legal(board, player, move)
             if is_capture:
                 capture_moves.append(move)
         except:
@@ -388,37 +386,37 @@ def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
 
 def simulate_random_game():
     board, player_positions = setup_game()
-    # checker_board_gui = CheckerBoardGUI(board)
+    checker_board_gui = CheckerBoardGUI(board)
 
     # t.sleep(2)
     X_has_moves = True
     O_has_moves = True
 
     while True:
-        # display_board(board, checker_board_gui)
+        display_board(board, checker_board_gui)
 
         board, player_positions, X_has_moves = player_turn(
-            board, "X", player_positions, checker_board_gui=None
+            board, "X", player_positions, checker_board_gui
         )
         if board is None:
             break
-        # display_board(board, checker_board_gui)
+        display_board(board, checker_board_gui)
 
-        # t.sleep(1)
+        t.sleep(2)
 
         board, player_positions, O_has_moves = player_turn(
-            board, "O", player_positions, checker_board_gui=None
+            board, "O", player_positions, checker_board_gui
         )
         if board is None:
             break
-        # display_board(board, checker_board_gui)
+        display_board(board, checker_board_gui)
 
-        # t.sleep(1)
+        t.sleep(2)
 
         if not X_has_moves and not O_has_moves:
             break
 
-        # print("*" * 20)
+        print("*" * 20)
 
     winner = determine_winner(X_has_moves, O_has_moves)
     print(winner)
