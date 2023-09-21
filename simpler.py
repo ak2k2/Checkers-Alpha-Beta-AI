@@ -72,7 +72,17 @@ def get_player_positions(board: list[list[str]]) -> dict[str, set[tuple[int, int
 def setup_game() -> tuple[list[list[str]], dict[str, set[tuple[int, int]]]]:
     board = get_blank_board()
     board = setup_board(board)
-    player_positions = get_player_positions(board)
+    player_positions = {
+        "X": set(),
+        "O": set(),
+        "XK": set(),
+        "OK": set(),
+    }
+    for row in range(8):
+        for col in range(8):
+            piece = board[row][col]
+            if piece != ".":
+                player_positions[piece].add((row, col))
     return board, player_positions
 
 
@@ -90,7 +100,11 @@ def get_directions(player: str) -> List[Tuple[int, int]]:
 def player_has_capture(
     player: str, player_positions: dict[str, set[tuple[int, int]]]
 ) -> bool:
-    opponent = "O" if player == "X" else "X"
+    # Determine the opponent pieces based on the player
+    if player in ["X", "XK"]:
+        opponent_pieces = ["O", "OK"]
+    else:
+        opponent_pieces = ["X", "XK"]
 
     # Direction of possible captures based on player
     directions = []
@@ -111,7 +125,13 @@ def player_has_capture(
             mid_row, mid_col = row + drow // 2, col + dcol // 2
 
             if 0 <= new_row < 8 and 0 <= new_col < 8:
-                if (mid_row, mid_col) in player_positions[opponent]:
+                # Check if there's an opponent piece to capture
+                if any(
+                    [
+                        (mid_row, mid_col) in player_positions[op]
+                        for op in opponent_pieces
+                    ]
+                ):
                     # Check if the destination square is empty
                     if (
                         (new_row, new_col) not in player_positions["X"]
@@ -242,15 +262,20 @@ def generate_all_legal_moves(
 
 def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
     row, col = piece
-    player = board[row][col]  # either "X" or "O"
-    opponent = "O" if player == "X" else "X"  # find the opponent
+    player = board[row][col]  # either "X", "XK", "O", or "OK"
+
+    # Determine the opponent pieces based on the player
+    if player in ["X", "XK"]:
+        opponent_pieces = ["O", "OK"]
+    else:
+        opponent_pieces = ["X", "XK"]
 
     # List of potential directions to check for captures
     directions = []
-    if player == "X":
+    if player in ["X", "XK"]:
         directions = [(1, 1), (1, -1)]
-    else:  # 'O'
-        directions = [(-1, 1), (-1, -1)]
+    if player in ["O", "OK"]:
+        directions.extend([(-1, 1), (-1, -1)])
 
     for drow, dcol in directions:
         new_row, new_col = row + drow, col + dcol
@@ -262,7 +287,7 @@ def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
             if 0 <= new_row < 8 and 0 <= new_col < 8:
                 # Check if there is an opponent piece to capture and the landing square is empty
                 if (
-                    board[new_row][new_col] == opponent
+                    board[new_row][new_col] in opponent_pieces
                     and board[jump_row][jump_col] == "."
                 ):
                     return True
@@ -270,40 +295,20 @@ def piece_has_capture(board: list[list[str]], piece: tuple[int, int]) -> bool:
     return False
 
 
-def make_move(board: list[list[str]], player: str) -> list[list[str]]:
+def make_move(board: list[list[str]], player: str, M) -> list[list[str]]:
     player_positions = get_player_positions(board)
     turn = True
     while turn:
         legal_moves = generate_all_legal_moves(board, player, player_positions)
         print(f"Legal moves for {player}: {legal_moves}")
-        move_str = input(f"{player} to move: ")
-        move = ast.literal_eval(move_str)
+        # move_str = input(f"{player} to move: ")
+        # move = ast.literal_eval(move_str)
+        move = getMove(M)
 
         if move not in legal_moves:
             raise Exception("Illegal move.")
-
-        (current_row, current_col), (new_row, new_col) = move
-
-        # Remove the old position
-        player_positions[player].remove((current_row, current_col))
-        # Add the new position
-        player_positions[player].add((new_row, new_col))
-
-        if abs(new_row - current_row) == 2:  # Capture
-            mid_row, mid_col = (current_row + new_row) // 2, (
-                current_col + new_col
-            ) // 2
-            opponent = "O" if player == "X" else "X"
-            # Remove the captured piece from the opponent's set of positions
-            player_positions[opponent].remove((mid_row, mid_col))
-
-            # Check if the piece that just captured has another capture opportunity
-            if piece_has_capture(board, (new_row, new_col)):
-                turn = True
-            else:
-                turn = False
         else:
-            turn = False
+            (current_row, current_col), (new_row, new_col) = move
 
         # Check for promotion to king
         if player == "X" and new_row == 7:
@@ -315,18 +320,79 @@ def make_move(board: list[list[str]], player: str) -> list[list[str]]:
             player_positions["O"].remove((new_row, new_col))
             player_positions["OK"].add((new_row, new_col))
 
+        # Remove the old position
+        player_positions[player].remove((current_row, current_col))
+        # Add the new position
+        player_positions[player].add((new_row, new_col))
+
+        # Update the board
         board = construct_board_from_player_positions(player_positions)
 
+        if abs(new_row - current_row) == 2:  # Capture
+            mid_row, mid_col = (
+                (current_row + new_row) // 2,
+                (current_col + new_col) // 2,
+            )
+            opponent = "O" if player == "X" else "X"
+            # Remove the captured piece from the opponent's set of positions
+            player_positions[opponent].remove((mid_row, mid_col))
+
+            # Update the board to remove the captured piece
+            board[mid_row][mid_col] = "."
+
+            # Check if the piece that just captured has another capture opportunity
+            if piece_has_capture(board, (new_row, new_col)):
+                # Create a modified player_positions dictionary with only the relevant piece
+                modified_player_positions = {
+                    player: {(new_row, new_col)},
+                    opponent: player_positions[opponent],
+                }
+                # Generate legal moves for the piece that just captured
+                legal_moves = generate_all_legal_moves(
+                    board, player, modified_player_positions
+                )
+                if legal_moves:
+                    turn = True
+                    continue  # Continue to the next iteration of the while loop
+                else:
+                    turn = False
+            else:
+                turn = False
+        else:
+            turn = False
     return board
+
+
+def getMove(num):
+    moves_made = [
+        ((5, 4), (4, 5)),
+        ((2, 3), (3, 2)),
+        ((6, 3), (5, 4)),
+        ((3, 2), (4, 1)),
+        ((5, 0), (3, 2)),
+        ((2, 1), (4, 3)),
+        ((5, 2), (3, 4)),
+        ((2, 5), (4, 3)),
+        ((5, 4), (3, 2)),
+        ((1, 2), (2, 3)),
+        ((6, 1), (5, 2)),
+        ((2, 3), (4, 1)),
+    ]
+    return moves_made[num]
 
 
 if __name__ == "__main__":
     board, player_positions = setup_game()
     checker_board_gui = CheckerBoardGUI(board)
     player_positions = get_player_positions(board)
+    M = 0
     while True:
         display_board(board, checker_board_gui)
-        board = make_move(board, "O")
+        board = make_move(board, "O", M)
+        M += 1
+        t.sleep(1)
         display_board(board, checker_board_gui)
-        board = make_move(board, "X")
+        board = make_move(board, "X", M)
+        M += 1
+        t.sleep(1)
         display_board(board, checker_board_gui)
