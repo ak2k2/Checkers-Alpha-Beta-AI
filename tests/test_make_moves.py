@@ -43,12 +43,24 @@ class TestMakeMoveAndDoMove(unittest.TestCase):
         )  # O was removed from its original position as well
 
     def test_make_move_for_X(self):
-        make_move(self.board, "2,2->3,3", "X", checker_board_gui=None)
+        self.board = [["." * 8 for _ in range(8)] for _ in range(8)]  # blank board
+        self.board[2][2] = "X"
+        self.board[4][4] = "O"
+        self.board[3][3] = "."
+        self.board = make_move(
+            self.board, "2,2->3,3", "X", checker_board_gui=None, player_positions=None
+        )
         self.assertEqual(self.board[2][2], ".")
         self.assertEqual(self.board[3][3], "X")
 
     def test_make_move_for_O(self):
-        make_move(self.board, "4,4->3,3", "O", checker_board_gui=None)
+        self.board = [["." * 8 for _ in range(8)] for _ in range(8)]  # blank board
+        self.board[2][2] = "X"
+        self.board[4][4] = "O"
+        self.board[3][3] = "."
+        self.board = make_move(
+            self.board, "4,4->3,3", "O", checker_board_gui=None, player_positions=None
+        )
         self.assertEqual(self.board[4][4], ".")
         self.assertEqual(self.board[3][3], "O")
 

@@ -117,7 +117,7 @@ def check_if_legal(
         and 0 <= new_row <= 7
         and 0 <= new_col <= 7
     ):
-        raise Exception("Invalid row or column.")
+        raise Exception("Out of bounds move.")
 
     current_piece = board[current_row][current_col]
     new_piece = board[new_row][new_col]
@@ -353,13 +353,15 @@ def determine_winner(X_has_moves: bool, O_has_moves: bool) -> str:
     return None
 
 
-def simulate_random_game():
+def simulate_random_game_gui():
     board, player_positions = setup_game()
     checker_board_gui = CheckerBoardGUI(board)
 
-    t.sleep(2)
+    t.sleep(3)
     X_has_moves = True
     O_has_moves = True
+
+    delta = 0.05
 
     while True:
         display_board(board, checker_board_gui)
@@ -371,7 +373,7 @@ def simulate_random_game():
             break
         display_board(board, checker_board_gui)
 
-        t.sleep(1)
+        t.sleep(delta)
 
         board, player_positions, O_has_moves = player_turn(
             board, "O", player_positions, checker_board_gui
@@ -380,7 +382,7 @@ def simulate_random_game():
             break
         display_board(board, checker_board_gui)
 
-        t.sleep(1)
+        t.sleep(delta)
 
         if not X_has_moves and not O_has_moves:
             break
@@ -391,5 +393,28 @@ def simulate_random_game():
     print(winner)
 
 
+def simulate_random_game_to_time():
+    board, player_positions = setup_game()
+
+    X_has_moves = True
+    O_has_moves = True
+
+    while True:
+        board, player_positions, X_has_moves = player_turn(
+            board, "X", player_positions, checker_board_gui=None
+        )
+        if board is None:
+            break
+
+        board, player_positions, O_has_moves = player_turn(
+            board, "O", player_positions, checker_board_gui=None
+        )
+        if board is None:
+            break
+
+        if not X_has_moves and not O_has_moves:
+            break
+
+
 if __name__ == "__main__":
-    simulate_random_game()
+    simulate_random_game_gui()
