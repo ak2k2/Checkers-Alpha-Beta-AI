@@ -178,6 +178,9 @@ WHITE_SOUTHEAST = {
     31: None,
 }
 
+CENTER_8 = S[9] | S[10] | S[13] | S[14] | S[17] | S[18] | S[21] | S[22]
+
+DOUBLE_CORNER = S[3] | S[7] | S[24] | S[28]
 
 PDN_MAP = {
     0: "A1",

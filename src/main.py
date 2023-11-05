@@ -41,7 +41,7 @@ def remove_piece(bitboard, index):
     return bitboard & mask
 
 
-def make_move(move, WP, BP, KINGS):
+def make_move(move, WP, BP, K):
     # Extract source and destination from the move tuple
     src, dest = move
 
@@ -66,7 +66,7 @@ def make_move(move, WP, BP, KINGS):
             KINGS, dest_index
         )  # Insert to destination (works for both white and black)
 
-    return WP, BP, KINGS
+    return WP, BP, K
 
 
 def get_movers_white(WP, BP, K):
@@ -232,86 +232,269 @@ def generate_simple_moves_black(WP, BP, K):
     return simple_moves
 
 
-WP, BP, K = get_empty_board()
-WP = insert_piece(WP, 1)
-K = insert_piece(K, 1)
+# def get_jump_moves(bitboard, jumpers, opponent_pieces, is_king):
+#     jump_moves = []
+#     for pos in find_set_bits(jumpers):
+#         # Define jump directions based on whether the piece is a king
+#         if is_king:
+#             directions = [
+#                 BLACK_NORTHEAST,
+#                 BLACK_NORTHWEST,
+#                 WHITE_SOUTHWEST,
+#                 WHITE_SOUTHEAST,
+#             ]
+#         else:
+#             directions = [
+#                 BLACK_NORTHEAST,
+#                 BLACK_NORTHWEST,
+#             ]  # or the equivalent for white pieces
 
-WP = insert_piece(WP, 21)
-WP = insert_piece(WP, 24)
-WP = insert_piece(WP, 29)
-BP = insert_piece(BP, 4)
-WP = insert_piece(WP, 13)
-WP = insert_piece(WP, 20)
+#         for direction in directions:
+#             # Check if the adjacent square in the jump direction is an opponent's piece
+#             # and the square after that is empty (indicated by None)
+#             next_square = direction.get(pos)
+#             if next_square is not None and is_set(opponent_pieces, next_square):
+#                 jump_over_square = direction.get(next_square)
+#                 if jump_over_square is not None and not is_set(
+#                     bitboard, jump_over_square
+#                 ):
+#                     # Add the initial jump move to the list
+#                     jump_moves.append((pos, jump_over_square))
+#                     # Recursively check for further jumps from jump_over_square
+#                     # This will be implemented next
 
-WP = insert_piece(WP, 19)
-K = insert_piece(K, 19)
-
-BP = insert_piece(BP, 5)
-BP = insert_piece(BP, 18)
-BP = insert_piece(BP, 16)
-BP = insert_piece(BP, 12)
-K = insert_piece(K, 12)
-
-
-print("STARTING BOARD")
-print_board(WP, BP, K)
+#     return jump_moves
 
 
-wm = generate_simple_moves_white(
-    get_movers_white(WP, BP, K), BP, K
-)  # generate all the simple moves for white pieces that can do a simple move
+def generate_jump_moves(WP, BP, K, jumpers, player="white"):
+    jump_moves = []
 
-bp = generate_simple_moves_black(
-    WP, get_movers_black(WP, BP, K), K
-)  # generate all the simple moves for black pieces that can do a simple move
+    # Define the direction maps based on the player
+    if player == "white":
+        own_pieces = WP
+        opponent_pieces = BP
+        regular_directions = [WHITE_SOUTHWEST, WHITE_SOUTHEAST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
+    else:  # player == 'black'
+        own_pieces = BP
+        opponent_pieces = WP
+        regular_directions = [BLACK_NORTHEAST, BLACK_NORTHWEST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
 
-print("White moves:")
-for move in wm:
-    print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+    # Go through all the jumpers and generate jumps
+    for pos in find_set_bits(jumpers):
+        # Determine if the piece is a king
+        is_king = K & (1 << pos) != 0
 
-print("Black moves:")
-for move in bp:
-    print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+        # Select the correct directions based on whether the piece is a king
+        directions = king_directions if is_king else regular_directions
 
-print(bin(get_jumpers_white(WP, BP, K)).zfill(32))
+        # Check all directions for possible jumps
+        for direction in directions:
+            next_square = direction.get(pos)
+            if next_square is not None and is_set(opponent_pieces, next_square):
+                jump_over_square = direction.get(next_square)
+                if jump_over_square is not None and not is_set(
+                    own_pieces | opponent_pieces, jump_over_square
+                ):
+                    # Add the initial jump move to the list
+                    jump_moves.append((pos, jump_over_square))
+                    # Further jumps would be handled by the recursive part here
 
-# # WP, BP, K = get_fresh_board()
-# WP, BP, K = get_empty_board()
-# # WP = insert_piece(WP, 12)
-# # WP = insert_piece(WP, 16)
-# # WP = insert_piece(WP, 14)
-# BP = insert_piece(BP, 0)
-# # BP = insert_piece(BP, 6)
-# # K = insert_piece(K, 6)
-# BP = insert_piece(BP, 2)
-# K = insert_piece(K, 2)
-# BP = insert_piece(BP, 5)
-# BP = insert_piece(BP, 4)
-# BP = insert_piece(BP, 10)
+    return jump_moves
 
-# WP = insert_piece(WP, 13)
-# # WP = insert_piece(WP, 25)
-# WP = insert_piece(WP, 18)
 
-# BP = insert_piece(BP, 17)
-# K = insert_piece(K, 17)
+def generate_jump_moves_recursive(
+    WP, BP, K, pos, jumped_over, moves, player="white", sequence=None
+):
+    if sequence is None:
+        sequence = [(pos, jumped_over)]
+    else:
+        sequence.append((pos, jumped_over))
 
-# WP = insert_piece(WP, 27)
-# BP = insert_piece(BP, 21)
-# BP = insert_piece(BP, 28)
+    # Define player-specific variables
+    if player == "white":
+        own_pieces = WP
+        opponent_pieces = BP
+        regular_directions = [WHITE_SOUTHWEST, WHITE_SOUTHEAST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
+    else:
+        own_pieces = BP
+        opponent_pieces = WP
+        regular_directions = [BLACK_NORTHEAST, BLACK_NORTHWEST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
 
-# BP = insert_piece(BP, 11)
+    # Check if the current piece is a king
+    is_king = K & (1 << pos) != 0
+    directions = king_directions if is_king else regular_directions
 
-# print("STARTING BOARD")
-# print_board(WP, BP, K)
-# black_movers = get_movers_black(WP, BP, K)
-# black_jumpers = get_jumpers_black(WP, BP, K)
-# print(bin(black_movers)[2:].zfill(32))
-# print_board(WP, black_movers, K)
-# print(bin(black_jumpers)[2:].zfill(32))
-# print("Black jumpers:")
-# print_board(WP, black_jumpers, K)
-# white_jumpers = get_jumpers_white(WP, BP, K)
-# print(bin(white_jumpers)[2:].zfill(32))
-# print("White jumpers:")
-# print_board(white_jumpers, BP, K)
+    # Temporarily make the jump by updating bitboards
+    own_pieces = own_pieces & ~(1 << pos) | (
+        1 << jumped_over
+    )  # Remove from old pos, add to new
+    opponent_pieces = opponent_pieces & ~(
+        1 << sequence[-2][1]
+    )  # Remove jumped opponent piece
+    if is_king:
+        K = K & ~(1 << pos) | (
+            1 << jumped_over
+        )  # Update king's position if it was a king
+
+    further_jumps = False
+    # Check all directions for possible further jumps
+    for direction in directions:
+        next_square = direction.get(jumped_over)
+        if next_square is not None and is_set(opponent_pieces, next_square):
+            jump_over_square = direction.get(next_square)
+            if jump_over_square is not None and not is_set(
+                own_pieces | opponent_pieces, jump_over_square
+            ):
+                # Recursive call to continue the jump sequence
+                further_jumps = True
+                generate_jump_moves_recursive(
+                    WP,
+                    BP,
+                    K,
+                    jumped_over,
+                    jump_over_square,
+                    moves,
+                    player,
+                    list(sequence),
+                )
+
+    # If no further jumps are possible, add the sequence to the moves list
+    if not further_jumps and len(sequence) > 1:
+        moves.append(sequence)
+
+    # Backtrack is not necessary as we're not modifying the global state
+
+
+# Wrapper function to initiate the recursive jump generation
+def generate_all_jump_moves(WP, BP, K, player="white"):
+    jump_moves = []
+    jumpers = (
+        get_jumpers_white(WP, BP, K)
+        if player == "white"
+        else get_jumpers_black(WP, BP, K)
+    )
+
+    # Go through all jumpers and generate jump sequences
+    for pos in find_set_bits(jumpers):
+        generate_jump_moves_recursive(WP, BP, K, pos, pos, jump_moves, player)
+
+    return jump_moves
+
+
+if __name__ == "__main__":
+    WP, BP, K = get_empty_board()
+
+    WP = insert_piece(WP, 1)
+    K = insert_piece(K, 1)
+
+    WP = insert_piece(WP, 19)
+    K = insert_piece(K, 19)
+
+    WP = insert_piece(WP, 21)
+    WP = insert_piece(WP, 24)
+    WP = insert_piece(WP, 29)
+    WP = insert_piece(WP, 13)
+    WP = insert_piece(WP, 20)
+
+    BP = insert_piece(BP, 5)
+    BP = insert_piece(BP, 4)
+    BP = insert_piece(BP, 18)
+    BP = insert_piece(BP, 16)
+
+    BP = insert_piece(BP, 12)
+    K = insert_piece(K, 12)
+
+    print("STARTING BOARD")
+    print_board(WP, BP, K)
+
+    wm = generate_simple_moves_white(
+        get_movers_white(WP, BP, K), BP, K
+    )  # generate all the simple moves for white pieces that can do a simple move
+
+    bp = generate_simple_moves_black(
+        WP, get_movers_black(WP, BP, K), K
+    )  # generate all the simple moves for black pieces that can do a simple move
+
+    print("White SIMPLE moves:")
+    for move in wm:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    print("Black SIMPLE moves:")
+    for move in bp:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    wj = get_jumpers_white(WP, BP, K)
+    bj = get_jumpers_black(WP, BP, K)
+
+    # print("White JUMPERS:")
+    # print_board(wj, BP, K)
+
+    jm = generate_jump_moves(WP, BP, K, bj, player="black")
+    print("Black JUMP moves:")
+    for move in jm:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    # # WP, BP, K = get_fresh_board()
+    # WP, BP, K = get_empty_board()
+    # # WP = insert_piece(WP, 12)
+    # # WP = insert_piece(WP, 16)
+    # # WP = insert_piece(WP, 14)
+    # BP = insert_piece(BP, 0)
+    # # BP = insert_piece(BP, 6)
+    # # K = insert_piece(K, 6)
+    # BP = insert_piece(BP, 2)
+    # K = insert_piece(K, 2)
+    # BP = insert_piece(BP, 5)
+    # BP = insert_piece(BP, 4)
+    # BP = insert_piece(BP, 10)
+
+    # WP = insert_piece(WP, 13)
+    # # WP = insert_piece(WP, 25)
+    # WP = insert_piece(WP, 18)
+
+    # BP = insert_piece(BP, 17)
+    # K = insert_piece(K, 17)
+
+    # WP = insert_piece(WP, 27)
+    # BP = insert_piece(BP, 21)
+    # BP = insert_piece(BP, 28)
+
+    # BP = insert_piece(BP, 11)
+
+    # print("STARTING BOARD")
+    # print_board(WP, BP, K)
+    # black_movers = get_movers_black(WP, BP, K)
+    # black_jumpers = get_jumpers_black(WP, BP, K)
+    # print(bin(black_movers)[2:].zfill(32))
+    # print_board(WP, black_movers, K)
+    # print(bin(black_jumpers)[2:].zfill(32))
+    # print("Black jumpers:")
+    # print_board(WP, black_jumpers, K)
+    # white_jumpers = get_jumpers_white(WP, BP, K)
+    # print(bin(white_jumpers)[2:].zfill(32))
+    # print("White jumpers:")
+    # print_board(white_jumpers, BP, K)
