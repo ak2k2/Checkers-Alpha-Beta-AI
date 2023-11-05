@@ -1,76 +1,34 @@
+from util.helpers import (
+    PDN_MAP,
+    bitindex_to_coords,
+    coords_to_bitindex,
+    find_set_bits,
+    get_empty_board,
+    get_fresh_board,
+    insert_piece,
+    insert_piece_by_pdntext,
+    is_set,
+    print_bin_strings,
+    print_board,
+    remove_piece,
+    remove_piece_by_pdntext,
+)
+
 from util.masks import (
+    BLACK_JUMP_NORTHEAST,
+    BLACK_JUMP_NORTHWEST,
     BLACK_NORTHEAST,
     BLACK_NORTHWEST,
     MASK_L3,
     MASK_L5,
     MASK_R3,
     MASK_R5,
-    PDN_MAP,
+    WHITE_JUMP_SOUTHEAST,
+    WHITE_JUMP_SOUTHWEST,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
     S,
-    bitindex_to_coords,
-    coords_to_bitindex,
-    print_bin_strings,
-    print_board,
 )
-
-
-def get_fresh_board():
-    BP = 0b00000000000000000000111111111111  # Black pieces start SOUTH and move NORTH
-    WP = 0b11111111111100000000000000000000  # White pieces start NORTH and move SOUTH
-    K = 0b00000000000000000000000000000000  # Kings are ANDed with WP and BP.
-    return WP, BP, K
-
-
-def get_empty_board():
-    WP = 0b00000000000000000000000000000000
-    BP = 0b00000000000000000000000000000000
-    K = 0b00000000000000000000000000000000
-    return WP, BP, K
-
-
-def insert_piece(bitboard, index):
-    """
-    Returns the bitboard with the bit at the given index set to 1.
-    """
-    mask = 1 << index
-    return bitboard | mask
-
-
-def insert_piece_by_pdntext(bitboard, pdn_text):
-    """
-    Takes pdn coordinates (e.g. 'A1') and inserts a piece at the corresponding index (e.g. 0).
-    """
-    index = coords_to_bitindex(pdn_text)
-    return insert_piece(bitboard, index)
-
-
-def remove_piece(bitboard, index):
-    """
-    Returns the bitboard with the bit at the given index set to 0.
-    """
-    mask = ~(1 << index)
-    return bitboard & mask
-
-
-def find_set_bits(bitboard):
-    """
-    Returns a list of indices of bits that are set to 1 in the bitboard.
-    """
-    set_bits = []
-    while bitboard:
-        ls1b_index = (bitboard & -bitboard).bit_length() - 1
-        set_bits.append(ls1b_index)
-        bitboard &= bitboard - 1
-    return set_bits
-
-
-def is_set(bitboard, index):
-    """
-    Returns True if the bit at the given index is set to 1 in the bitboard.
-    """
-    return (bitboard & (1 << index)) != 0
 
 
 def make_move(move, WP, BP, K):
@@ -195,58 +153,65 @@ def get_jumpers_black(WP, BP, K):
 def generate_simple_moves_white(WP, BP, K):
     simple_moves = []
     white_positions = find_set_bits(WP)
+    occupied = WP | BP  # Combine occupied positions for both white and black pieces
 
     for pos in white_positions:
-        is_king = pos in find_set_bits(K)
+        is_king = is_set(K, pos)
 
-        # If it's a king, it can also move using black's moves
+        # Define potential moves based on whether the piece is a king
         if is_king:
-            potential_moves = [
-                BLACK_NORTHEAST.get(pos),
-                BLACK_NORTHWEST.get(pos),
-                WHITE_SOUTHWEST.get(pos),
-                WHITE_SOUTHEAST.get(pos),
+            directions = [
+                WHITE_SOUTHWEST,
+                WHITE_SOUTHEAST,
+                BLACK_NORTHEAST,
+                BLACK_NORTHWEST,
             ]
         else:
-            # Regular white pieces can only move Southwest or Southeast
-            potential_moves = [
-                WHITE_SOUTHWEST.get(pos),
-                WHITE_SOUTHEAST.get(pos),
-            ]
+            directions = [WHITE_SOUTHWEST, WHITE_SOUTHEAST]
 
-        for move in potential_moves:
-            if move is not None and not is_set(WP | BP, move):
-                simple_moves.append((pos, move))
+        # Pre-filter None values and make sure the move is not occupied
+        potential_moves = [
+            direction.get(pos)
+            for direction in directions
+            if direction.get(pos) is not None
+        ]
+        valid_moves = [move for move in potential_moves if not is_set(occupied, move)]
+
+        # Append valid moves to the simple_moves list
+        simple_moves.extend([(pos, move) for move in valid_moves])
 
     return simple_moves
 
 
-# Function to generate simple moves for black pieces
 def generate_simple_moves_black(WP, BP, K):
     simple_moves = []
     black_positions = find_set_bits(BP)
+    occupied = WP | BP  # Combine occupied positions for both white and black pieces
 
     for pos in black_positions:
-        is_king = pos in find_set_bits(K)
+        is_king = is_set(K, pos)
 
-        # If it's a king, it can move using both black's and white's moves
+        # Define potential moves based on whether the piece is a king
         if is_king:
-            potential_moves = [
-                BLACK_NORTHEAST.get(pos),
-                BLACK_NORTHWEST.get(pos),
-                WHITE_SOUTHWEST.get(pos),
-                WHITE_SOUTHEAST.get(pos),
+            directions = [
+                BLACK_NORTHEAST,
+                BLACK_NORTHWEST,
+                WHITE_SOUTHWEST,
+                WHITE_SOUTHEAST,
             ]
         else:
-            # Regular black pieces can only move Northeast or Northwest
-            potential_moves = [
-                BLACK_NORTHEAST.get(pos),
-                BLACK_NORTHWEST.get(pos),
-            ]
+            directions = [BLACK_NORTHEAST, BLACK_NORTHWEST]
 
-        for move in potential_moves:
-            if move is not None and not is_set(WP | BP, move):
-                simple_moves.append((pos, move))
+        # Pre-filter None values and make sure the move is not occupied
+        potential_moves = [
+            direction.get(pos)
+            for direction in directions
+            if direction.get(pos) is not None
+        ]
+        valid_moves = [move for move in potential_moves if not is_set(occupied, move)]
+
+        # Append valid moves to the simple_moves list
+        simple_moves.extend([(pos, move) for move in valid_moves])
 
     return simple_moves
 
@@ -299,14 +264,67 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
     return jump_moves
 
 
+def generate_jump_moves_fast(WP, BP, K, jumpers, player="white"):
+    jump_moves = []
+
+    # Choose the correct dictionaries based on the player
+    directions = []
+    if player == "white":
+        own_pieces = WP
+        opponent_pieces = BP
+        directions = [WHITE_JUMP_SOUTHEAST, WHITE_JUMP_SOUTHWEST]
+        king_directions = [
+            BLACK_JUMP_NORTHEAST,
+            BLACK_JUMP_NORTHWEST,
+            WHITE_JUMP_SOUTHEAST,
+            WHITE_JUMP_SOUTHWEST,
+        ]
+    else:  # player == "black"
+        own_pieces = BP
+        opponent_pieces = WP
+        directions = [BLACK_JUMP_NORTHEAST, BLACK_JUMP_NORTHWEST]
+        king_directions = [
+            BLACK_JUMP_NORTHEAST,
+            BLACK_JUMP_NORTHWEST,
+            WHITE_JUMP_SOUTHEAST,
+            WHITE_JUMP_SOUTHWEST,
+        ]
+
+    occupied = WP | BP  # Combine occupied positions for both white and black pieces
+
+    # Go through all the jumpers and generate jumps
+    for pos in find_set_bits(jumpers):
+        # Determine if the piece is a king
+        is_king = is_set(K, pos)
+        # Select the correct directions based on whether the piece is a king
+        possible_directions = king_directions if is_king else directions
+
+        # Check all possible directions for valid jumps
+        for direction in possible_directions:
+            jump_over_square = direction.get(pos)
+            if jump_over_square is not None and is_set(
+                opponent_pieces, jump_over_square
+            ):
+                landing_square = direction.get(jump_over_square)
+                if landing_square is not None and not is_set(occupied, landing_square):
+                    # Add the jump move to the list
+                    jump_moves.append((pos, landing_square))
+                    # Note: Further jumps would be handled by a recursive call or iterative process
+                    # This is where you would check for additional jumps from the landing square
+
+    return jump_moves
+
+
 if __name__ == "__main__":
     WP, BP, K = get_empty_board()
-
-    BP = insert_piece(BP, 12)
 
     WP = insert_piece(WP, 17)
     WP = insert_piece(WP, 26)
     WP = insert_piece(WP, 27)
+    WP = insert_piece_by_pdntext(WP, "A5")
+
+    BP = insert_piece(BP, 12)
+    BP = insert_piece_by_pdntext(BP, "F6")
 
     print("STARTING BOARD")
     print_board(WP, BP, K)
@@ -336,6 +354,18 @@ if __name__ == "__main__":
 
     bjm = generate_jump_moves(WP, BP, K, get_jumpers_black(WP, BP, K), player="black")
     print("Black single JUMP moves:")
+    for ml in bjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
+
+    wjmf = generate_jump_moves_fast(WP, BP, K, get_jumpers_white(WP, BP, K))
+    print("\n\nFAST White single JUMP moves:")
+    for ml in wjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
+
+    bjmf = generate_jump_moves_fast(
+        WP, BP, K, get_jumpers_black(WP, BP, K), player="black"
+    )
+    print("FAST Black single JUMP moves:")
     for ml in bjm:
         print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
 

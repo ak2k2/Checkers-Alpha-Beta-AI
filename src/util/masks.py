@@ -1,6 +1,6 @@
 S = [1 << i for i in range(32)]
 
-# MASKS FROM: https://3dkingdoms.com/checkers/bitboards.htm
+# L3, L5, R3, R5 MASKS inspired by: https://3dkingdoms.com/checkers/bitboards.htm
 
 MASK_L3 = (
     S[1]
@@ -178,87 +178,146 @@ WHITE_SOUTHEAST = {
     31: None,
 }
 
+BLACK_JUMP_NORTHEAST = {
+    0: 9,
+    1: 10,
+    2: 11,
+    3: None,
+    4: 13,
+    5: 14,
+    6: 15,
+    7: None,
+    8: 17,
+    9: 18,
+    10: 19,
+    11: None,
+    12: 21,
+    13: 22,
+    14: 23,
+    15: None,
+    16: 25,
+    17: 26,
+    18: 27,
+    19: None,
+    20: 29,
+    21: 30,
+    22: 31,
+    23: None,
+    24: None,
+    25: None,
+    26: None,
+    27: None,
+    28: None,
+    29: None,
+    30: None,
+    31: None,
+}
+
+BLACK_JUMP_NORTHWEST = {
+    0: None,
+    1: 8,
+    2: 9,
+    3: 10,
+    4: None,
+    5: 12,
+    6: 13,
+    7: 14,
+    8: None,
+    9: 16,
+    10: 17,
+    11: 18,
+    12: None,
+    13: 20,
+    14: 21,
+    15: 22,
+    16: None,
+    17: 24,
+    18: 25,
+    19: 26,
+    20: None,
+    21: 28,
+    22: 29,
+    23: 30,
+    24: None,
+    25: None,
+    26: None,
+    27: None,
+    28: None,
+    29: None,
+    30: None,
+    31: None,
+}
+
+WHITE_JUMP_SOUTHEAST = {
+    0: None,
+    1: None,
+    2: None,
+    3: None,
+    4: None,
+    5: None,
+    6: None,
+    7: None,
+    8: 1,
+    9: 2,
+    10: 3,
+    11: None,
+    12: 5,
+    13: 6,
+    14: 7,
+    15: None,
+    16: 9,
+    17: 10,
+    18: 11,
+    19: None,
+    20: 13,
+    21: 14,
+    22: 15,
+    23: None,
+    24: 17,
+    25: 18,
+    26: 19,
+    27: None,
+    28: 21,
+    29: 22,
+    30: 23,
+    31: None,
+}
+
+WHITE_JUMP_SOUTHWEST = {
+    0: None,
+    1: None,
+    2: None,
+    3: None,
+    4: None,
+    5: None,
+    6: None,
+    7: None,
+    8: None,
+    9: 0,
+    10: 1,
+    11: 2,
+    12: None,
+    13: 4,
+    14: 5,
+    15: 6,
+    16: None,
+    17: 8,
+    18: 9,
+    19: 10,
+    20: None,
+    21: 12,
+    22: 13,
+    23: 14,
+    24: None,
+    25: 16,
+    26: 17,
+    27: 18,
+    28: None,
+    29: 20,
+    30: 21,
+    31: 22,
+}
+
 CENTER_8 = S[9] | S[10] | S[13] | S[14] | S[17] | S[18] | S[21] | S[22]
 
 DOUBLE_CORNER = S[3] | S[7] | S[24] | S[28]
-
-PDN_MAP = {
-    0: "A1",
-    1: "C1",
-    2: "E1",
-    3: "G1",
-    4: "B2",
-    5: "D2",
-    6: "F2",
-    7: "H2",
-    8: "A3",
-    9: "C3",
-    10: "E3",
-    11: "G3",
-    12: "B4",
-    13: "D4",
-    14: "F4",
-    15: "H4",
-    16: "A5",
-    17: "C5",
-    18: "E5",
-    19: "G5",
-    20: "B6",
-    21: "D6",
-    22: "F6",
-    23: "H6",
-    24: "A7",
-    25: "C7",
-    26: "E7",
-    27: "G7",
-    28: "B8",
-    29: "D8",
-    30: "F8",
-    31: "H8",
-}
-
-
-def print_board(WP, BP, kings):
-    # File names
-    print("\n")
-    print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
-    print("  +" + "---+" * 8)
-
-    for row in range(8):
-        # Rank numbers on the left side
-        row_str = f"{8-row} |"
-
-        for col in range(8):
-            # Index from 32-bit board representation
-            if row % 2 != col % 2:
-                index = (7 - row) * 4 + (col // 2)
-                if WP & (1 << index):
-                    char = "W" if kings & (1 << index) else "w"
-                elif BP & (1 << index):
-                    char = "B" if kings & (1 << index) else "b"
-                else:
-                    char = " "  # Playable empty square
-            else:
-                char = " "  # Unplayable square (white square)
-
-            row_str += f" {char} |"
-
-        print(row_str)
-        print("  +" + "---+" * 8)  # Print the row separator
-    print("\n")
-
-
-def print_bin_strings(WP, BP, KINGS):
-    print(f"White Pieces: {bin(WP)[2:].zfill(32)}")
-    print(f"Black Pieces: {bin(BP)[2:].zfill(32)}")
-    print(f"Kings:        {bin(KINGS)[2:].zfill(32)}")
-
-
-def bitindex_to_coords(index):
-    return PDN_MAP[index]
-
-
-def coords_to_bitindex(coords):
-    for key, value in PDN_MAP.items():
-        if value == coords:
-            return key

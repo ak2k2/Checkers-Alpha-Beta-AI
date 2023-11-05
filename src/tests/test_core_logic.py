@@ -9,6 +9,7 @@ sys.path.append(str(parent))
 from main import (
     bitindex_to_coords,
     coords_to_bitindex,
+    find_set_bits,
     generate_jump_moves,
     generate_simple_moves_black,
     generate_simple_moves_white,
@@ -19,10 +20,17 @@ from main import (
     get_movers_black,
     get_movers_white,
     insert_piece,
-    remove_piece,
+    insert_piece_by_pdntext,
     is_set,
     print_board,
+    remove_piece,
+    remove_piece_by_pdntext,
 )
+
+
+def bitboard_to_pdn_positions(bitboard):
+    pdn_positions = [bitindex_to_coords(index) for index in find_set_bits(bitboard)]
+    return pdn_positions
 
 
 # Test the get_empty_board function
@@ -53,6 +61,52 @@ def test_insert_black_piece(index):
     WP, BP, K = get_empty_board()
     BP = insert_piece(BP, index)
     assert is_set(BP, index), f"Expected piece to be inserted at index {index}"
+
+
+def test_insert_with_pdn():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "B8")
+    BP = insert_piece_by_pdntext(BP, "A3")
+    BP = insert_piece_by_pdntext(BP, "C3")
+    WP = insert_piece_by_pdntext(WP, "D2")
+    K = insert_piece_by_pdntext(K, "D2")
+    for i in ["B8", "A3", "C3", "D2"]:
+        assert is_set(BP | WP | K, coords_to_bitindex(i))
+
+
+def test_get_movers_king_backwards():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "B8")
+    BP = insert_piece_by_pdntext(BP, "C1")
+    BP = insert_piece_by_pdntext(BP, "E1")
+    WP = insert_piece_by_pdntext(WP, "D2")
+    K = insert_piece_by_pdntext(K, "D2")
+    white_movers = get_movers_white(WP, BP, K)
+    print_board(WP, BP, K)
+    print(f"White movers: {bitboard_to_pdn_positions(white_movers)}")
+    white_simple_moves = generate_simple_moves_white(WP, BP, K)
+    for move in white_simple_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+
+def test_jump_moves():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "B8")
+    BP = insert_piece_by_pdntext(BP, "C7")
+    WP = insert_piece_by_pdntext(WP, "F8")
+    WP = insert_piece_by_pdntext(WP, "D8")
+    white_jumpers = get_jumpers_white(WP, BP, K)
+    print_board(WP, BP, K)
+    print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    for move in white_jump_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+
+# white king and black king
+# cannot jump into occupied square
+# cannot jump over same piece color
+# cannot go thru walls
 
 
 # test removing pieces from a fresh board
@@ -105,4 +159,5 @@ def test_generate_simple_moves_white():
 
 
 if __name__ == "__main__":
-    pytest.main()
+    # pytest.main()
+    test_jump_moves()
