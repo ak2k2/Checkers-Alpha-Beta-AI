@@ -1,18 +1,18 @@
 from util.masks import (
+    BLACK_NORTHEAST,
+    BLACK_NORTHWEST,
     MASK_L3,
     MASK_L5,
     MASK_R3,
     MASK_R5,
-    BLACK_NORTHEAST,
-    BLACK_NORTHWEST,
+    PDN_MAP,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
-    PDN_MAP,
     S,
     bitindex_to_coords,
     coords_to_bitindex,
-    print_board,
     print_bin_strings,
+    print_board,
 )
 
 
@@ -32,8 +32,12 @@ def get_empty_board():
 
 def insert_piece(bitboard, index):
     mask = 1 << index
-    print(bin(mask).zfill(32))
     return bitboard | mask
+
+
+def insert_piece_by_pdntext(bitboard, pdn_text):
+    index = coords_to_bitindex(pdn_text)
+    return insert_piece(bitboard, index)
 
 
 def remove_piece(bitboard, index):
@@ -352,9 +356,10 @@ def generate_jump_moves_recursive(
     own_pieces = own_pieces & ~(1 << pos) | (
         1 << jumped_over
     )  # Remove from old pos, add to new
-    opponent_pieces = opponent_pieces & ~(
-        1 << sequence[-2][1]
-    )  # Remove jumped opponent piece
+    if len(sequence) > 1:  # Ensure there is a piece to remove
+        opponent_pieces = opponent_pieces & ~(
+            1 << sequence[-2][1]
+        )  # Remove jumped opponent piece
     if is_king:
         K = K & ~(1 << pos) | (
             1 << jumped_over
@@ -385,8 +390,6 @@ def generate_jump_moves_recursive(
     # If no further jumps are possible, add the sequence to the moves list
     if not further_jumps and len(sequence) > 1:
         moves.append(sequence)
-
-    # Backtrack is not necessary as we're not modifying the global state
 
 
 # Wrapper function to initiate the recursive jump generation
@@ -431,6 +434,8 @@ if __name__ == "__main__":
     print("STARTING BOARD")
     print_board(WP, BP, K)
 
+    print(bin(get_movers_white(WP, BP, K)))
+
     wm = generate_simple_moves_white(
         get_movers_white(WP, BP, K), BP, K
     )  # generate all the simple moves for white pieces that can do a simple move
@@ -447,16 +452,31 @@ if __name__ == "__main__":
     for move in bp:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
-    wj = get_jumpers_white(WP, BP, K)
-    bj = get_jumpers_black(WP, BP, K)
+    wjm = generate_jump_moves(WP, BP, K, get_jumpers_white(WP, BP, K))
+    print("White JUMP moves:")
+    for ml in wjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
 
-    # print("White JUMPERS:")
-    # print_board(wj, BP, K)
-
-    jm = generate_jump_moves(WP, BP, K, bj, player="black")
+    bjm = generate_jump_moves(WP, BP, K, get_jumpers_black(WP, BP, K), player="black")
     print("Black JUMP moves:")
-    for move in jm:
-        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+    for ml in bjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
+
+    # jm = generate_all_jump_moves(WP, BP, K, player="black")
+    # print("Black JUMP moves:")
+    # print(jm)
+    # jmw = generate_all_jump_moves(WP, BP, K, player="white")
+    # print("White JUMP moves:")
+    # print(jmw)
+
+    # # Black JUMP moves:
+    # # [[(16, 16), (16, 25)], [(18, 18), (18, 25)]]
+    # for move_list in jm:
+    #     for move in move_list:
+    #         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    # for move in jm:
+    #     print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
     # # WP, BP, K = get_fresh_board()
     # WP, BP, K = get_empty_board()

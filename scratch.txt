@@ -1,0 +1,52 @@
+    WP, BP, K = get_empty_board()
+
+    WP = insert_piece(WP, 1)
+    K = insert_piece(K, 1)
+
+    WP = insert_piece(WP, 19)
+    K = insert_piece(K, 19)
+
+    WP = insert_piece(WP, 21)
+    WP = insert_piece(WP, 24)
+    WP = insert_piece(WP, 29)
+    WP = insert_piece(WP, 13)
+    WP = insert_piece(WP, 20)
+
+    BP = insert_piece(BP, 5)
+    BP = insert_piece(BP, 4)
+    BP = insert_piece(BP, 18)
+    BP = insert_piece(BP, 16)
+
+    BP = insert_piece(BP, 12)
+    K = insert_piece(K, 12)
+
+    print("STARTING BOARD")
+    print_board(WP, BP, K)
+
+    print(bin(get_movers_white(WP, BP, K)))
+
+    wm = generate_simple_moves_white(
+        get_movers_white(WP, BP, K), BP, K
+    )  # generate all the simple moves for white pieces that can do a simple move
+
+    bp = generate_simple_moves_black(
+        WP, get_movers_black(WP, BP, K), K
+    )  # generate all the simple moves for black pieces that can do a simple move
+
+    print("White SIMPLE moves:")
+    for move in wm:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    print("Black SIMPLE moves:")
+    for move in bp:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    wjm = generate_jump_moves(WP, BP, K, get_jumpers_white(WP, BP, K))
+    print("White JUMP moves:")
+    for ml in wjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
+
+    bjm = generate_jump_moves(WP, BP, K, get_jumpers_black(WP, BP, K), player="black")
+    print("Black JUMP moves:")
+    for ml in bjm:
+        print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
