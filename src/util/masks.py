@@ -1,5 +1,7 @@
 S = [1 << i for i in range(32)]
 
+# MASKS FROM: https://3dkingdoms.com/checkers/bitboards.htm
+
 MASK_L3 = (
     S[1]
     | S[2]
@@ -69,23 +71,23 @@ PDN_MAP = {
 
 
 def print_board(WP, BP, kings):
-    # Print column indices
+    # File names
     print("\n")
     print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
     print("  +" + "---+" * 8)
 
     for row in range(8):
-        # Start each row with the row number (indices on the left)
+        # Rank numbers on the left side
         row_str = f"{8-row} |"
 
         for col in range(8):
-            # Calculate the index in the 32-bit board representation
+            # Index from 32-bit board representation
             if row % 2 != col % 2:
                 index = (7 - row) * 4 + (col // 2)
                 if WP & (1 << index):
-                    char = "W" if kings & (1 << index) else "w"  # Player 1's piece
+                    char = "W" if kings & (1 << index) else "w"  
                 elif BP & (1 << index):
-                    char = "B" if kings & (1 << index) else "b"  # Player 2's piece
+                    char = "B" if kings & (1 << index) else "b"
                 else:
                     char = " "  # Playable empty square
             else:
