@@ -6,7 +6,7 @@ sys.path.insert(0, parentdir)
 
 import unittest
 
-from game import (
+from OLD.game import (
     setup_board,
     get_blank_board,
     setup_game,

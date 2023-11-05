@@ -9,7 +9,7 @@ from unittest.mock import Mock
 from parameterized import parameterized
 
 
-from game import (
+from OLD.game import (
     update_board,
     make_move,
 )

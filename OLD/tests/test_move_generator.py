@@ -8,7 +8,7 @@ import unittest
 from parameterized import parameterized
 
 
-from game import (
+from OLD.game import (
     check_if_legal,
     setup_board,
     setup_game,

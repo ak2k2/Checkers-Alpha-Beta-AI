@@ -361,7 +361,7 @@ def simulate_random_game_gui():
     X_has_moves = True
     O_has_moves = True
 
-    delta = 0.05
+    delta = 0.5
 
     while True:
         display_board(board, checker_board_gui)
