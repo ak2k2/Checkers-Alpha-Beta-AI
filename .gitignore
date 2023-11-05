@@ -2,3 +2,5 @@
 .vscode
 .DS_Store
 
+# pytest cache
+src/.pytest_cache/*
