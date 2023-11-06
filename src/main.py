@@ -4,7 +4,7 @@ import sys
 
 print(sys.getrecursionlimit())
 sys.setrecursionlimit(
-    50
+    200
 )  # TODO: lowered to test the recursion limit, should be set back to 1000
 
 from util.helpers import (
