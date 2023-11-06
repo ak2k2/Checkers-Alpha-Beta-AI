@@ -137,7 +137,7 @@ def choose_move(selected_move):
     if len(selected_move) == 1:
         return [(selected_move)]
     else:
-        # selected_move looks like [[31, 22, 15, 6]] and we want [(31, 22), (22, 15), (15, 6)]
+        # selected_move looks like [(31, 22, 15, 6)] and we want [(31, 22), (22, 15), (15, 6)]
         return [
             (selected_move[i], selected_move[i + 1])
             for i in range(len(selected_move) - 1)
@@ -192,7 +192,7 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 
 
 def game_loop():
-    WP, BP, K = initialize_game()
+    WP, BP, K = initialize_game_puzzle()
     current_player = PlayerTurn.WHITE
     move_count = 0
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
@@ -208,6 +208,7 @@ def game_loop():
         choice = int(input("Choose your move by index: "))
 
         selected_move = legal_moves[choice]
+        print(selected_move)
         move = choose_move(selected_move)
 
         print(f"Move chosen: {move}")
