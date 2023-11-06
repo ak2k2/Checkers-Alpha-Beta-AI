@@ -84,7 +84,7 @@ def test_get_movers_king_backwards():
     white_movers = get_movers_white(WP, BP, K)
     print_board(WP, BP, K)
     print(f"White movers: {bitboard_to_pdn_positions(white_movers)}")
-    white_simple_moves = generate_simple_moves_white(WP, BP, K)
+    white_simple_moves = generate_simple_moves_white(WP, BP, K, white_movers)
     for move in white_simple_moves:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
@@ -103,10 +103,64 @@ def test_jump_moves():
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
 
-# white king and black king
-# cannot jump into occupied square
-# cannot jump over same piece color
-# cannot go thru walls
+def test_jump_king():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "B6")
+    WP = insert_piece_by_pdntext(WP, "D6")
+    BP = insert_piece_by_pdntext(BP, "C7")
+    BP = insert_piece_by_pdntext(BP, "C5")
+    BP = insert_piece_by_pdntext(BP, "A5")
+    K = insert_piece_by_pdntext(K, "B6")
+    white_jumpers = get_jumpers_white(WP, BP, K)
+    print_board(WP, BP, K)
+    print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    for move in white_jump_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+
+def test_jump_corners():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "B6")
+    BP = insert_piece_by_pdntext(BP, "A5")
+    K = insert_piece_by_pdntext(K, "B6")
+    white_jumpers = get_jumpers_white(WP, BP, K)
+    print_board(WP, BP, K)
+    print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    for move in white_jump_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+
+def test_only_jump_opponents():  # confirms that it only moves into allotted free space, and does not jump itself
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "A7")
+    WP = insert_piece_by_pdntext(WP, "B8")
+    WP = insert_piece_by_pdntext(WP, "B6")
+    WP = insert_piece_by_pdntext(WP, "C7")
+    WP = insert_piece_by_pdntext(WP, "D8")
+    WP = insert_piece_by_pdntext(WP, "D6")
+    WP = insert_piece_by_pdntext(WP, "E7")
+    WP = insert_piece_by_pdntext(WP, "F8")
+    WP = insert_piece_by_pdntext(WP, "F6")
+    WP = insert_piece_by_pdntext(WP, "G7")
+    WP = insert_piece_by_pdntext(WP, "H8")
+    WP = insert_piece_by_pdntext(WP, "H6")
+    BP = insert_piece_by_pdntext(BP, "C5")
+    K = insert_piece_by_pdntext(K, "C7")
+    white_jumpers = get_jumpers_white(WP, BP, K)
+    white_movers = get_movers_white(WP, BP, K)
+    print_board(WP, BP, K)
+    print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
+
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    for move in white_jump_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
+
+    print(f"White movers: {bitboard_to_pdn_positions(white_movers)}")
+    white_simple_moves = generate_simple_moves_white(WP, BP, K, white_movers)
+    for move in white_simple_moves:
+        print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
 
 # test removing pieces from a fresh board
@@ -132,8 +186,8 @@ def test_generate_simple_moves_white():
     WP = insert_piece(WP, 9)  # A white piece at index 9
     WP = insert_piece(WP, 14)  # Another white piece at index 14
     BP = insert_piece(BP, 18)  # A black piece that blocks a simple move at index 18
-
-    white_moves = generate_simple_moves_white(WP, BP, K)
+    white_movers = get_movers_white(WP, BP, K)
+    white_moves = generate_simple_moves_white(WP, BP, K, white_movers)
     white_pgn_moves = [
         bitindex_to_coords(m[0]) + "-" + bitindex_to_coords(m[1]) for m in white_moves
     ]
@@ -146,7 +200,8 @@ def test_generate_simple_moves_white():
         ]
     ), "Incorrect simple moves generated for white pieces"
 
-    black_moves = generate_simple_moves_black(WP, BP, K)
+    black_movers = get_movers_black(WP, BP, K)
+    black_moves = generate_simple_moves_black(WP, BP, K, black_movers)
     black_pgn_moves = [
         bitindex_to_coords(m[0]) + "-" + bitindex_to_coords(m[1]) for m in black_moves
     ]
@@ -160,4 +215,4 @@ def test_generate_simple_moves_white():
 
 if __name__ == "__main__":
     # pytest.main()
-    test_jump_moves()
+    test_only_jump_opponents()

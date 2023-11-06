@@ -209,9 +209,7 @@ def generate_simple_moves_white(WP, BP, K, white_movers):
     return simple_moves
 
 
-def generate_simple_moves_black(
-    WP, BP, K, black_movers
-):  # TODO: Add black_movers as an argument
+def generate_simple_moves_black(WP, BP, K, black_movers):
     """
     Returns a list of tuples representing all the simple moves (i.e. not jump moves) for black pieces.
     """
@@ -258,14 +256,12 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
 
     # Assign opponent pieces and directions based on the current player
     if player == "white":
-        own_pieces = WP
         opponent_pieces = BP
         own_jump_directions = white_jump_directions
         own_move_directions = white_move_directions
         opp_jump_directions = black_jump_directions  # for kings
         opp_move_directions = black_move_directions  # for kings
     else:  # player == "black"
-        own_pieces = BP
         opponent_pieces = WP
         own_jump_directions = black_jump_directions
         own_move_directions = black_move_directions
@@ -391,31 +387,25 @@ def is_piece_kinged(pos, player):
 def all_jump_sequences(
     WP, BP, K, white_jumpers=None, black_jumpers=None, player="white"
 ):
-    jump_sequences_pdn = []
+    jump_sequences = []
 
     if player == "white":
         # Generate sequences for white pieces
         for pos in find_set_bits(white_jumpers):
             is_king = is_set(K, pos)
-            sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "white")
-            for sequence in sequences:
-                pdn_sequence = [bitindex_to_coords(pos)] + [
-                    bitindex_to_coords(step) for step in sequence
-                ]
-                jump_sequences_pdn.append(pdn_sequence)
-        return jump_sequences_pdn
+            jump_sequences.extend(
+                generate_all_jump_sequences(WP, BP, K, pos, is_king, "white")
+            )
+        return jump_sequences
 
     elif player == "black":
         # Generate sequences for black pieces
         for pos in find_set_bits(black_jumpers):
             is_king = is_set(K, pos)
-            sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
-            for sequence in sequences:
-                pdn_sequence = [bitindex_to_coords(pos)] + [
-                    bitindex_to_coords(step) for step in sequence
-                ]
-                jump_sequences_pdn.append(pdn_sequence)
-        return jump_sequences_pdn
+            jump_sequences.extend(
+                generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
+            )
+        return jump_sequences
 
 
 def generate_legal_moves(WP, BP, K, turn="white"):
@@ -470,7 +460,7 @@ if __name__ == "__main__":
     BP = insert_piece_by_pdntext(BP, "F4")
     BP = insert_piece_by_pdntext(BP, "D4")
 
-    WP, BP, K = get_fresh_board()
+    # WP, BP, K = get_fresh_board()
 
     white_moves = generate_legal_moves(WP, BP, K, "white")
     black_moves = generate_legal_moves(WP, BP, K, "black")
@@ -478,6 +468,17 @@ if __name__ == "__main__":
     print_board(WP, BP, K)
     print(f"White moves: {white_moves}")
     print(f"Black moves: {black_moves}")
+
+    for wm in white_moves:
+        for p in wm:
+            print(f"{bitindex_to_coords(p)}", sep="", end="->")
+        print("\n")
+
+    print("\n\n")
+    for bm in black_moves:
+        for p in bm:
+            print(f"{bitindex_to_coords(p)}", sep="", end="->")
+        print("\n")
 
     # WP, BP, K = get_empty_board()
     # WP = insert_piece(WP, 17)
