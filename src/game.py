@@ -226,15 +226,4 @@ def game_loop():
 
 
 if __name__ == "__main__":
-    # Start the profiler before the game loop
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    # Start the game
     simulate_random_games(10000, first_player=PlayerTurn.WHITE)
-
-    # Stop the profiler after the game loop
-    profiler.disable()
-
-    # Print out the stats sorted by the standard 'cumulative' sort (can also sort by 'time')
-    profiler.print_stats(sort="cumulative")
