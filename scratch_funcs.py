@@ -81,3 +81,51 @@ def generate_all_jump_moves(WP, BP, K, player="white"):
         generate_jump_moves_recursive(WP, BP, K, pos, pos, jump_moves, player)
 
     return jump_moves
+
+
+def old_generate_jump_moves(WP, BP, K, jumpers, player="white"):
+    jump_moves = []
+
+    # Define the direction maps based on the player
+    if player == "white":
+        own_pieces = WP
+        opponent_pieces = BP
+        regular_directions = [WHITE_SOUTHWEST, WHITE_SOUTHEAST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
+    else:  # player == 'black'
+        own_pieces = BP
+        opponent_pieces = WP
+        regular_directions = [BLACK_NORTHEAST, BLACK_NORTHWEST]
+        king_directions = [
+            BLACK_NORTHEAST,
+            BLACK_NORTHWEST,
+            WHITE_SOUTHWEST,
+            WHITE_SOUTHEAST,
+        ]
+
+    # Go through all the jumpers and generate jumps
+    for pos in find_set_bits(jumpers):
+        # Determine if the piece is a king
+        is_king = K & (1 << pos) != 0
+
+        # Select the correct directions based on whether the piece is a king
+        directions = king_directions if is_king else regular_directions
+
+        # Check all directions for possible jumps
+        for direction in directions:
+            next_square = direction.get(pos)
+            if next_square is not None and is_set(opponent_pieces, next_square):
+                jump_over_square = direction.get(next_square)
+                if jump_over_square is not None and not is_set(
+                    own_pieces | opponent_pieces, jump_over_square
+                ):
+                    # Add the initial jump move to the list
+                    jump_moves.append((pos, jump_over_square))
+                    # Further jumps would be handled by the recursive part here
+
+    return jump_moves

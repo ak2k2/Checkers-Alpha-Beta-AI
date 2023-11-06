@@ -33,6 +33,8 @@ PDN_MAP = {
     31: "H8",
 }
 
+REVERSE_PDN_MAP = {v: k for k, v in PDN_MAP.items()}
+
 
 def print_board(WP, BP, kings):
     # File names
@@ -106,6 +108,8 @@ def insert_piece_by_pdntext(bitboard, pdn_text):
     """
     Takes pdn coordinates (e.g. 'A1') and inserts a piece at the corresponding index (e.g. 0).
     """
+    if pdn_text not in REVERSE_PDN_MAP:
+        raise ValueError(f"{pdn_text} is not a valid PDN coordinate.")
     index = coords_to_bitindex(pdn_text)
     return insert_piece(bitboard, index)
 
@@ -122,6 +126,9 @@ def remove_piece_by_pdntext(bitboard, pdn_text):
     """
     Takes pdn coordinates (e.g. 'A1') and removes a piece at the corresponding index (e.g. 0).
     """
+    if pdn_text not in REVERSE_PDN_MAP:
+        raise ValueError(f"{pdn_text} is not a valid PDN coordinate.")
+
     index = coords_to_bitindex(pdn_text)
     return remove_piece(bitboard, index)
 
@@ -143,3 +150,10 @@ def is_set(bitboard, index):
     Returns True if the bit at the given index is set to 1 in the bitboard.
     """
     return (bitboard & (1 << index)) != 0
+
+
+def set_bit(bitboard, index):
+    """
+    Returns the bitboard with the bit at the given index set to 1.
+    """
+    return bitboard | (1 << index)
