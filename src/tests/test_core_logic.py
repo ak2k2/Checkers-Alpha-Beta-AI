@@ -25,6 +25,7 @@ from main import (
     print_board,
     remove_piece,
     remove_piece_by_pdntext,
+    PlayerTurn,
 )
 
 
@@ -98,7 +99,7 @@ def test_jump_moves():
     white_jumpers = get_jumpers_white(WP, BP, K)
     print_board(WP, BP, K)
     print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
-    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
     for move in white_jump_moves:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
@@ -114,7 +115,7 @@ def test_jump_king():
     white_jumpers = get_jumpers_white(WP, BP, K)
     print_board(WP, BP, K)
     print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
-    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
     for move in white_jump_moves:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
@@ -127,7 +128,7 @@ def test_jump_corners():
     white_jumpers = get_jumpers_white(WP, BP, K)
     print_board(WP, BP, K)
     print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
-    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
     for move in white_jump_moves:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
@@ -153,7 +154,7 @@ def test_only_jump_opponents():  # confirms that it only moves into allotted fre
     print_board(WP, BP, K)
     print(f"White jumpers: {bitboard_to_pdn_positions(white_jumpers)}")
 
-    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, "white")
+    white_jump_moves = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
     for move in white_jump_moves:
         print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
 
@@ -215,4 +216,4 @@ def test_generate_simple_moves_white():
 
 if __name__ == "__main__":
     # pytest.main()
-    test_only_jump_opponents()
+    test_jump_moves()

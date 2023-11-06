@@ -1,6 +1,10 @@
+from enum import Enum
+import math
+
 from util.helpers import (
     PDN_MAP,
     bitindex_to_coords,
+    convert_move_list_to_pdn,
     coords_to_bitindex,
     find_set_bits,
     get_empty_board,
@@ -10,7 +14,6 @@ from util.helpers import (
     is_set,
     print_bin_strings,
     print_board,
-    convert_move_list_to_pdn,
     remove_piece,
     remove_piece_by_pdntext,
     set_bit,
@@ -30,6 +33,11 @@ from util.masks import (
     WHITE_SOUTHWEST,
     S,
 )
+
+
+class PlayerTurn(Enum):
+    WHITE = 1
+    BLACK = 2
 
 
 def make_move(move, WP, BP, K):
@@ -54,10 +62,10 @@ def make_move(move, WP, BP, K):
         raise ValueError("No piece at source location.")
 
     # Update kings if a king was moved
-    if KINGS & (1 << src_index):
-        KINGS = remove_piece(KINGS, src_index)  # Remove from source
-        KINGS = insert_piece(
-            KINGS, dest_index
+    if K & (1 << src_index):
+        K = remove_piece(K, src_index)  # Remove from source
+        K = insert_piece(
+            K, dest_index
         )  # Insert to destination (works for both white and black)
 
     return WP, BP, K
@@ -245,7 +253,7 @@ def generate_simple_moves_black(WP, BP, K, black_movers):
     return simple_moves
 
 
-def generate_jump_moves(WP, BP, K, jumpers, player="white"):
+def generate_jump_moves(WP, BP, K, jumpers, player):
     jump_moves = []
 
     # Choose the correct dictionaries based on the player and kings
@@ -255,13 +263,13 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
     black_move_directions = [BLACK_NORTHEAST, BLACK_NORTHWEST]
 
     # Assign opponent pieces and directions based on the current player
-    if player == "white":
+    if player == PlayerTurn.WHITE:
         opponent_pieces = BP
         own_jump_directions = white_jump_directions
         own_move_directions = white_move_directions
         opp_jump_directions = black_jump_directions  # for kings
         opp_move_directions = black_move_directions  # for kings
-    else:  # player == "black"
+    elif player == PlayerTurn.BLACK:
         opponent_pieces = WP
         own_jump_directions = black_jump_directions
         own_move_directions = black_move_directions
@@ -300,79 +308,6 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
     return jump_moves
 
 
-# def generate_all_jump_sequences(
-#     WP,
-#     BP,
-#     K,
-#     pos,
-#     is_king: bool,
-#     player: str,
-#     sequence=None,
-#     sequences=None,
-#     visited=None,
-# ):
-#     if sequences is None:
-#         sequences = []
-#     if sequence is None:
-#         sequence = [pos]
-#     if visited is None:
-#         visited = set()  # To keep track of visited squares in the current sequence
-
-#     # Determine if the current piece is kinged as a result of the last move
-#     if not is_king and is_piece_kinged(pos, player):
-#         is_king = True
-#     else:
-#         # Get all possible single jumps for the current position
-#         jumpers = insert_piece(0, pos)
-#         single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
-
-#         # Filter out the jumps that lead to previously visited squares
-#         single_jumps = [jump for jump in single_jumps if jump[1] not in visited]
-
-#         for _, landing_square in single_jumps:
-#             # Calculate the index of the jumped piece
-#             jumped_pos = (pos + landing_square) // 2
-
-#             # Make the jump and remove the jumped piece from the board
-#             new_WP, new_BP, new_K = WP, BP, K
-#             new_WP = remove_piece(new_WP, pos)
-#             new_BP = remove_piece(new_BP, pos)
-#             new_WP = (
-#                 insert_piece(new_WP, landing_square) if player == "white" else new_WP
-#             )
-#             new_BP = (
-#                 insert_piece(new_BP, landing_square) if player == "black" else new_BP
-#             )
-#             new_WP = remove_piece(new_WP, jumped_pos) if player == "black" else new_WP
-#             new_BP = remove_piece(new_BP, jumped_pos) if player == "white" else new_BP
-#             new_K = (K & ~insert_piece(0, pos)) | (
-#                 insert_piece(0, landing_square) if is_king else 0
-#             )
-
-#             # Add this jump to the current sequence
-#             new_sequence = sequence + [landing_square]
-#             # Add the landing square to the visited set
-#             new_visited = visited | {landing_square}
-#             # Recursively generate the next jumps from the landing square
-#             generate_all_jump_sequences(
-#                 new_WP,
-#                 new_BP,
-#                 new_K,
-#                 landing_square,
-#                 is_king or is_piece_kinged(landing_square, player),
-#                 player,
-#                 new_sequence,
-#                 sequences,
-#                 new_visited,
-#             )
-
-#     if sequence and not single_jumps:
-#         # If we have a sequence and there are no more jumps, we've reached the end of a sequence
-#         sequences.append(sequence)
-#     print(f"Sequences: {sequences}")
-#     return sequences
-
-
 def generate_all_jump_sequences(
     WP, BP, K, pos, is_king: bool, player: str, sequence=None, sequences=None
 ):
@@ -392,29 +327,38 @@ def generate_all_jump_sequences(
     single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
 
     # Keep track of captured pieces to prevent capturing the same piece again
-    captured_pieces = set()
+    # captured_pieces = set()
+    print(f"single_jumps: {convert_move_list_to_pdn(single_jumps)}")
 
     for _, landing_square in single_jumps:
         # Calculate the index of the jumped piece
         jumped_pos = (pos + landing_square) // 2
-        if jumped_pos in captured_pieces:
-            continue  # Skip if we've already captured this piece in the current sequence
 
         # Make the jump and remove the jumped piece from the board
         new_WP, new_BP, new_K = WP, BP, K
         new_WP = remove_piece(new_WP, pos)
         new_BP = remove_piece(new_BP, pos)
-        new_WP = insert_piece(new_WP, landing_square) if player == "white" else new_WP
-        new_BP = insert_piece(new_BP, landing_square) if player == "black" else new_BP
-        new_WP = remove_piece(new_WP, jumped_pos) if player == "black" else new_WP
-        new_BP = remove_piece(new_BP, jumped_pos) if player == "white" else new_BP
+        new_WP = (
+            insert_piece(new_WP, landing_square)
+            if player == PlayerTurn.WHITE
+            else new_WP
+        )
+        new_BP = (
+            insert_piece(new_BP, landing_square)
+            if player == PlayerTurn.BLACK
+            else new_BP
+        )
+        new_WP = (
+            remove_piece(new_WP, jumped_pos) if player == PlayerTurn.BLACK else new_WP
+        )
+        new_BP = (
+            remove_piece(new_BP, jumped_pos) if player == PlayerTurn.WHITE else new_BP
+        )
         new_K = (K & ~insert_piece(0, pos)) | (
             insert_piece(0, landing_square) if is_king else 0
         )
 
-        # Add this jump to the current sequence and the jumped piece to the set of captured pieces
         new_sequence = sequence + [landing_square]
-        # new_captured_pieces = captured_pieces | {jumped_pos}
 
         # Recursively generate the next jumps from the landing square
         generate_all_jump_sequences(
@@ -436,47 +380,47 @@ def generate_all_jump_sequences(
 
 
 def is_piece_kinged(pos, player):
-    # This function determines if a piece should be kinged based on its position
-    # and the player. For simplicity, assume the top row indices are 0 to 3 and
-    # the bottom row indices are 28 to 31 for an 8x8 board.
-    if player == "white" and pos in range(28, 32):
+    print("MAIN DECLARE THAT A MAN HAS BEEN KINGED")
+    if player == PlayerTurn.WHITE and pos in range(
+        28, 32
+    ):  # TODO: WTF, shouldnt the black and white king ranks be flipped?
         return True
-    elif player == "black" and pos in range(0, 4):
+    elif player == PlayerTurn.BLACK and pos in range(0, 4):
         return True
     return False
 
 
 def all_jump_sequences(
-    WP, BP, K, white_jumpers=None, black_jumpers=None, player="white"
+    WP, BP, K, white_jumpers=None, black_jumpers=None, player=PlayerTurn.WHITE
 ):
     jump_sequences = []
 
-    if player == "white":
+    if player == PlayerTurn.WHITE:
         # Generate sequences for white pieces
         for pos in find_set_bits(white_jumpers):
             is_king = is_set(K, pos)
             jump_sequences.extend(
-                generate_all_jump_sequences(WP, BP, K, pos, is_king, "white")
+                generate_all_jump_sequences(WP, BP, K, pos, is_king, player)
             )
         return jump_sequences
 
-    elif player == "black":
+    elif player == PlayerTurn.BLACK:
         # Generate sequences for black pieces
         for pos in find_set_bits(black_jumpers):
-            print(f"Generating sequences for black piece at {pos}")
+            # print(f"Generating sequences for black piece at {bitindex_to_coords(pos)}")
             is_king = is_set(K, pos)
             jump_sequences.extend(
-                generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
+                generate_all_jump_sequences(WP, BP, K, pos, is_king, player)
             )
         return jump_sequences
 
 
-def generate_legal_moves(WP, BP, K, turn="white"):
-    if turn == "white":
+def generate_legal_moves(WP, BP, K, turn):
+    if turn == PlayerTurn.WHITE:
         # Check for jump moves first
         white_jumpers = get_jumpers_white(WP, BP, K)
         if white_jumpers:
-            return all_jump_sequences(WP, BP, K, white_jumpers, None, "white")
+            return all_jump_sequences(WP, BP, K, white_jumpers, None, turn)
 
         # If no jump moves, check for simple moves
         white_movers = get_movers_white(WP, BP, K)
@@ -488,10 +432,10 @@ def generate_legal_moves(WP, BP, K, turn="white"):
         print("No moves available - game over for white.")
         return None
 
-    elif turn == "black":
+    elif turn == PlayerTurn.BLACK:
         black_jumpers = get_jumpers_black(WP, BP, K)
         if black_jumpers:
-            return all_jump_sequences(WP, BP, K, None, black_jumpers, "black")
+            return all_jump_sequences(WP, BP, K, None, black_jumpers, turn)
 
         black_movers = get_movers_black(WP, BP, K)
         if black_movers:
@@ -500,15 +444,12 @@ def generate_legal_moves(WP, BP, K, turn="white"):
         print("No moves available - game over for black.")
         return None
 
-    else:
-        raise ValueError("Invalid turn value. Use 'white' or 'black'.")
-
 
 if __name__ == "__main__":
     WP, BP, K = get_empty_board()
 
-    WP = insert_piece(WP, 17)
-    WP = insert_piece(WP, 26)
+    WP = insert_piece_by_pdntext(WP, "C5")
+    WP = insert_piece_by_pdntext(WP, "E7")
     WP = insert_piece_by_pdntext(WP, "A5")
     K = insert_piece_by_pdntext(K, "A5")
     BP = insert_piece_by_pdntext(BP, "D2")
@@ -516,21 +457,42 @@ if __name__ == "__main__":
     WP = insert_piece_by_pdntext(WP, "F8")
     WP = insert_piece_by_pdntext(WP, "C7")
 
-    BP = insert_piece(BP, 12)
+    BP = insert_piece_by_pdntext(BP, "B4")
     BP = insert_piece_by_pdntext(BP, "F6")
     BP = insert_piece_by_pdntext(BP, "F2")
     BP = insert_piece_by_pdntext(BP, "H2")
     BP = insert_piece_by_pdntext(BP, "F4")
     BP = insert_piece_by_pdntext(BP, "D4")
 
-    # WP, BP, K = get_fresh_board()
-
-    # WP = remove_piece_by_pdntext(WP, "B6")
-    # WP = insert_piece_by_pdntext(WP, "D4")
-
-    white_moves = generate_legal_moves(WP, BP, K, "white")
-    black_moves = generate_legal_moves(WP, BP, K, "black")
-
     print_board(WP, BP, K)
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
+    print_bin_strings(WP, BP, K)
+
+    white_jumpers = get_jumpers_white(WP, BP, K)
+    print(
+        f"White jumpers: {[bitindex_to_coords(m) for m in find_set_bits(white_jumpers)]}"
+    )
+    wjm = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
+    print(f"White jump moves: {convert_move_list_to_pdn(wjm)}")
+
+    white_movers = get_movers_white(WP, BP, K)
+    print(
+        f"White movers: {[bitindex_to_coords(m) for m in find_set_bits(white_movers)]}"
+    )
+
+    white_legal_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
+    print(f"White moves: {convert_move_list_to_pdn(white_legal_moves)}")
+
+    black_jumpers = get_jumpers_black(WP, BP, K)
+    print(
+        f"Black jumpers: {[bitindex_to_coords(m) for m in find_set_bits(black_jumpers)]}"
+    )
+    bjm = generate_jump_moves(WP, BP, K, black_jumpers, PlayerTurn.BLACK)
+    print(f"Black jump moves: {convert_move_list_to_pdn(bjm)}")
+
+    black_movers = get_movers_black(WP, BP, K)
+    print(
+        f"Black movers: {[bitindex_to_coords(m) for m in find_set_bits(black_movers)]}"
+    )
+
+    black_legal_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
+    print(f"Black moves: {convert_move_list_to_pdn(black_legal_moves)}")
