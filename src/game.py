@@ -1,22 +1,24 @@
+import cProfile
+
 from main import (
-    get_fresh_board,
-    convert_move_list_to_pdn,
-    generate_legal_moves,
-    PlayerTurn,
-    print_board,
-    insert_piece_by_pdntext,
-    get_empty_board,
-    KING_ROW_WHITE,
+    BLACK_JUMP_NORTHEAST,
+    BLACK_JUMP_NORTHWEST,
+    BLACK_NORTHEAST,
+    BLACK_NORTHWEST,
     KING_ROW_BLACK,
+    KING_ROW_WHITE,
     MASK_32,
     WHITE_JUMP_SOUTHEAST,
     WHITE_JUMP_SOUTHWEST,
-    BLACK_JUMP_NORTHEAST,
-    BLACK_JUMP_NORTHWEST,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
-    BLACK_NORTHEAST,
-    BLACK_NORTHWEST,
+    PlayerTurn,
+    convert_move_list_to_pdn,
+    generate_legal_moves,
+    get_empty_board,
+    get_fresh_board,
+    insert_piece_by_pdntext,
+    print_board,
 )
 
 # Assuming these masks are defined correctly elsewhere:
@@ -131,10 +133,7 @@ def print_legal_moves(legal_moves):
     )
 
 
-def choose_move(legal_moves):
-    print_legal_moves(legal_moves)
-    choice = int(input("Choose your move by index: "))
-    selected_move = legal_moves[choice]
+def choose_move(selected_move):
     if len(selected_move) == 1:
         return [(selected_move)]
     else:
@@ -154,9 +153,47 @@ def is_terminal_condition_met(WP, BP, K):
     return False
 
 
+import random
+
+
+def simulate_random_games(n, first_player=PlayerTurn.WHITE):
+    for game_number in range(n):
+        # print(f"Starting Game {game_number + 1}")
+
+        # Initialize the board
+        WP, BP, K = initialize_game()
+        current_player = first_player
+
+        move_count = 0
+
+        while move_count < 100:
+            legal_moves = generate_legal_moves(WP, BP, K, current_player)
+            if not legal_moves:
+                # If no legal moves, the game ends
+                # print(f"{current_player.name} has no legal moves. Game over.")
+                break
+
+            # Select a random move from the legal moves
+            move = random.choice(legal_moves)
+            parsed_moves = choose_move(move)
+
+            # Apply the move(s) to the board
+            for m in parsed_moves:
+                WP, BP, K = do_move(WP, BP, K, m, current_player)
+
+            # Print board after move - comment this out if you don't want to see each intermediate state
+            # print_board(WP, BP, K)
+
+            # Switch players
+            current_player = switch_player(current_player)
+            move_count += 1
+
+        # print(f"Game over in {move_count} moves.")
+
+
 def game_loop():
     WP, BP, K = initialize_game_puzzle()
-    current_player = PlayerTurn.BLACK
+    current_player = PlayerTurn.WHITE
     move_count = 0
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
 
@@ -167,7 +204,11 @@ def game_loop():
             break
 
         print(f"It's {current_player.name}'s Turn.\n")
-        move = choose_move(legal_moves)
+        print_legal_moves(legal_moves)
+        choice = int(input("Choose your move by index: "))
+
+        selected_move = legal_moves[choice]
+        move = choose_move(selected_move)
 
         print(f"Move chosen: {move}")
         for m in move:
@@ -177,9 +218,23 @@ def game_loop():
         current_player = switch_player(current_player)
         move_count += 1
 
+        if move_count > 100:
+            print("100 Move Limit... Game Over!")
+            break
+
     print(f"Game over in {move_count} moves.")
 
 
 if __name__ == "__main__":
+    # Start the profiler before the game loop
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     # Start the game
-    game_loop()
+    simulate_random_games(10000, first_player=PlayerTurn.WHITE)
+
+    # Stop the profiler after the game loop
+    profiler.disable()
+
+    # Print out the stats sorted by the standard 'cumulative' sort (can also sort by 'time')
+    profiler.print_stats(sort="cumulative")
