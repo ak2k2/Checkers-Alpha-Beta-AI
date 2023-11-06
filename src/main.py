@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 from util.helpers import (
     PDN_MAP,
     bitindex_to_coords,
@@ -19,11 +18,13 @@ from util.helpers import (
     set_bit,
 )
 from util.masks import (
-    MASK_32,
     BLACK_JUMP_NORTHEAST,
     BLACK_JUMP_NORTHWEST,
     BLACK_NORTHEAST,
     BLACK_NORTHWEST,
+    KING_ROW_BLACK,
+    KING_ROW_WHITE,
+    MASK_32,
     MASK_L3,
     MASK_L5,
     MASK_R3,
@@ -32,8 +33,6 @@ from util.masks import (
     WHITE_JUMP_SOUTHWEST,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
-    KING_ROW_BLACK,
-    KING_ROW_WHITE,
     S,
 )
 
@@ -325,68 +324,45 @@ def generate_all_jump_sequences(
         sequence = [pos]
 
     # Determine if the current piece is kinged as a result of the last move
-    is_piece_now_king = False
     if not is_king and is_piece_kinged(pos, player):
         is_king = True
-        is_piece_now_king = True  # This flag indicates that the piece was just kinged
 
     # Get all possible simple jumps for the current position
     jumpers = insert_piece(0, pos)
     single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
 
     for _, intermediate_square, landing_square in single_jumps:
-        # Calculate the index of the jumped piece
-        # jumped_pos = (pos + landing_square) // 2
-        jumped_pos = intermediate_square
+        # Here, instead of creating new bitboards, modify and then restore the original ones
+        original_WP, original_BP, original_K = WP, BP, K
 
-        # print("--------------------")
-        # print(f"pos: {pos}")
-        # print(f"jumped_pos: {jumped_pos}")
-        # print(f"landing_square: {landing_square}")
-        # print("--------------------")
-
-        # Make the jump and remove the jumped piece from the board
-        new_WP, new_BP, new_K = WP, BP, K
-        new_WP = remove_piece(new_WP, pos)
-        new_BP = remove_piece(new_BP, pos)
-        new_WP = (
-            insert_piece(new_WP, landing_square)
-            if player == PlayerTurn.WHITE
-            else new_WP
-        )
-        new_BP = (
-            insert_piece(new_BP, landing_square)
-            if player == PlayerTurn.BLACK
-            else new_BP
-        )
-        new_WP = (
-            remove_piece(new_WP, jumped_pos) if player == PlayerTurn.BLACK else new_WP
-        )
-        new_BP = (
-            remove_piece(new_BP, jumped_pos) if player == PlayerTurn.WHITE else new_BP
-        )
-        new_K = (K & ~insert_piece(0, pos)) | (
+        # Make the jump and update the board state without creating new variables
+        WP = remove_piece(WP, pos)
+        BP = remove_piece(BP, pos)
+        WP = insert_piece(WP, landing_square) if player == PlayerTurn.WHITE else WP
+        BP = insert_piece(BP, landing_square) if player == PlayerTurn.BLACK else BP
+        WP = remove_piece(WP, intermediate_square) if player == PlayerTurn.BLACK else WP
+        BP = remove_piece(BP, intermediate_square) if player == PlayerTurn.WHITE else BP
+        K = (K & ~insert_piece(0, pos)) | (
             insert_piece(0, landing_square) if is_king else 0
         )
 
-        new_sequence = sequence + [landing_square]
+        # Append to the current sequence instead of creating a new one
+        sequence.append(landing_square)
 
-        # Recursively generate the next jumps from the landing square
+        # Recursive call with the modified sequence
         generate_all_jump_sequences(
-            new_WP,
-            new_BP,
-            new_K,
-            landing_square,
-            is_king,
-            player,
-            new_sequence,
-            sequences,
+            WP, BP, K, landing_square, is_king, player, sequence, sequences
         )
 
-    # If no further jumps are possible, or if the piece was just kinged,
-    # then finalize the sequence.
-    if not single_jumps or is_piece_now_king:
-        sequences.append(sequence)
+        # Restore the original board state and sequence
+        WP, BP, K = original_WP, original_BP, original_K
+        sequence.pop()  # Remove the last element to restore the original sequence
+
+    # If no further jumps are possible or the piece was just kinged, then finalize the sequence.
+    if not single_jumps or (not is_king and is_piece_kinged(pos, player)):
+        sequences.append(
+            list(sequence)
+        )  # Make a copy of the sequence to store it independently
 
     return sequences
 

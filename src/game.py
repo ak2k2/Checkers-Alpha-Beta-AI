@@ -226,4 +226,5 @@ def game_loop():
 
 
 if __name__ == "__main__":
-    simulate_random_games(10000, first_player=PlayerTurn.WHITE)
+    simulate_random_games(20000, first_player=PlayerTurn.WHITE)
+    # game_loop()
