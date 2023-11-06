@@ -1,11 +1,5 @@
 from enum import Enum
-import math
-import sys
 
-print(sys.getrecursionlimit())
-sys.setrecursionlimit(
-    200
-)  # TODO: lowered to test the recursion limit, should be set back to 1000
 
 from util.helpers import (
     PDN_MAP,
@@ -25,6 +19,7 @@ from util.helpers import (
     set_bit,
 )
 from util.masks import (
+    MASK_32,
     BLACK_JUMP_NORTHEAST,
     BLACK_JUMP_NORTHWEST,
     BLACK_NORTHEAST,
@@ -37,6 +32,8 @@ from util.masks import (
     WHITE_JUMP_SOUTHWEST,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
+    KING_ROW_BLACK,
+    KING_ROW_WHITE,
     S,
 )
 
@@ -108,19 +105,19 @@ def get_movers_black(WP, BP, K):
         Output: black movers
     """
     # Constants for masks, assuming they prevent wraparound for upward moves
-    nOcc = ~(WP | BP)  # Not Occupied
-    BK = BP & K  # Black Kings
+    nOcc = ~(WP | BP) & MASK_32  # Not Occupied
+    BK = BP & K & MASK_32  # Black Kings
 
     # Calculate potential moves for black non-kings upwards
-    Movers = (nOcc >> 4) & BP  # Move up 4
-    Movers |= ((nOcc & MASK_R3) >> 3) & BP  # Move up right 3
-    Movers |= ((nOcc & MASK_R5) >> 5) & BP  # Move up right 5
+    Movers = (nOcc >> 4) & BP & MASK_32  # Move up 4
+    Movers |= ((nOcc & MASK_R3) >> 3) & BP & MASK_32  # Move up right 3
+    Movers |= ((nOcc & MASK_R5) >> 5) & BP & MASK_32  # Move up right 5
 
     # Calculate potential moves for black kings (which can move both up and down)
     if BK:
-        Movers |= (nOcc << 4) & BK  # Move down 4
-        Movers |= ((nOcc & MASK_L3) << 3) & BK  # Move down left 3
-        Movers |= ((nOcc & MASK_L5) << 5) & BK  # Move down left 5
+        Movers |= (nOcc << 4) & BK & MASK_32  # Move down 4
+        Movers |= ((nOcc & MASK_L3) << 3) & BK & MASK_32  # Move down left 3
+        Movers |= ((nOcc & MASK_L5) << 5) & BK & MASK_32  # Move down left 5
 
     return Movers
 
@@ -131,26 +128,28 @@ def get_jumpers_white(WP, BP, K):
         Input: WP, BP, K
         Output: white jumpers
     """
-    nOcc = ~(WP | BP)  # Not Occupied
-    WK = WP & K  # White Kings
+    nOcc = ~(WP | BP) & MASK_32  # Not Occupied
+    WK = WP & K & MASK_32  # White Kings
     Jumpers = 0
 
     # Shift for normal pieces
-    Temp = (nOcc << 4) & BP
+    Temp = (nOcc << 4) & BP & MASK_32
     if Temp:
-        Jumpers |= (((Temp & MASK_L3) << 3) | ((Temp & MASK_L5) << 5)) & WP
+        Jumpers |= (((Temp & MASK_L3) << 3) | ((Temp & MASK_L5) << 5)) & WP & MASK_32
 
-    Temp = (((nOcc & MASK_L3) << 3) | ((nOcc & MASK_L5) << 5)) & BP
-    Jumpers |= (Temp << 4) & WP
+    Temp = (((nOcc & MASK_L3) << 3) | ((nOcc & MASK_L5) << 5)) & BP & MASK_32
+    Jumpers |= (Temp << 4) & WP & MASK_32
 
     # Shift for kings
     if WK:
-        Temp = (nOcc >> 4) & BP
+        Temp = (nOcc >> 4) & BP & MASK_32
         if Temp:
-            Jumpers |= (((Temp & MASK_R3) >> 3) | ((Temp & MASK_R5) >> 5)) & WK
-        Temp = (((nOcc & MASK_R3) >> 3) | ((nOcc & MASK_R5) >> 5)) & BP
+            Jumpers |= (
+                (((Temp & MASK_R3) >> 3) | ((Temp & MASK_R5) >> 5)) & WK & MASK_32
+            )
+        Temp = (((nOcc & MASK_R3) >> 3) | ((nOcc & MASK_R5) >> 5)) & BP & MASK_32
         if Temp:
-            Jumpers |= (Temp >> 4) & WK
+            Jumpers |= (Temp >> 4) & WK & MASK_32
 
     return Jumpers
 
@@ -161,26 +160,29 @@ def get_jumpers_black(WP, BP, K):
         Input: WP, BP, K
         Output: black jumpers
     """
-    nOcc = ~(WP | BP)  # Not Occupied
-    BK = BP & K  # Black Kings
+
+    nOcc = ~(WP | BP) & MASK_32  # Not Occupied
+    BK = BP & K & MASK_32  # Black Kings
     Jumpers = 0
 
     # Shift for normal pieces
-    Temp = (nOcc >> 4) & WP
+    Temp = (nOcc >> 4) & WP & MASK_32
     if Temp:
-        Jumpers |= (((Temp & MASK_R3) >> 3) | ((Temp & MASK_R5) >> 5)) & BP
+        Jumpers |= (((Temp & MASK_R3) >> 3) | ((Temp & MASK_R5) >> 5)) & BP & MASK_32
 
-    Temp = (((nOcc & MASK_R3) >> 3) | ((nOcc & MASK_R5) >> 5)) & WP
-    Jumpers |= (Temp >> 4) & BP
+    Temp = (((nOcc & MASK_R3) >> 3) | ((nOcc & MASK_R5) >> 5)) & WP & MASK_32
+    Jumpers |= (Temp >> 4) & BP & MASK_32
 
     # Shift for kings
     if BK:
-        Temp = (nOcc << 4) & WP
+        Temp = (nOcc << 4) & WP & MASK_32
         if Temp:
-            Jumpers |= (((Temp & MASK_L3) << 3) | ((Temp & MASK_L5) << 5)) & BK
-        Temp = (((nOcc & MASK_L3) << 3) | ((nOcc & MASK_L5) << 5)) & WP
+            Jumpers |= (
+                (((Temp & MASK_L3) << 3) | ((Temp & MASK_L5) << 5)) & BK & MASK_32
+            )
+        Temp = (((nOcc & MASK_L3) << 3) | ((nOcc & MASK_L5) << 5)) & WP & MASK_32
         if Temp:
-            Jumpers |= (Temp << 4) & BK
+            Jumpers |= (Temp << 4) & BK & MASK_32
 
     return Jumpers
 
@@ -328,24 +330,20 @@ def generate_all_jump_sequences(
         is_king = True
         is_piece_now_king = True  # This flag indicates that the piece was just kinged
 
-    # Get all possible single jumps for the current position
+    # Get all possible simple jumps for the current position
     jumpers = insert_piece(0, pos)
     single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
-
-    # Keep track of captured pieces to prevent capturing the same piece again
-    # captured_pieces = set()
-    print(f"single_jumps: {convert_move_list_to_pdn(single_jumps)}")
 
     for _, intermediate_square, landing_square in single_jumps:
         # Calculate the index of the jumped piece
         # jumped_pos = (pos + landing_square) // 2
         jumped_pos = intermediate_square
 
-        print("--------------------")
-        print(f"pos: {pos}")
-        print(f"jumped_pos: {jumped_pos}")
-        print(f"landing_square: {landing_square}")
-        print("--------------------")
+        # print("--------------------")
+        # print(f"pos: {pos}")
+        # print(f"jumped_pos: {jumped_pos}")
+        # print(f"landing_square: {landing_square}")
+        # print("--------------------")
 
         # Make the jump and remove the jumped piece from the board
         new_WP, new_BP, new_K = WP, BP, K
@@ -371,8 +369,6 @@ def generate_all_jump_sequences(
             insert_piece(0, landing_square) if is_king else 0
         )
 
-        print_board(new_WP, new_BP, new_K)
-
         new_sequence = sequence + [landing_square]
 
         # Recursively generate the next jumps from the landing square
@@ -388,7 +384,7 @@ def generate_all_jump_sequences(
         )
 
     # If no further jumps are possible, or if the piece was just kinged,
-    # we finalize the sequence.
+    # then finalize the sequence.
     if not single_jumps or is_piece_now_king:
         sequences.append(sequence)
 
@@ -396,15 +392,9 @@ def generate_all_jump_sequences(
 
 
 def is_piece_kinged(pos, player):
-    if player == PlayerTurn.WHITE and pos in range(
-        0, 4
-    ):  # TODO: WTF, shouldnt the black and white king ranks be flipped?
-        print("MAIN DECLARE THAT A WHITE MAN HAS BEEN KINGED")
-        return True
-    elif player == PlayerTurn.BLACK and pos in range(28, 32):
-        print("MAIN DECLARE THAT A BLACK MAN HAS BEEN KINGED")
-        return True
-    return False
+    return (player == PlayerTurn.WHITE and (S[pos] & KING_ROW_WHITE)) or (
+        player == PlayerTurn.BLACK and (S[pos] & KING_ROW_BLACK)
+    )
 
 
 def all_jump_sequences(
@@ -463,53 +453,5 @@ def generate_legal_moves(WP, BP, K, turn):
 
 
 if __name__ == "__main__":
-    WP, BP, K = get_empty_board()
-
-    WP = insert_piece_by_pdntext(WP, "C5")
-    WP = insert_piece_by_pdntext(WP, "E7")
-    WP = insert_piece_by_pdntext(WP, "A5")
-    K = insert_piece_by_pdntext(K, "A5")
-    BP = insert_piece_by_pdntext(BP, "D2")
-    K = insert_piece_by_pdntext(K, "D2")
-    WP = insert_piece_by_pdntext(WP, "F8")
-    WP = insert_piece_by_pdntext(WP, "C7")
-
-    BP = insert_piece_by_pdntext(BP, "B4")
-    BP = insert_piece_by_pdntext(BP, "F6")
-    BP = insert_piece_by_pdntext(BP, "F2")
-    BP = insert_piece_by_pdntext(BP, "H2")
-    BP = insert_piece_by_pdntext(BP, "F4")
-    BP = insert_piece_by_pdntext(BP, "D4")
-
+    WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
-    print_bin_strings(WP, BP, K)
-
-    white_jumpers = get_jumpers_white(WP, BP, K)
-    print(
-        f"White jumpers: {[bitindex_to_coords(m) for m in find_set_bits(white_jumpers)]}"
-    )
-    wjm = generate_jump_moves(WP, BP, K, white_jumpers, PlayerTurn.WHITE)
-    print(f"White jump moves: {convert_move_list_to_pdn(wjm)}")
-
-    white_movers = get_movers_white(WP, BP, K)
-    print(
-        f"White movers: {[bitindex_to_coords(m) for m in find_set_bits(white_movers)]}"
-    )
-
-    white_legal_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
-    print(f"White moves: {convert_move_list_to_pdn(white_legal_moves)}")
-
-    black_jumpers = get_jumpers_black(WP, BP, K)
-    print(
-        f"Black jumpers: {[bitindex_to_coords(m) for m in find_set_bits(black_jumpers)]}"
-    )
-    bjm = generate_jump_moves(WP, BP, K, black_jumpers, PlayerTurn.BLACK)
-    print(f"Black jump moves: {convert_move_list_to_pdn(bjm)}")
-
-    black_movers = get_movers_black(WP, BP, K)
-    print(
-        f"Black movers: {[bitindex_to_coords(m) for m in find_set_bits(black_movers)]}"
-    )
-
-    black_legal_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
-    print(f"Black moves: {convert_move_list_to_pdn(black_legal_moves)}")

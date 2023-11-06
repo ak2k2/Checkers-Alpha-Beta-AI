@@ -1,38 +1,4 @@
-S = [1 << i for i in range(32)]
-
-# L3, L5, R3, R5 MASKS inspired by: https://3dkingdoms.com/checkers/bitboards.htm
-
-MASK_L3 = (
-    S[1]
-    | S[2]
-    | S[3]
-    | S[9]
-    | S[10]
-    | S[11]
-    | S[17]
-    | S[18]
-    | S[19]
-    | S[25]
-    | S[26]
-    | S[27]
-)
-MASK_L5 = S[4] | S[5] | S[6] | S[12] | S[13] | S[14] | S[20] | S[21] | S[22]
-MASK_R3 = (
-    S[28]
-    | S[29]
-    | S[30]
-    | S[20]
-    | S[21]
-    | S[22]
-    | S[12]
-    | S[13]
-    | S[14]
-    | S[4]
-    | S[5]
-    | S[6]
-)
-MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11]
-
+MASK_32 = 0xFFFFFFFF  # To explicitly invoke 32-bit integers.
 
 # Black moving to the top right (Northeast)
 BLACK_NORTHEAST = {
@@ -318,6 +284,45 @@ WHITE_JUMP_SOUTHWEST = {
     31: 22,
 }
 
+
+S = [1 << i for i in range(32)]
+
+# L3, L5, R3, R5 MASKS inspired by: https://3dkingdoms.com/checkers/bitboards.htm
+
+MASK_L3 = (
+    S[1]
+    | S[2]
+    | S[3]
+    | S[9]
+    | S[10]
+    | S[11]
+    | S[17]
+    | S[18]
+    | S[19]
+    | S[25]
+    | S[26]
+    | S[27]
+)
+MASK_L5 = S[4] | S[5] | S[6] | S[12] | S[13] | S[14] | S[20] | S[21] | S[22]
+MASK_R3 = (
+    S[28]
+    | S[29]
+    | S[30]
+    | S[20]
+    | S[21]
+    | S[22]
+    | S[12]
+    | S[13]
+    | S[14]
+    | S[4]
+    | S[5]
+    | S[6]
+)
+MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11]
+
 CENTER_8 = S[9] | S[10] | S[13] | S[14] | S[17] | S[18] | S[21] | S[22]
 
 DOUBLE_CORNER = S[3] | S[7] | S[24] | S[28]
+
+KING_ROW_WHITE = S[0] | S[1] | S[2] | S[3]
+KING_ROW_BLACK = S[28] | S[29] | S[30] | S[31]

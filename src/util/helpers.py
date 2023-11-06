@@ -175,6 +175,8 @@ def convert_move_list_to_pdn(move_list) -> None:
     """
     Converts a list of move lists into PDN coordinates.
     """
+    if move_list is None:
+        return []
     pdn_moves = []
     for move in move_list:
         coords = [bitindex_to_coords(index) for index in move]
