@@ -7,15 +7,17 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 from main import (
+    PlayerTurn,
     bitindex_to_coords,
+    convert_move_list_to_pdn,
     coords_to_bitindex,
     find_set_bits,
     generate_jump_moves,
+    generate_legal_moves,
     generate_simple_moves_black,
     generate_simple_moves_white,
     get_empty_board,
     get_fresh_board,
-    generate_legal_moves,
     get_jumpers_black,
     get_jumpers_white,
     get_movers_black,
@@ -26,8 +28,6 @@ from main import (
     print_board,
     remove_piece,
     remove_piece_by_pdntext,
-    convert_move_list_to_pdn,
-    PlayerTurn,
 )
 
 
@@ -148,7 +148,9 @@ def test_tricky_capture_sequence_two():
 
     WP = insert_piece_by_pdntext(WP, "H8")
     K = insert_piece_by_pdntext(K, "H8")
-    WP = insert_piece_by_pdntext(WP, "B8") # TODO: black thinks he can captire by moving into a piece that is weird
+    WP = insert_piece_by_pdntext(
+        WP, "B8"
+    )  # TODO: black thinks he can captire by moving into a piece that is weird
 
     BP = insert_piece_by_pdntext(BP, "C7")
     BP = insert_piece_by_pdntext(BP, "E7")
