@@ -36,39 +36,6 @@ PDN_MAP = {
 REVERSE_PDN_MAP = {v: k for k, v in PDN_MAP.items()}
 
 
-def print_board(WP, BP, kings) -> None:
-    """
-    Prints a visual representation of the board to the console.
-    """
-    # File names
-    print("\n")
-    print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
-    print("  +" + "---+" * 8)
-
-    for row in range(8):
-        # Rank numbers on the left side
-        row_str = f"{8-row} |"
-
-        for col in range(8):
-            # Index from 32-bit board representation
-            if row % 2 != col % 2:
-                index = (7 - row) * 4 + (col // 2)
-                if WP & (1 << index):
-                    char = "W" if kings & (1 << index) else "w"
-                elif BP & (1 << index):
-                    char = "B" if kings & (1 << index) else "b"
-                else:
-                    char = " "  # Playable empty square
-            else:
-                char = " "  # Unplayable square (white square)
-
-            row_str += f" {char} |"
-
-        print(row_str)
-        print("  +" + "---+" * 8)  # Print the row separator
-    print("\n")
-
-
 def print_bin_strings(WP, BP, KINGS) -> None:
     print(f"White Pieces: {bin(WP)[2:].zfill(32)}")
     print(f"Black Pieces: {bin(BP)[2:].zfill(32)}")
@@ -169,3 +136,47 @@ def set_bit(bitboard, index) -> int:
     Returns the bitboard with the bit at the given index set to 1.
     """
     return bitboard | (1 << index)
+
+
+def print_board(WP, BP, kings) -> None:
+    """
+    Prints a visual representation of the board to the console.
+    """
+    # File names
+    print("\n")
+    print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
+    print("  +" + "---+" * 8)
+
+    for row in range(8):
+        # Rank numbers on the left side
+        row_str = f"{8-row} |"
+
+        for col in range(8):
+            # Index from 32-bit board representation
+            if row % 2 != col % 2:
+                index = (7 - row) * 4 + (col // 2)
+                if WP & (1 << index):
+                    char = "W" if kings & (1 << index) else "w"
+                elif BP & (1 << index):
+                    char = "B" if kings & (1 << index) else "b"
+                else:
+                    char = " "  # Playable empty square
+            else:
+                char = " "  # Unplayable square (white square)
+
+            row_str += f" {char} |"
+
+        print(row_str)
+        print("  +" + "---+" * 8)  # Print the row separator
+    print("\n")
+
+
+def convert_move_list_to_pdn(move_list) -> None:
+    """
+    Converts a list of move lists into PDN coordinates.
+    """
+    pdn_moves = []
+    for move in move_list:
+        coords = [bitindex_to_coords(index) for index in move]
+        pdn_moves.append("->".join(coords))
+    return pdn_moves

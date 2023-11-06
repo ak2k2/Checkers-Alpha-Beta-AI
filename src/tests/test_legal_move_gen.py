@@ -34,8 +34,9 @@ def test_generate_legal_moves_from_start():
     white_legal_moves = generate_legal_moves(WP, BP, K, "white")
     print(white_legal_moves)
     black_legal_moves = generate_legal_moves(WP, BP, K, "black")
-
-    assert len(legal_moves) == 7
+    print(black_legal_moves)
+    assert len(white_legal_moves) == 7
+    assert len(black_legal_moves) == 7
 
 
 if __name__ == "__main__":

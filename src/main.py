@@ -8,13 +8,13 @@ from util.helpers import (
     insert_piece,
     insert_piece_by_pdntext,
     is_set,
-    set_bit,
     print_bin_strings,
     print_board,
+    convert_move_list_to_pdn,
     remove_piece,
     remove_piece_by_pdntext,
+    set_bit,
 )
-
 from util.masks import (
     BLACK_JUMP_NORTHEAST,
     BLACK_JUMP_NORTHWEST,
@@ -300,76 +300,138 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
     return jump_moves
 
 
+# def generate_all_jump_sequences(
+#     WP,
+#     BP,
+#     K,
+#     pos,
+#     is_king: bool,
+#     player: str,
+#     sequence=None,
+#     sequences=None,
+#     visited=None,
+# ):
+#     if sequences is None:
+#         sequences = []
+#     if sequence is None:
+#         sequence = [pos]
+#     if visited is None:
+#         visited = set()  # To keep track of visited squares in the current sequence
+
+#     # Determine if the current piece is kinged as a result of the last move
+#     if not is_king and is_piece_kinged(pos, player):
+#         is_king = True
+#     else:
+#         # Get all possible single jumps for the current position
+#         jumpers = insert_piece(0, pos)
+#         single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
+
+#         # Filter out the jumps that lead to previously visited squares
+#         single_jumps = [jump for jump in single_jumps if jump[1] not in visited]
+
+#         for _, landing_square in single_jumps:
+#             # Calculate the index of the jumped piece
+#             jumped_pos = (pos + landing_square) // 2
+
+#             # Make the jump and remove the jumped piece from the board
+#             new_WP, new_BP, new_K = WP, BP, K
+#             new_WP = remove_piece(new_WP, pos)
+#             new_BP = remove_piece(new_BP, pos)
+#             new_WP = (
+#                 insert_piece(new_WP, landing_square) if player == "white" else new_WP
+#             )
+#             new_BP = (
+#                 insert_piece(new_BP, landing_square) if player == "black" else new_BP
+#             )
+#             new_WP = remove_piece(new_WP, jumped_pos) if player == "black" else new_WP
+#             new_BP = remove_piece(new_BP, jumped_pos) if player == "white" else new_BP
+#             new_K = (K & ~insert_piece(0, pos)) | (
+#                 insert_piece(0, landing_square) if is_king else 0
+#             )
+
+#             # Add this jump to the current sequence
+#             new_sequence = sequence + [landing_square]
+#             # Add the landing square to the visited set
+#             new_visited = visited | {landing_square}
+#             # Recursively generate the next jumps from the landing square
+#             generate_all_jump_sequences(
+#                 new_WP,
+#                 new_BP,
+#                 new_K,
+#                 landing_square,
+#                 is_king or is_piece_kinged(landing_square, player),
+#                 player,
+#                 new_sequence,
+#                 sequences,
+#                 new_visited,
+#             )
+
+#     if sequence and not single_jumps:
+#         # If we have a sequence and there are no more jumps, we've reached the end of a sequence
+#         sequences.append(sequence)
+#     print(f"Sequences: {sequences}")
+#     return sequences
+
+
 def generate_all_jump_sequences(
-    WP,
-    BP,
-    K,
-    pos,
-    is_king: bool,
-    player: str,
-    sequence=None,
-    sequences=None,
-    visited=None,
+    WP, BP, K, pos, is_king: bool, player: str, sequence=None, sequences=None
 ):
     if sequences is None:
         sequences = []
     if sequence is None:
         sequence = [pos]
-    if visited is None:
-        visited = set()  # To keep track of visited squares in the current sequence
 
     # Determine if the current piece is kinged as a result of the last move
+    is_piece_now_king = False
     if not is_king and is_piece_kinged(pos, player):
         is_king = True
-    else:
-        # Get all possible single jumps for the current position
-        jumpers = insert_piece(0, pos)
-        single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
+        is_piece_now_king = True  # This flag indicates that the piece was just kinged
 
-        # Filter out the jumps that lead to previously visited squares
-        single_jumps = [jump for jump in single_jumps if jump[1] not in visited]
+    # Get all possible single jumps for the current position
+    jumpers = insert_piece(0, pos)
+    single_jumps = generate_jump_moves(WP, BP, K, jumpers, player)
 
-        for _, landing_square in single_jumps:
-            # Calculate the index of the jumped piece
-            jumped_pos = (pos + landing_square) // 2
+    # Keep track of captured pieces to prevent capturing the same piece again
+    captured_pieces = set()
 
-            # Make the jump and remove the jumped piece from the board
-            new_WP, new_BP, new_K = WP, BP, K
-            new_WP = remove_piece(new_WP, pos)
-            new_BP = remove_piece(new_BP, pos)
-            new_WP = (
-                insert_piece(new_WP, landing_square) if player == "white" else new_WP
-            )
-            new_BP = (
-                insert_piece(new_BP, landing_square) if player == "black" else new_BP
-            )
-            new_WP = remove_piece(new_WP, jumped_pos) if player == "black" else new_WP
-            new_BP = remove_piece(new_BP, jumped_pos) if player == "white" else new_BP
-            new_K = (K & ~insert_piece(0, pos)) | (
-                insert_piece(0, landing_square) if is_king else 0
-            )
+    for _, landing_square in single_jumps:
+        # Calculate the index of the jumped piece
+        jumped_pos = (pos + landing_square) // 2
+        if jumped_pos in captured_pieces:
+            continue  # Skip if we've already captured this piece in the current sequence
 
-            # Add this jump to the current sequence
-            new_sequence = sequence + [landing_square]
-            # Add the landing square to the visited set
-            new_visited = visited | {landing_square}
-            # Recursively generate the next jumps from the landing square
-            generate_all_jump_sequences(
-                new_WP,
-                new_BP,
-                new_K,
-                landing_square,
-                is_king or is_piece_kinged(landing_square, player),
-                player,
-                new_sequence,
-                sequences,
-                new_visited,
-            )
+        # Make the jump and remove the jumped piece from the board
+        new_WP, new_BP, new_K = WP, BP, K
+        new_WP = remove_piece(new_WP, pos)
+        new_BP = remove_piece(new_BP, pos)
+        new_WP = insert_piece(new_WP, landing_square) if player == "white" else new_WP
+        new_BP = insert_piece(new_BP, landing_square) if player == "black" else new_BP
+        new_WP = remove_piece(new_WP, jumped_pos) if player == "black" else new_WP
+        new_BP = remove_piece(new_BP, jumped_pos) if player == "white" else new_BP
+        new_K = (K & ~insert_piece(0, pos)) | (
+            insert_piece(0, landing_square) if is_king else 0
+        )
 
-    if sequence and not single_jumps:
-        # If we have a sequence and there are no more jumps, we've reached the end of a sequence
+        # Add this jump to the current sequence and the jumped piece to the set of captured pieces
+        new_sequence = sequence + [landing_square]
+        # new_captured_pieces = captured_pieces | {jumped_pos}
+
+        # Recursively generate the next jumps from the landing square
+        generate_all_jump_sequences(
+            new_WP,
+            new_BP,
+            new_K,
+            landing_square,
+            is_king,
+            player,
+            new_sequence,
+            sequences,
+        )
+
+    # If the piece was just kinged and there were no further jumps possible, we finalize the sequence here.
+    if sequence and not single_jumps and not is_piece_now_king:
         sequences.append(sequence)
-    print(f"Sequences: {sequences}")
+
     return sequences
 
 
@@ -470,109 +532,5 @@ if __name__ == "__main__":
     black_moves = generate_legal_moves(WP, BP, K, "black")
 
     print_board(WP, BP, K)
-    print(f"White moves: {white_moves}")
-    print(f"Black moves: {black_moves}")
-
-    print("\n\n")
-    for wm in white_moves:
-        for p in wm:
-            print(f"{bitindex_to_coords(p)}", sep="", end="->")
-        print("\t")
-
-    print("\n\n")
-    for bm in black_moves:
-        for p in bm:
-            print(f"{bitindex_to_coords(p)}", sep="", end="->")
-        print("\t")
-
-    # WP, BP, K = get_empty_board()
-    # WP = insert_piece(WP, 17)
-    # WP = insert_piece(WP, 26)
-    # WP = insert_piece(WP, 27)
-    # WP = insert_piece_by_pdntext(WP, "A5")
-    # K = insert_piece_by_pdntext(K, "A5")
-    # BP = insert_piece_by_pdntext(BP, "D2")
-    # K = insert_piece_by_pdntext(K, "D2")
-    # WP = insert_piece_by_pdntext(WP, "F8")
-
-    # BP = insert_piece(BP, 12)
-    # BP = insert_piece_by_pdntext(BP, "F6")
-    # BP = insert_piece_by_pdntext(BP, "F2")
-    # BP = insert_piece_by_pdntext(BP, "H2")
-    # BP = insert_piece_by_pdntext(BP, "F4")
-
-    # wj = get_jumpers_white(WP, BP, K)
-    # wm = generate_simple_moves_white(WP, BP, K)
-    # wj = get_jumpers_white(WP, BP, K)
-    # bm = generate_simple_moves_black(WP, BP, K)
-
-    # print_board(WP, BP, K)
-
-    # print("White jumpers:")
-    # print(wj)
-    # print("Black jumpers:")
-    # print(bj)
-
-    # wm = generate_simple_moves_white(WP, BP, K)
-    # bm = generate_simple_moves_black(WP, BP, K)
-
-    # print_board(WP, BP, K)
-
-    # print("White simple moves:")
-    # print(wm)
-    # for move in wm:
-    #     print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
-
-    # print("Black simple moves:")
-    # for move in bm:
-    #     print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
-
-    # WP, BP, K = get_empty_board()
-
-    # WP = insert_piece(WP, 17)
-    # WP = insert_piece(WP, 26)
-    # WP = insert_piece(WP, 27)
-    # WP = insert_piece_by_pdntext(WP, "A5")
-    # K = insert_piece_by_pdntext(K, "A5")
-    # BP = insert_piece_by_pdntext(BP, "D2")
-    # K = insert_piece_by_pdntext(K, "D2")
-    # WP = insert_piece_by_pdntext(WP, "F8")
-
-    # BP = insert_piece(BP, 12)
-    # BP = insert_piece_by_pdntext(BP, "F6")
-    # BP = insert_piece_by_pdntext(BP, "F2")
-    # BP = insert_piece_by_pdntext(BP, "H2")
-    # BP = insert_piece_by_pdntext(BP, "F4")
-
-    # print("STARTING BOARD")
-    # print_board(WP, BP, K)
-
-    # print(bin(get_movers_white(WP, BP, K)))
-
-    # wm = generate_simple_moves_white(
-    #     get_movers_white(WP, BP, K), BP, K
-    # )  # generate all the simple moves for white pieces that can do a simple move
-
-    # bm = generate_simple_moves_black(
-    #     WP, get_movers_black(WP, BP, K), K
-    # )  # generate all the simple moves for black pieces that can do a simple move
-
-    # print("White SIMPLE moves:")
-    # for move in wm:
-    #     print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
-
-    # print("Black SIMPLE moves:")
-    # for move in bm:
-    #     print(f"{bitindex_to_coords(move[0])} -> {bitindex_to_coords(move[1])}")
-
-    # wjm = generate_jump_moves(WP, BP, K, get_jumpers_white(WP, BP, K))
-    # print("White single JUMP moves:")
-    # for ml in wjm:
-    #     print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
-
-    # bjm = generate_jump_moves(WP, BP, K, get_jumpers_black(WP, BP, K), player="black")
-    # print("Black single JUMP moves:")
-    # for ml in bjm:
-    #     print(f"{bitindex_to_coords(ml[0])} -> {bitindex_to_coords(ml[1])}")
-
-    # print(test_jump_sequences(WP, BP, K))
+    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
+    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
