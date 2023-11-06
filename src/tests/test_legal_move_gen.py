@@ -26,15 +26,16 @@ from main import (
     print_board,
     remove_piece,
     remove_piece_by_pdntext,
+    convert_move_list_to_pdn,
 )
 
 
 def test_generate_legal_moves_from_start():
     WP, BP, K = get_fresh_board()
     white_legal_moves = generate_legal_moves(WP, BP, K, "white")
-    print(white_legal_moves)
+    print(convert_move_list_to_pdn(white_legal_moves))
     black_legal_moves = generate_legal_moves(WP, BP, K, "black")
-    print(black_legal_moves)
+    print(convert_move_list_to_pdn(black_legal_moves))
     assert len(white_legal_moves) == 7
     assert len(black_legal_moves) == 7
 
