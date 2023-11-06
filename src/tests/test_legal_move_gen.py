@@ -95,6 +95,8 @@ def test_capture_on_weird_diagonal():
     BP = insert_piece_by_pdntext(BP, "B2")
     WP = insert_piece_by_pdntext(WP, "C3")
 
+    print_board(WP, BP, K)
+
     white_moves = convert_move_list_to_pdn(
         generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     )
@@ -102,8 +104,43 @@ def test_capture_on_weird_diagonal():
         generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
     )
 
+    print(f"White moves: {white_moves}")
+    print(f"Black moves: {black_moves}")
     assert set(white_moves) == set(["C3->A1", "D6->B4", "C7->A5"])
     assert set(black_moves) == set(["B2->D4", "C5->E7", "B6->D8"])
+
+
+def test_captures_becomes_king_can_no_longer_capture():
+    WP, BP, K = get_empty_board()
+    BP = insert_piece_by_pdntext(BP, "B6")
+    WP = insert_piece_by_pdntext(WP, "C7")
+    # should not be captured as black becomes a king
+    WP = insert_piece_by_pdntext(WP, "E7")
+    # print_board(WP, BP, K)
+
+    black_moves = convert_move_list_to_pdn(
+        generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
+    )
+
+    print(f"Black moves: {black_moves}")
+    assert set(black_moves) == set(["B6->D8"])
+
+
+def test_king_cyclical_capture_weird_diagonal():
+    WP, BP, K = get_empty_board()
+    BP = insert_piece_by_pdntext(BP, "B6")
+    K = insert_piece_by_pdntext(K, "B6")
+    WP = insert_piece_by_pdntext(WP, "C7")
+    WP = insert_piece_by_pdntext(WP, "C5")
+    # should not be captured as black becomes a king
+    WP = insert_piece_by_pdntext(WP, "E7")
+    print_board(WP, BP, K)
+
+    black_moves = convert_move_list_to_pdn(
+        generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
+    )
+
+    print(f"Black moves: {black_moves}")
 
 
 def test_tricky_capture_sequence_two():
@@ -111,7 +148,7 @@ def test_tricky_capture_sequence_two():
 
     WP = insert_piece_by_pdntext(WP, "H8")
     K = insert_piece_by_pdntext(K, "H8")
-    WP = insert_piece_by_pdntext(WP, "B8")
+    WP = insert_piece_by_pdntext(WP, "B8") # TODO: black thinks he can captire by moving into a piece that is weird
 
     BP = insert_piece_by_pdntext(BP, "C7")
     BP = insert_piece_by_pdntext(BP, "E7")
@@ -127,11 +164,15 @@ def test_tricky_capture_sequence_two():
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
     print_board(WP, BP, K)
+
     print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
     print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
 
 
 if __name__ == "__main__":
     # test_generate_legal_moves_from_start()
-    test_capture_on_weird_diagonal()
+    # test_capture_on_weird_diagonal()
     # test_tricky_capture_sequence()
+    # test_captures_becomes_king_can_no_longer_capture()
+    # test_king_cyclical_capture_weird_diagonal()
+    test_tricky_capture_sequence_two()

@@ -1,5 +1,11 @@
 from enum import Enum
 import math
+import sys
+
+print(sys.getrecursionlimit())
+sys.setrecursionlimit(
+    50
+)  # TODO: lowered to test the recursion limit, should be set back to 1000
 
 from util.helpers import (
     PDN_MAP,
@@ -303,7 +309,7 @@ def generate_jump_moves(WP, BP, K, jumpers, player):
                     occupied, landing_square
                 ):
                     # Add the jump move to the list
-                    jump_moves.append((pos, landing_square))
+                    jump_moves.append((pos, intermediate_square, landing_square))
 
     return jump_moves
 
@@ -330,9 +336,16 @@ def generate_all_jump_sequences(
     # captured_pieces = set()
     print(f"single_jumps: {convert_move_list_to_pdn(single_jumps)}")
 
-    for _, landing_square in single_jumps:
+    for _, intermediate_square, landing_square in single_jumps:
         # Calculate the index of the jumped piece
-        jumped_pos = (pos + landing_square) // 2
+        # jumped_pos = (pos + landing_square) // 2
+        jumped_pos = intermediate_square
+
+        print("--------------------")
+        print(f"pos: {pos}")
+        print(f"jumped_pos: {jumped_pos}")
+        print(f"landing_square: {landing_square}")
+        print("--------------------")
 
         # Make the jump and remove the jumped piece from the board
         new_WP, new_BP, new_K = WP, BP, K
@@ -358,6 +371,8 @@ def generate_all_jump_sequences(
             insert_piece(0, landing_square) if is_king else 0
         )
 
+        print_board(new_WP, new_BP, new_K)
+
         new_sequence = sequence + [landing_square]
 
         # Recursively generate the next jumps from the landing square
@@ -372,20 +387,22 @@ def generate_all_jump_sequences(
             sequences,
         )
 
-    # If the piece was just kinged and there were no further jumps possible, we finalize the sequence here.
-    if sequence and not single_jumps and not is_piece_now_king:
+    # If no further jumps are possible, or if the piece was just kinged,
+    # we finalize the sequence.
+    if not single_jumps or is_piece_now_king:
         sequences.append(sequence)
 
     return sequences
 
 
 def is_piece_kinged(pos, player):
-    print("MAIN DECLARE THAT A MAN HAS BEEN KINGED")
     if player == PlayerTurn.WHITE and pos in range(
-        28, 32
+        0, 4
     ):  # TODO: WTF, shouldnt the black and white king ranks be flipped?
+        print("MAIN DECLARE THAT A WHITE MAN HAS BEEN KINGED")
         return True
-    elif player == PlayerTurn.BLACK and pos in range(0, 4):
+    elif player == PlayerTurn.BLACK and pos in range(28, 32):
+        print("MAIN DECLARE THAT A BLACK MAN HAS BEEN KINGED")
         return True
     return False
 
