@@ -192,7 +192,7 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 
 
 def game_loop():
-    WP, BP, K = initialize_game_puzzle()
+    WP, BP, K = initialize_game()
     current_player = PlayerTurn.WHITE
     move_count = 0
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
@@ -226,5 +226,5 @@ def game_loop():
 
 
 if __name__ == "__main__":
-    simulate_random_games(20000, first_player=PlayerTurn.WHITE)
-    # game_loop()
+    # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
+    game_loop()
