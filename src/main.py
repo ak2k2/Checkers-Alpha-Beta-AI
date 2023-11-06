@@ -171,18 +171,17 @@ def get_jumpers_black(WP, BP, K):
     return Jumpers
 
 
-def generate_simple_moves_white(WP, BP, K):
+def generate_simple_moves_white(WP, BP, K, white_movers):
     """
     Returns a list of tuples representing all the simple moves (i.e. not jump moves) for white pieces.
         Input: Should take in White movers
     """
     simple_moves = []
-    white_positions = find_set_bits(WP)
-    print(f"White positions: {white_positions}")
-
     occupied = WP | BP  # Combine occupied positions for both white and black pieces
 
-    for pos in white_positions:
+    white_mover_positions = find_set_bits(white_movers)
+
+    for pos in white_mover_positions:
         is_king = is_set(K, pos)
 
         # Define potential moves based on whether the piece is a king
@@ -210,15 +209,17 @@ def generate_simple_moves_white(WP, BP, K):
     return simple_moves
 
 
-def generate_simple_moves_black(WP, BP, K):
+def generate_simple_moves_black(
+    WP, BP, K, black_movers
+):  # TODO: Add black_movers as an argument
     """
     Returns a list of tuples representing all the simple moves (i.e. not jump moves) for black pieces.
     """
     simple_moves = []
-    black_positions = find_set_bits(BP)
     occupied = WP | BP  # Combine occupied positions for both white and black pieces
+    black_mover_positions = find_set_bits(black_movers)
 
-    for pos in black_positions:
+    for pos in black_mover_positions:
         is_king = is_set(K, pos)
 
         # Define potential moves based on whether the piece is a king
@@ -304,7 +305,15 @@ def generate_jump_moves(WP, BP, K, jumpers, player="white"):
 
 
 def generate_all_jump_sequences(
-    WP, BP, K, pos, is_king, player, sequence=None, sequences=None, visited=None
+    WP,
+    BP,
+    K,
+    pos,
+    is_king: bool,
+    player: str,
+    sequence=None,
+    sequences=None,
+    visited=None,
 ):
     if sequences is None:
         sequences = []
@@ -379,64 +388,62 @@ def is_piece_kinged(pos, player):
     return False
 
 
-def test_jump_sequences(WP, BP, K):
+def all_jump_sequences(
+    WP, BP, K, white_jumpers=None, black_jumpers=None, player="white"
+):
     jump_sequences_pdn = []
 
-    # Get all pieces that can jump
-    white_jumpers = get_jumpers_white(WP, BP, K)
-    black_jumpers = get_jumpers_black(WP, BP, K)
+    if player == "white":
+        # Generate sequences for white pieces
+        for pos in find_set_bits(white_jumpers):
+            is_king = is_set(K, pos)
+            sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "white")
+            for sequence in sequences:
+                pdn_sequence = [bitindex_to_coords(pos)] + [
+                    bitindex_to_coords(step) for step in sequence
+                ]
+                jump_sequences_pdn.append(pdn_sequence)
+        return jump_sequences_pdn
 
-    # Generate sequences for white pieces
-    for pos in find_set_bits(white_jumpers):
-        is_king = is_set(K, pos)
-        sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "white")
-        for sequence in sequences:
-            pdn_sequence = [bitindex_to_coords(pos)] + [
-                bitindex_to_coords(step) for step in sequence
-            ]
-            jump_sequences_pdn.append(pdn_sequence)
-
-    # Generate sequences for black pieces
-    for pos in find_set_bits(black_jumpers):
-        is_king = is_set(K, pos)
-        sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
-        for sequence in sequences:
-            pdn_sequence = [bitindex_to_coords(pos)] + [
-                bitindex_to_coords(step) for step in sequence
-            ]
-            jump_sequences_pdn.append(pdn_sequence)
-
-    return jump_sequences_pdn
+    elif player == "black":
+        # Generate sequences for black pieces
+        for pos in find_set_bits(black_jumpers):
+            is_king = is_set(K, pos)
+            sequences = generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
+            for sequence in sequences:
+                pdn_sequence = [bitindex_to_coords(pos)] + [
+                    bitindex_to_coords(step) for step in sequence
+                ]
+                jump_sequences_pdn.append(pdn_sequence)
+        return jump_sequences_pdn
 
 
-def generate_legal_moves(WP, BP, K, turn):
+def generate_legal_moves(WP, BP, K, turn="white"):
     if turn == "white":
         # Check for jump moves first
-        jumpers = get_jumpers_white(WP, BP, K)
-        if jumpers:
-            return test_jump_sequences(WP, BP, K)
+        white_jumpers = get_jumpers_white(WP, BP, K)
+        if white_jumpers:
+            return all_jump_sequences(WP, BP, K, white_jumpers, None, "white")
 
         # If no jump moves, check for simple moves
-        movers = get_movers_white(WP, BP, K)
-        if movers:
-            return generate_simple_moves_white(WP, BP, K)
+        white_movers = get_movers_white(WP, BP, K)
+
+        if white_movers:
+            return generate_simple_moves_white(WP, BP, K, white_movers)
 
         # If no moves available, game over
         print("No moves available - game over for white.")
         return None
 
     elif turn == "black":
-        # Check for jump moves first
-        jumpers = get_jumpers_black(WP, BP, K)
-        if jumpers:
-            return test_jump_sequences(WP, BP, K)
+        black_jumpers = get_jumpers_black(WP, BP, K)
+        if black_jumpers:
+            return all_jump_sequences(WP, BP, K, None, black_jumpers, "black")
 
-        # If no jump moves, check for simple moves
-        movers = get_movers_black(WP, BP, K)
-        if movers:
-            return generate_simple_moves_black(WP, BP, K)
+        black_movers = get_movers_black(WP, BP, K)
+        if black_movers:
+            return generate_simple_moves_black(WP, BP, K, black_movers)
 
-        # If no moves available, game over
         print("No moves available - game over for black.")
         return None
 
@@ -445,8 +452,34 @@ def generate_legal_moves(WP, BP, K, turn):
 
 
 if __name__ == "__main__":
-    # WP, BP, K = get_empty_board()
+    WP, BP, K = get_empty_board()
 
+    WP = insert_piece(WP, 17)
+    WP = insert_piece(WP, 26)
+    WP = insert_piece_by_pdntext(WP, "A5")
+    K = insert_piece_by_pdntext(K, "A5")
+    BP = insert_piece_by_pdntext(BP, "D2")
+    K = insert_piece_by_pdntext(K, "D2")
+    WP = insert_piece_by_pdntext(WP, "F8")
+    WP = insert_piece_by_pdntext(WP, "C7")
+
+    BP = insert_piece(BP, 12)
+    BP = insert_piece_by_pdntext(BP, "F6")
+    BP = insert_piece_by_pdntext(BP, "F2")
+    BP = insert_piece_by_pdntext(BP, "H2")
+    BP = insert_piece_by_pdntext(BP, "F4")
+    BP = insert_piece_by_pdntext(BP, "D4")
+
+    WP, BP, K = get_fresh_board()
+
+    white_moves = generate_legal_moves(WP, BP, K, "white")
+    black_moves = generate_legal_moves(WP, BP, K, "black")
+
+    print_board(WP, BP, K)
+    print(f"White moves: {white_moves}")
+    print(f"Black moves: {black_moves}")
+
+    # WP, BP, K = get_empty_board()
     # WP = insert_piece(WP, 17)
     # WP = insert_piece(WP, 26)
     # WP = insert_piece(WP, 27)
@@ -462,35 +495,12 @@ if __name__ == "__main__":
     # BP = insert_piece_by_pdntext(BP, "H2")
     # BP = insert_piece_by_pdntext(BP, "F4")
 
-    # white_moves = generate_legal_moves(WP, BP, K, "white")
-    # black_moves = generate_legal_moves(WP, BP, K, "black")
+    # wj = get_jumpers_white(WP, BP, K)
+    # wm = generate_simple_moves_white(WP, BP, K)
+    # wj = get_jumpers_white(WP, BP, K)
+    # bm = generate_simple_moves_black(WP, BP, K)
 
     # print_board(WP, BP, K)
-    # print(f"White moves: {white_moves}")
-    # print(f"Black moves: {black_moves}")
-
-    WP, BP, K = get_empty_board()
-    WP = insert_piece(WP, 17)
-    WP = insert_piece(WP, 26)
-    WP = insert_piece(WP, 27)
-    WP = insert_piece_by_pdntext(WP, "A5")
-    K = insert_piece_by_pdntext(K, "A5")
-    BP = insert_piece_by_pdntext(BP, "D2")
-    K = insert_piece_by_pdntext(K, "D2")
-    WP = insert_piece_by_pdntext(WP, "F8")
-
-    BP = insert_piece(BP, 12)
-    BP = insert_piece_by_pdntext(BP, "F6")
-    BP = insert_piece_by_pdntext(BP, "F2")
-    BP = insert_piece_by_pdntext(BP, "H2")
-    BP = insert_piece_by_pdntext(BP, "F4")
-
-    wj = get_jumpers_white(WP, BP, K)
-    wm = generate_simple_moves_white(WP, BP, K)
-    wj = get_jumpers_white(WP, BP, K)
-    bm = generate_simple_moves_black(WP, BP, K)
-
-    print_board(WP, BP, K)
 
     # print("White jumpers:")
     # print(wj)

@@ -36,7 +36,10 @@ PDN_MAP = {
 REVERSE_PDN_MAP = {v: k for k, v in PDN_MAP.items()}
 
 
-def print_board(WP, BP, kings):
+def print_board(WP, BP, kings) -> None:
+    """
+    Prints a visual representation of the board to the console.
+    """
     # File names
     print("\n")
     print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
@@ -66,37 +69,46 @@ def print_board(WP, BP, kings):
     print("\n")
 
 
-def print_bin_strings(WP, BP, KINGS):
+def print_bin_strings(WP, BP, KINGS) -> None:
     print(f"White Pieces: {bin(WP)[2:].zfill(32)}")
     print(f"Black Pieces: {bin(BP)[2:].zfill(32)}")
     print(f"Kings:        {bin(KINGS)[2:].zfill(32)}")
 
 
-def bitindex_to_coords(index):
+def bitindex_to_coords(index) -> str:
+    """
+    Takes a bit index (e.g. 0) and returns the corresponding PDN coordinates (e.g. 'A1').
+    """
     return PDN_MAP[index]
 
 
-def coords_to_bitindex(coords):
+def coords_to_bitindex(coords) -> int:
+    """
+    Takes PDN coordinates (e.g. 'A1') and returns the corresponding index (e.g. 0).
+    """
     for key, value in PDN_MAP.items():
         if value == coords:
             return key
 
 
-def get_fresh_board():
+def get_fresh_board() -> tuple:
+    """
+    Returns a tuple of bitboards representing a fresh board.
+    """
     BP = 0b00000000000000000000111111111111  # Black pieces start SOUTH and move NORTH
     WP = 0b11111111111100000000000000000000  # White pieces start NORTH and move SOUTH
     K = 0b00000000000000000000000000000000  # Kings are ANDed with WP and BP.
     return WP, BP, K
 
 
-def get_empty_board():
+def get_empty_board() -> tuple:
     WP = 0b00000000000000000000000000000000
     BP = 0b00000000000000000000000000000000
     K = 0b00000000000000000000000000000000
     return WP, BP, K
 
 
-def insert_piece(bitboard, index):
+def insert_piece(bitboard, index) -> int:
     """
     Returns the bitboard with the bit at the given index set to 1.
     """
@@ -104,7 +116,7 @@ def insert_piece(bitboard, index):
     return bitboard | mask
 
 
-def insert_piece_by_pdntext(bitboard, pdn_text):
+def insert_piece_by_pdntext(bitboard, pdn_text) -> int:
     """
     Takes pdn coordinates (e.g. 'A1') and inserts a piece at the corresponding index (e.g. 0).
     """
@@ -114,7 +126,7 @@ def insert_piece_by_pdntext(bitboard, pdn_text):
     return insert_piece(bitboard, index)
 
 
-def remove_piece(bitboard, index):
+def remove_piece(bitboard, index) -> int:
     """
     Returns the bitboard with the bit at the given index set to 0.
     """
@@ -122,7 +134,7 @@ def remove_piece(bitboard, index):
     return bitboard & mask
 
 
-def remove_piece_by_pdntext(bitboard, pdn_text):
+def remove_piece_by_pdntext(bitboard, pdn_text) -> int:
     """
     Takes pdn coordinates (e.g. 'A1') and removes a piece at the corresponding index (e.g. 0).
     """
@@ -133,7 +145,7 @@ def remove_piece_by_pdntext(bitboard, pdn_text):
     return remove_piece(bitboard, index)
 
 
-def find_set_bits(bitboard):
+def find_set_bits(bitboard) -> list:
     """
     Returns a list of indices of bits that are set to 1 in the bitboard.
     """
@@ -145,14 +157,14 @@ def find_set_bits(bitboard):
     return set_bits
 
 
-def is_set(bitboard, index):
+def is_set(bitboard, index) -> bool:
     """
     Returns True if the bit at the given index is set to 1 in the bitboard.
     """
     return (bitboard & (1 << index)) != 0
 
 
-def set_bit(bitboard, index):
+def set_bit(bitboard, index) -> int:
     """
     Returns the bitboard with the bit at the given index set to 1.
     """
