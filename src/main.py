@@ -314,7 +314,7 @@ def generate_all_jump_sequences(
     if sequences is None:
         sequences = []
     if sequence is None:
-        sequence = []
+        sequence = [pos]
     if visited is None:
         visited = set()  # To keep track of visited squares in the current sequence
 
@@ -369,7 +369,7 @@ def generate_all_jump_sequences(
     if sequence and not single_jumps:
         # If we have a sequence and there are no more jumps, we've reached the end of a sequence
         sequences.append(sequence)
-
+    print(f"Sequences: {sequences}")
     return sequences
 
 
@@ -401,6 +401,7 @@ def all_jump_sequences(
     elif player == "black":
         # Generate sequences for black pieces
         for pos in find_set_bits(black_jumpers):
+            print(f"Generating sequences for black piece at {pos}")
             is_king = is_set(K, pos)
             jump_sequences.extend(
                 generate_all_jump_sequences(WP, BP, K, pos, is_king, "black")
@@ -462,6 +463,9 @@ if __name__ == "__main__":
 
     # WP, BP, K = get_fresh_board()
 
+    # WP = remove_piece_by_pdntext(WP, "B6")
+    # WP = insert_piece_by_pdntext(WP, "D4")
+
     white_moves = generate_legal_moves(WP, BP, K, "white")
     black_moves = generate_legal_moves(WP, BP, K, "black")
 
@@ -469,16 +473,17 @@ if __name__ == "__main__":
     print(f"White moves: {white_moves}")
     print(f"Black moves: {black_moves}")
 
+    print("\n\n")
     for wm in white_moves:
         for p in wm:
             print(f"{bitindex_to_coords(p)}", sep="", end="->")
-        print("\n")
+        print("\t")
 
     print("\n\n")
     for bm in black_moves:
         for p in bm:
             print(f"{bitindex_to_coords(p)}", sep="", end="->")
-        print("\n")
+        print("\t")
 
     # WP, BP, K = get_empty_board()
     # WP = insert_piece(WP, 17)

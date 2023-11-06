@@ -83,7 +83,7 @@ def bitindex_to_coords(index) -> str:
 
 
 def coords_to_bitindex(coords) -> int:
-    """
+    """clea
     Takes PDN coordinates (e.g. 'A1') and returns the corresponding index (e.g. 0).
     """
     for key, value in PDN_MAP.items():
