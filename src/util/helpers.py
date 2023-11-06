@@ -114,14 +114,13 @@ def remove_piece_by_pdntext(bitboard, pdn_text) -> int:
 
 def find_set_bits(bitboard) -> list:
     """
-    Returns a list of indices of bits that are set to 1 in the bitboard.
+    Returns a list of indices of bits that are set to 1 in the bitboard using list comprehension.
     """
-    set_bits = []
-    while bitboard:
-        ls1b_index = (bitboard & -bitboard).bit_length() - 1
-        set_bits.append(ls1b_index)
-        bitboard &= bitboard - 1
-    return set_bits
+    return [
+        index
+        for index in range(bitboard.bit_length())
+        if (bitboard & (1 << index)) != 0
+    ]
 
 
 def is_set(bitboard, index) -> bool:
