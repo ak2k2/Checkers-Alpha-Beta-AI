@@ -39,6 +39,52 @@ def basic_heuristic(WP, BP, K):
     return mobility_diff_score(WP, BP, K) + piece_count_diff_score(WP, BP, K)
 
 
+def new_heuristic(WP, BP, K):
+    men_score = 2000 * (count_bits(WP & ~K) - count_bits(BP & ~K))
+    kings_score = 4000 * (count_bits(WP & K) - count_bits(BP & K))
+
+    # Bonus for pieces on the back row (promoting row for the opponent)
+    white_back_row_score = 400 * count_bits(WP & KING_ROW_BLACK)
+    black_back_row_score = 400 * count_bits(BP & KING_ROW_WHITE)
+
+    # Bonus for pieces in the center and on the middle row
+    center_score = 250 * (count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8))
+    middle_row_score = 50 * (
+        count_bits(WP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
+        - count_bits(BP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
+    )
+
+    # Penalty for vulnerable pieces
+    # This is tricky as it depends on the actual game moves, but as an approximation,
+    # we could penalize pieces on the edge since they might be more vulnerable.
+    vulnerable_score = 300 * (count_bits(WP & EDGES) - count_bits(BP & EDGES))
+
+    # Bonus for protected pieces
+    # Similarly tricky, but we could consider pieces on the double diagonal to be generally protected.
+    protected_score = 300 * (
+        count_bits(WP & DOUBLE_DIAGONAL) - count_bits(BP & DOUBLE_DIAGONAL)
+    )
+
+    return (
+        men_score  # Assumed to be the difference between white and black men
+        + kings_score  # Assumed to be the difference between white and black kings
+        + white_back_row_score  # Positive if White has pieces in the back row
+        - black_back_row_score  # Negative if Black has pieces in the back row (hence the minus)
+        + center_score  # Center control score, positive for White, negative for Black
+        + middle_row_score  # Middle row control score, positive for White, negative for Black
+        - vulnerable_score  # Negative if White pieces are vulnerable, positive if Black pieces are
+        + protected_score  # Positive if White pieces are protected, negative if Black pieces are
+        + 500
+        * mobility_diff_score(
+            WP, BP, K
+        )  # Mobility difference, positive for White advantage
+        + 1000
+        * piece_count_diff_score(
+            WP, BP, K
+        )  # Piece count difference, positive for White advantage
+    )
+
+
 def mobility_diff_score(WP, BP, K, jw=2):
     # Get movers and jumpers for both white and black
     white_movers = get_movers_white(WP, BP, K)

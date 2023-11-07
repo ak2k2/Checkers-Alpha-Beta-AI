@@ -134,7 +134,13 @@ def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
             best_move = legal_moves[0]
         else:
             best_move, depth_reached = AI(
-                (WP, BP, K), current_player, max_depth, time_limit
+                (WP, BP, K),
+                current_player,
+                max_depth,
+                time_limit,
+                heuristic="new_heuristic"
+                if current_player == PlayerTurn.BLACK
+                else "basic_heuristic",  # WHITE uses basic heuristic against BLACK using new heuristic
             )
 
         end_time = time.time()
@@ -240,6 +246,6 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=7, time_limit=2)
+    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=9, time_limit=1)
     # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
     # random_vs_AI()

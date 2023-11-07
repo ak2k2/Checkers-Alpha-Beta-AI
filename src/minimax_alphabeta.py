@@ -3,7 +3,7 @@ import signal
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import basic_heuristic
+from heuristic import basic_heuristic, new_heuristic
 
 
 class TimeOutException(Exception):
@@ -14,13 +14,16 @@ def signal_handler(signum, frame):
     raise TimeOutException("AI computation timed out")
 
 
-def minimax(position, depth, alpha, beta, current_player):
+def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuristic"):
     legal_moves = generate_legal_moves(*position, current_player)
 
     if (
         depth == 0 or not legal_moves
     ):  # If we are at max depth or there are no legal moves, game is over
-        return basic_heuristic(*position)
+        if heuristic == "basic_heuristic":
+            return basic_heuristic(*position)
+        elif heuristic == "new_heuristic":
+            return new_heuristic(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
@@ -44,7 +47,7 @@ def minimax(position, depth, alpha, beta, current_player):
         return min_eval
 
 
-def AI(position, current_player, max_depth, time_limit=5):
+def AI(position, current_player, max_depth, time_limit=5, heuristic="basic_heuristic"):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
     depth_reached = 0  # Initialize depth reached
@@ -73,6 +76,7 @@ def AI(position, current_player, max_depth, time_limit=5):
                     PlayerTurn.BLACK
                     if current_player == PlayerTurn.WHITE
                     else PlayerTurn.WHITE,
+                    heuristic,  # Pass the heuristic function
                 )
 
                 if current_player == PlayerTurn.WHITE and score > best_score:
