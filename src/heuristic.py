@@ -36,38 +36,8 @@ from main import (
 )
 
 
-# def heuristic(WP, BP, K):
-#     # Basic weights
-#     piece_weight = 100
-#     king_weight = 175
-#     defended_piece_weight = 10
-
-#     # Count white and black pieces
-#     white_pieces = count_bits(WP)
-#     black_pieces = count_bits(BP)
-
-#     # Count white and black kings
-#     white_kings = count_bits(WP & K)
-#     black_kings = count_bits(BP & K)
-
-#     # Calculate defended pieces (for simplicity, consider back row only)
-#     white_defended = count_defended_pieces(WP, K, is_white=True)
-#     black_defended = count_defended_pieces(BP, K, is_white=False)
-
-#     # Evaluate the board state
-#     white_score = (
-#         white_pieces * piece_weight
-#         + white_kings * king_weight
-#         + white_defended * defended_piece_weight
-#     )
-#     black_score = (
-#         black_pieces * piece_weight
-#         + black_kings * king_weight
-#         + black_defended * defended_piece_weight
-#     )
-
-#     # Return the score from white's perspective
-#     return white_score - black_score
+def heuristic(WP, BP, K):
+    return 0
 
 
 def mobility_score(WP, BP, K):

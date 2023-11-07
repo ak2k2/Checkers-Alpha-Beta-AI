@@ -20,8 +20,7 @@ def test_mobility_score_basic():
         white_positions=["A7"], black_positions=["H8"]
     )
     print_board(WP, BP, K)
-    score = mobility_score(WP, BP, K)
-    print(score)
+    assert mobility_score(WP, BP, K) == 1
 
 
 # def test_mobility_score():

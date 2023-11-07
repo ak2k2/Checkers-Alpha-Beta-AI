@@ -7,7 +7,11 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 
-from game import find_jumped_pos, choose_move
+from game import choose_move, do_move, find_jumped_pos, print_board, print_legal_moves
+from main import *
+from util.fen_pdn_helper import *
+from util.helpers import *
+from util.masks import *
 
 
 def test_find_jump_position():
@@ -65,5 +69,24 @@ def test_choose_move():
     assert chosen_move == [(22, 15), (15, 6)]
 
 
+def test_do_move():
+    WP, BP, K = setup_board_from_position_lists(
+        white_positions=["KA1", "E5"], black_positions=["B2", "KF2"]
+    )
+    print_board(WP, BP, K)
+    legal_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
+    print_legal_moves(legal_moves)
+    selected_move = legal_moves[
+        0
+    ]  # which move to choose from legal moves list by index.
+    move = choose_move(selected_move)
+    print(f"Move Chosen: {move}")
+
+    for m in move:
+        WP, BP, K = do_move(WP, BP, K, m, PlayerTurn.WHITE)
+        print_board(WP, BP, K)
+
+
 if __name__ == "__main__":
     pytest.main()
+    # test_do_move()

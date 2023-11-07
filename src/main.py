@@ -439,9 +439,7 @@ def generate_legal_moves(WP, BP, K, turn):
         if white_movers:
             return generate_simple_moves_white(WP, BP, K, white_movers)
 
-        # If no moves available, game over
-        # print("No moves available - game over for white.")
-        return None
+        return None  # No moves available - game over for white.
 
     elif turn == PlayerTurn.BLACK:
         black_jumpers = get_jumpers_black(WP, BP, K)
@@ -452,8 +450,7 @@ def generate_legal_moves(WP, BP, K, turn):
         if black_movers:
             return generate_simple_moves_black(WP, BP, K, black_movers)
 
-        # print("No moves available - game over for black.")
-        return None
+        return None  # No moves available - game over for black.
 
 
 if __name__ == "__main__":
