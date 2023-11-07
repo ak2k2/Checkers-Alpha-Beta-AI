@@ -67,38 +67,38 @@ def do_move(WP, BP, K, moves, player):
         is_jump = abs(start_pos - end_pos) > 5
 
         # Create a mask for the starting and ending positions
-        start_mask = 1 << start_pos
-        end_mask = 1 << end_pos
+        start_mask = 1 << start_pos & MASK_32
+        end_mask = 1 << end_pos & MASK_32
 
         # Update the board based on the player's move
         if player == PlayerTurn.WHITE:
-            WP &= ~start_mask  # Remove the piece from the starting position
-            WP |= end_mask  # Place the piece at the ending position
+            WP &= ~start_mask & MASK_32  # Remove the piece from the starting position
+            WP |= end_mask & MASK_32  # Place the piece at the ending position
 
             # If a jump is made, remove the jumped piece from the opponent
             if is_jump:
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
-                BP &= ~(1 << jumped_pos)  # Remove the opponent's piece
+                BP &= ~(1 << jumped_pos) & MASK_32  # Remove the opponent's piece
 
             # Check for kinging
             if end_mask & KING_ROW_WHITE:
-                K |= end_mask  # Make the piece a king
+                K |= end_mask & MASK_32  # Make the piece a king
 
         elif player == PlayerTurn.BLACK:
-            BP &= ~start_mask  # Same logic for black player
-            BP |= end_mask
+            BP &= ~start_mask & MASK_32  # Same logic for black player
+            BP |= end_mask & MASK_32
 
             if is_jump:
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
-                WP &= ~(1 << jumped_pos)
+                WP &= ~(1 << jumped_pos) & MASK_32
 
             if end_mask & KING_ROW_BLACK:
-                K |= end_mask
+                K |= end_mask & MASK_32
 
         # Update the kings bitboard if a king has been moved
         if start_mask & K:
-            K &= ~start_mask
-            K |= end_mask
+            K &= ~start_mask & MASK_32
+            K |= end_mask & MASK_32
 
     return WP, BP, K
 
@@ -286,5 +286,5 @@ def random_vs_AI():
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    # human_vs_AI()
-    random_vs_AI()
+    human_vs_AI()
+    # random_vs_AI()

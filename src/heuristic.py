@@ -20,6 +20,7 @@ from util.masks import (
     ATTACK_ROWS_BLACK,
     MAIN_DIAGONAL,
     DOUBLE_DIAGONAL,
+    MASK_32,
 )
 
 from main import (
@@ -78,8 +79,8 @@ def piece_count_diff_score(WP, BP, K, kw=1.5):
     black_piece_count = count_bits(BP)
 
     # Count the number of kings each player has
-    white_king_count = count_bits(WP & K)
-    black_king_count = count_bits(BP & K)
+    white_king_count = count_bits(WP & K & MASK_32)
+    black_king_count = count_bits(BP & K & MASK_32)
 
     # Give kings a higher weight
     white_score = white_piece_count + kw * white_king_count
