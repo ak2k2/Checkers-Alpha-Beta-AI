@@ -40,14 +40,14 @@ def human_vs_AI(who_moves_first, human_color):
     current_player = who_moves_first  # Start with the passed player
     ai_color = switch_player(human_color)
     move_count = 0
-    max_depth = 7
+    max_depth = 12
     time_limit = 5
 
     print(
         f"Welcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first."
     )
     print_board(WP, BP, K)
-    while move_count < 100:
+    while move_count < 150:
         if current_player == human_color:
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
 
@@ -256,6 +256,6 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=2)
-    human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.BLACK)
+    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=3)
+    # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.BLACK)
     # random_vs_AI()

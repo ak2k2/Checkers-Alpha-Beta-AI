@@ -62,6 +62,20 @@ def basic_heuristic_2(WP, BP, K):
     )
 
 
+def basic_heuristic_monty(WP, BP, K):
+    return (
+        (100 * mobility_diff_score(WP, BP, K, jw=2))
+        + (200 * piece_count_diff_score(WP, BP, K, kw=1.5))
+        + (
+            50
+            * (
+                calculate_total_distance_to_promotion_white(WP & ~K)
+                - calculate_total_distance_to_promotion_black(BP & ~K)
+            )
+        )
+    )
+
+
 def new_heuristic(
     WP,
     BP,
