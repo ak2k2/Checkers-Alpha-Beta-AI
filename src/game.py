@@ -20,6 +20,8 @@ from main import (
     get_fresh_board,
     insert_piece_by_pdntext,
     print_board,
+    insert_piece,
+    remove_piece,
 )
 
 import minimax_alphabeta
@@ -72,33 +74,40 @@ def do_move(WP, BP, K, moves, player):
 
         # Update the board based on the player's move
         if player == PlayerTurn.WHITE:
-            WP &= ~start_mask & MASK_32  # Remove the piece from the starting position
-            WP |= end_mask & MASK_32  # Place the piece at the ending position
+            WP = remove_piece(
+                WP, start_pos
+            )  # Remove the piece from the starting position
+            WP = insert_piece(WP, end_pos)  # Insert the piece at the ending position
 
-            # If a jump is made, remove the jumped piece from the opponent
+            # If a jump is made, remove the jumped piece from the opponent and UPDATE KING BITBOARD!
             if is_jump:
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
-                BP &= ~(1 << jumped_pos) & MASK_32  # Remove the opponent's piece
+                BP = remove_piece(BP, jumped_pos)
+                K = remove_piece(K, jumped_pos)
 
             # Check for kinging
             if end_mask & KING_ROW_WHITE:
-                K |= end_mask & MASK_32  # Make the piece a king
+                K = insert_piece(K, end_pos)
 
         elif player == PlayerTurn.BLACK:
-            BP &= ~start_mask & MASK_32  # Same logic for black player
-            BP |= end_mask & MASK_32
+            BP = remove_piece(BP, start_pos)
+            BP = insert_piece(BP, end_pos)
 
             if is_jump:
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
-                WP &= ~(1 << jumped_pos) & MASK_32
+                # WP &= ~(1 << jumped_pos) & MASK_32
+                WP = remove_piece(WP, jumped_pos)
+                K = remove_piece(K, jumped_pos)
 
             if end_mask & KING_ROW_BLACK:
-                K |= end_mask & MASK_32
+                K = insert_piece(K, end_pos)
 
         # Update the kings bitboard if a king has been moved
         if start_mask & K:
-            K &= ~start_mask & MASK_32
-            K |= end_mask & MASK_32
+            # K &= ~start_mask & MASK_32
+            K = remove_piece(K, start_pos)
+            # K |= end_mask & MASK_32
+            K = insert_piece(K, end_pos)
 
     return WP, BP, K
 
@@ -286,5 +295,5 @@ def random_vs_AI():
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    # human_vs_AI()
-    random_vs_AI()
+    human_vs_AI()
+    # random_vs_AI()
