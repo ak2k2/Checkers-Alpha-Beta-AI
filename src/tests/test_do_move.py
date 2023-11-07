@@ -128,7 +128,7 @@ def test_white_becoming_king():
     assert (WP, BP, K) == setup_board_from_position_lists(["KE1"], [])
 
 
-def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneously_kinged():
+def test_king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneously_kinged():
     WP, BP, K = setup_board_from_position_lists(["KC3", "C5"], ["D2"])
     print_board(WP, BP, K)
     WP, BP, K = do_move(WP, BP, K, (5, 12), PlayerTurn.BLACK)
@@ -140,7 +140,19 @@ def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneous
     WP, BP, K = do_move(WP, BP, K, (13, 9), PlayerTurn.WHITE)
     print_board(WP, BP, K)
 
-    # assert (WP, BP, K) == setup_board_from_position_lists(["KC3"], ["D2"]) # TODO: add assertions
+    assert (WP, BP, K) == setup_board_from_position_lists(["C3"], ["A5"])
+
+
+def test_oscilate_to_test_bit_errors():
+    WP, BP, K = setup_board_from_position_lists(
+        white_positions=["D4"], black_positions=["A1", "G1", "F2"]
+    )
+    print_board(WP, BP, K)
+    for i in range(100):
+        WP, BP, K = do_move(WP, BP, K, (6, 10), PlayerTurn.BLACK)
+        WP, BP, K = do_move(WP, BP, K, (10, 6), PlayerTurn.BLACK)
+
+    assert (WP, BP, K) == setup_board_from_position_lists(["D4"], ["A1", "G1", "F2"])
 
 
 # def false_king_edge_case_simulation():  # FOUND THE ERRONEOUS KING PROMOTION
@@ -195,17 +207,6 @@ def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneous
 #         print_board(WP, BP, K)
 
 
-# def oscilate_to_test_bit_errors():
-#     WP, BP, K = setup_board_from_position_lists(
-#         white_positions=["D4"], black_positions=["A1", "G1", "F2"]
-#     )
-#     print_board(WP, BP, K)
-#     for i in range(10):
-#         WP, BP, K = do_move(WP, BP, K, (6, 10), PlayerTurn.BLACK)
-#         WP, BP, K = do_move(WP, BP, K, (10, 6), PlayerTurn.BLACK)
-#     print_board(WP, BP, K)
-
-
 # def test_white_becoming_king():
 #     WP, BP, K = test_setup_board_from_position_lists(white_positions=["E5"],black_positions=["F4","F2"])
 #     print_board(WP, BP, K)
@@ -246,7 +247,4 @@ def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneous
 
 
 if __name__ == "__main__":
-    # pytest.main()
-    # nics_edge_case()
-    # test_do_move()
-    king_once_lived_on_square_was_captured_king_bitboard_should_reflect()
+    pytest.main()

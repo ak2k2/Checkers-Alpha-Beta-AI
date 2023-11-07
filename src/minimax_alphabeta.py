@@ -44,41 +44,62 @@ def minimax(position, depth, alpha, beta, current_player):
         return min_eval
 
 
-import time
-
-
-def AI(position, max_depth, time_limit=5):
-    """
-    Apply minimax with alpha-beta pruning via iterative deepening with a time limit per move.
-    """
+def AI(position, current_player, max_depth, time_limit=5):
     best_move = None
-    best_score = float("-inf")
+    best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+    depth_reached = 0  # Initialize depth reached
     start_time = time.time()
 
-    for depth in range(1, max_depth + 1):
-        alpha = float("-inf")
-        beta = float("inf")
-        legal_moves = generate_legal_moves(*position, PlayerTurn.WHITE)
-        if not legal_moves:
-            return None
-        for move in legal_moves:
-            # Check if time limit exceeded
-            if time.time() - start_time >= time_limit:
-                # If time limit exceeded, return the best move from the last full depth searched
-                return best_move if best_move is not None else move
+    # Set the signal alarm
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(time_limit)
 
-            new_position = do_move(*position, move, PlayerTurn.WHITE)
-            score = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.BLACK)
+    try:
+        for depth in range(1, max_depth + 1):
+            alpha = float("-inf")
+            beta = float("inf")
+            legal_moves = generate_legal_moves(*position, current_player)
 
-            if score > best_score:
-                best_score = score
-                best_move = move
+            if not legal_moves:
+                raise TimeOutException()  # No legal moves means we can't make a play
 
-            alpha = max(alpha, score)
-            if beta <= alpha:
-                break
+            for move in legal_moves:
+                new_position = do_move(*position, move, current_player)
+                score = minimax(
+                    new_position,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    PlayerTurn.BLACK
+                    if current_player == PlayerTurn.WHITE
+                    else PlayerTurn.WHITE,
+                )
 
-        # If we have a result from the full depth search, we update the best move/score
-        # Otherwise, the search was cut off by the time limit, and we use the best from the last full depth
+                if current_player == PlayerTurn.WHITE and score > best_score:
+                    best_score = score
+                    best_move = move
+                elif current_player == PlayerTurn.BLACK and score < best_score:
+                    best_score = score
+                    best_move = move
 
-    return best_move
+                if current_player == PlayerTurn.WHITE:
+                    alpha = max(alpha, score)
+                else:
+                    beta = min(beta, score)
+
+                if beta <= alpha:
+                    break
+
+                # Check time constraint
+                if time.time() - start_time >= time_limit:
+                    raise TimeOutException()
+
+            depth_reached = depth  # Update the depth reached
+
+        signal.alarm(0)  # Cancel the alarm if we finished in time
+    except TimeOutException:
+        signal.alarm(0)  # Cancel the alarm since we've run out of time
+        if best_move is None and legal_moves:
+            best_move = legal_moves[0]  # Choose any move if none was selected
+
+    return best_move, depth_reached
