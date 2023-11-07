@@ -147,7 +147,7 @@ def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
         elapsed_time = end_time - start_time
 
         if best_move is None:
-            print(f"GAME OVER. {current_player.name} LOSES!")
+            print(f"GAME OVER. {switch_player(current_player)} WON!")
             game_over = True
             break
 
@@ -202,7 +202,13 @@ def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
 
 #         else:  # AI's turn
 #             print("AI is thinking...")
-#             best_move = AI((WP, BP, K), max_depth)
+#             best_move = AI(
+#                 (WP, BP, K),
+#                 current_player,
+#                 max_depth,
+#                 time_limit=5,
+#                 heuristic="new_heuristic",
+#             )
 #             if best_move is None:
 #                 print(f"GAME OVER. {current_player.name} LOSES!")
 #                 break
@@ -246,6 +252,6 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=9, time_limit=1)
+    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=1)
     # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
     # random_vs_AI()
