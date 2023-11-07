@@ -29,10 +29,8 @@ from main import (
     PlayerTurn,
 )
 
-
-def bitboard_to_pdn_positions(bitboard):
-    pdn_positions = [bitindex_to_coords(index) for index in find_set_bits(bitboard)]
-    return pdn_positions
+from util.helpers import bitboard_to_pdn_positions, count_bits, PDN_MAP
+from util.fen_pdn_helper import setup_board_from_position_lists
 
 
 # Test the get_empty_board function
@@ -145,6 +143,64 @@ def test_remove_black_piece(index):
     WP, BP, K = get_fresh_board()
     BP = remove_piece(BP, index)
     assert not is_set(BP, index), f"Expected piece to be removed at index {index}"
+
+
+def test_setup_board_from_position_lists():
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "D6")
+    K = insert_piece_by_pdntext(K, "D6")
+    WP = insert_piece_by_pdntext(WP, "A5")
+    WP = insert_piece_by_pdntext(WP, "B6")
+    BP = insert_piece_by_pdntext(BP, "E3")
+    K = insert_piece_by_pdntext(K, "E3")
+    BP = insert_piece_by_pdntext(BP, "A3")
+    BP = insert_piece_by_pdntext(BP, "G3")
+    K = insert_piece_by_pdntext(K, "G3")
+
+    assert (WP, BP, K) == setup_board_from_position_lists(
+        ["KD6", "A5", "B6"], ["KE3", "A3", "KG3"]
+    )
+
+
+def test_no_pieces():
+    WP, BP, K = get_empty_board()
+    assert (WP, BP, K) == setup_board_from_position_lists([], [])
+
+
+def test_max_pieces():
+    # Since the PDN map represents all playable squares, all positions can be occupied
+    max_white_positions = [value for key, value in PDN_MAP.items() if key % 2 == 0]
+    max_black_positions = [value for key, value in PDN_MAP.items() if key % 2 == 1]
+
+    # Populate the board with the maximum number of pieces
+    WP, BP, K = setup_board_from_position_lists(
+        max_white_positions, max_black_positions
+    )
+
+    # Assuming bit_count counts the bits set to 1 and PDN_MAP is zero-indexed
+    assert count_bits(WP) == len(max_white_positions)
+    assert count_bits(BP) == len(max_black_positions)
+
+
+def test_duplicate_positions():
+    # Handle insertion duplicate positions
+    WP, BP, K = setup_board_from_position_lists(["A1", "A1"], ["B2", "B2"])
+    assert count_bits(WP) == 1
+    assert count_bits(BP) == 1
+
+
+def test_invalid_positions():
+    try:
+        setup_board_from_position_lists(["Z9"], ["KZ9"])
+        assert False
+    except ValueError:
+        assert True
+
+
+def test_case_sensitivity():
+    WP, BP, K = setup_board_from_position_lists(["a1"], ["b2"])
+    WP_upper, BP_upper, K_upper = setup_board_from_position_lists(["A1"], ["B2"])
+    assert (WP, BP, K) == (WP_upper, BP_upper, K_upper)
 
 
 if __name__ == "__main__":

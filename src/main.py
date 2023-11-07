@@ -189,7 +189,8 @@ def get_jumpers_black(WP, BP, K):
 def generate_simple_moves_white(WP, BP, K, white_movers):
     """
     Returns a list of tuples representing all the simple moves (i.e. not jump moves) for white pieces.
-        Input: Should take in White movers
+        Input: White movers.
+        Output: List of tuples representing all the simple moves for white pieces. ex. [(20, 16), (21, 18), (22, 18), (22, 19), (23, 19)]
     """
     simple_moves = []
     occupied = WP | BP  # Combine occupied positions for both white and black pieces
@@ -227,6 +228,8 @@ def generate_simple_moves_white(WP, BP, K, white_movers):
 def generate_simple_moves_black(WP, BP, K, black_movers):
     """
     Returns a list of tuples representing all the simple moves (i.e. not jump moves) for black pieces.
+        Input: Black movers.
+        Output: List of tuples representing all the simple moves for Black pieces. ex. [(20, 16), (21, 18), (22, 18), (22, 19), (23, 19)]
     """
     simple_moves = []
     occupied = WP | BP  # Combine occupied positions for both white and black pieces
@@ -261,6 +264,13 @@ def generate_simple_moves_black(WP, BP, K, black_movers):
 
 
 def generate_jump_moves(WP, BP, K, jumpers, player):
+    """
+    Returns a list of tuples representing all the single jump moves for the given player
+        Input: jumpers, player
+        Output: List of tuples representing all the jump moves for the given player.
+                ex. [(20, 17, 13), (20, 25, 29), (21, 17, 12)]
+                where (20, 17, 13) means a piece at 20 jumps over a piece at 17 and lands at 13.
+    """
     jump_moves = []
 
     # Choose the correct dictionaries based on the player and kings
@@ -318,6 +328,14 @@ def generate_jump_moves(WP, BP, K, jumpers, player):
 def generate_all_jump_sequences(
     WP, BP, K, pos, is_king: bool, player: str, sequence=None, sequences=None
 ):
+    """
+    Returns a list of all possible jump sequences for the given piece.
+        Input: WP, BP, K, pos, is_king, player, sequence, sequences
+        Output: List of all possible jump sequences for the given piece.
+                ex. [[20, 17, 13], [20, 25, 29], [21, 17, 12]]
+                where [20, 17, 13] means a piece at 20 jumps over a piece at 17 and lands at 13.
+
+    """
     if sequences is None:
         sequences = []
     if sequence is None:
@@ -361,7 +379,7 @@ def generate_all_jump_sequences(
     # If no further jumps are possible or the piece was just kinged, then finalize the sequence.
     if not single_jumps or (not is_king and is_piece_kinged(pos, player)):
         sequences.append(
-            list(sequence)
+            list(sequence)  # TODO: this data structure is not ideal
         )  # Make a copy of the sequence to store it independently
 
     return sequences
@@ -376,6 +394,13 @@ def is_piece_kinged(pos, player):
 def all_jump_sequences(
     WP, BP, K, white_jumpers=None, black_jumpers=None, player=PlayerTurn.WHITE
 ):
+    """
+    Returns a list of all possible jump sequences for the given player.
+        Input: WP, BP, K, white_jumpers, black_jumpers, player
+        Output: List of all possible jump sequences for the given player.
+                ex. [[8, 17, 26], [0, 9, 18, 27]]
+                [0, 9, 18, 27] means a piece at 0 jumps over a piece at 4 and lands at 9, then jumps over a piece at 13 and lands at 18.
+    """
     jump_sequences = []
 
     if player == PlayerTurn.WHITE:
@@ -399,6 +424,9 @@ def all_jump_sequences(
 
 
 def generate_legal_moves(WP, BP, K, turn):
+    """
+    Returns a list of all legal moves for the given player. If no moves are available, returns None.
+    """
     if turn == PlayerTurn.WHITE:
         # Check for jump moves first
         white_jumpers = get_jumpers_white(WP, BP, K)

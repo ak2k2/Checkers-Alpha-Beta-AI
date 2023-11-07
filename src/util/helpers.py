@@ -36,6 +36,11 @@ PDN_MAP = {
 REVERSE_PDN_MAP = {v: k for k, v in PDN_MAP.items()}
 
 
+def bitboard_to_pdn_positions(bitboard):
+    pdn_positions = [bitindex_to_coords(index) for index in find_set_bits(bitboard)]
+    return pdn_positions
+
+
 def print_bin_strings(WP, BP, KINGS) -> None:
     print(f"White Pieces: {bin(WP)[2:].zfill(32)}")
     print(f"Black Pieces: {bin(BP)[2:].zfill(32)}")
@@ -116,11 +121,14 @@ def find_set_bits(bitboard) -> list:
     """
     Returns a list of indices of bits that are set to 1 in the bitboard using list comprehension.
     """
-    return [
-        index
-        for index in range(bitboard.bit_length())
-        if (bitboard & (1 << index)) != 0
-    ]
+    return [index for index in range(32) if (bitboard & (1 << index)) != 0]
+
+
+def count_bits(bitboard: int) -> int:
+    """
+    Counts the number of bits set to 1 in the bitboard.
+    """
+    return len(find_set_bits(bitboard))
 
 
 def is_set(bitboard, index) -> bool:

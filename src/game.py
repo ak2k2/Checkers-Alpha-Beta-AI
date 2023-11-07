@@ -21,6 +21,8 @@ from main import (
     print_board,
 )
 
+# from heuristic import heuristic
+
 # Assuming these masks are defined correctly elsewhere:
 # WHITE_JUMP_SOUTHEAST, WHITE_JUMP_SOUTHWEST, BLACK_JUMP_NORTHEAST, BLACK_JUMP_NORTHWEST
 # WHITE_SOUTHEAST, WHITE_SOUTHWEST, BLACK_NORTHEAST, BLACK_NORTHWEST
@@ -191,7 +193,42 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
         # print(f"Game over in {move_count} moves.")
 
 
-def game_loop():
+# def game_loop():
+#     WP, BP, K = initialize_game_puzzle()
+#     current_player = PlayerTurn.WHITE
+#     move_count = 0
+#     print_board(WP, BP, K)  # Assuming print_board() function to display the board
+
+#     while True:
+#         legal_moves = generate_legal_moves(WP, BP, K, current_player)
+#         if not legal_moves:
+#             print(f"{current_player.name} has no legal moves. Game over.")
+#             break
+
+#         print(f"It's {current_player.name}'s Turn.\n")
+#         print_legal_moves(legal_moves)
+#         choice = int(input("Choose your move by index: "))
+
+#         selected_move = legal_moves[choice]
+#         print(selected_move)
+#         move = choose_move(selected_move)
+
+#         print(f"Move chosen: {move}")
+#         for m in move:
+#             WP, BP, K = do_move(WP, BP, K, m, current_player)
+#             print_board(WP, BP, K)
+
+#         current_player = switch_player(current_player)
+#         move_count += 1
+
+#         if move_count > 100:
+#             print("100 Move Limit... Game Over!")
+#             break
+
+#     print(f"Game over in {move_count} moves.")
+
+
+def game_loop_with_heuristic():
     WP, BP, K = initialize_game_puzzle()
     current_player = PlayerTurn.WHITE
     move_count = 0
@@ -216,6 +253,12 @@ def game_loop():
             WP, BP, K = do_move(WP, BP, K, m, current_player)
             print_board(WP, BP, K)
 
+            # Call the heuristic function and print the evaluation
+            heuristic_evaluation = heuristic(WP, BP, K)
+            print(
+                f"Heuristic Evaluation from White's perspective: {heuristic_evaluation}"
+            )
+
         current_player = switch_player(current_player)
         move_count += 1
 
@@ -228,4 +271,4 @@ def game_loop():
 
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
-    game_loop()
+    game_loop_with_heuristic()

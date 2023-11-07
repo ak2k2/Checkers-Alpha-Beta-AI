@@ -320,9 +320,51 @@ MASK_R3 = (
 )
 MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11]
 
+# MASKS for the center and corners and terminal ranks
 CENTER_8 = S[9] | S[10] | S[13] | S[14] | S[17] | S[18] | S[21] | S[22]
 
 DOUBLE_CORNER = S[3] | S[7] | S[24] | S[28]
+SINGLE_CORNER = S[0] | S[31]
 
 KING_ROW_WHITE = S[0] | S[1] | S[2] | S[3]
 KING_ROW_BLACK = S[28] | S[29] | S[30] | S[31]
+
+EDGES = (
+    S[0]
+    | S[1]
+    | S[2]
+    | S[3]
+    | S[7]
+    | S[15]
+    | S[23]
+    | S[31]
+    | S[30]
+    | S[29]
+    | S[28]
+    | S[24]
+    | S[16]
+    | S[8]
+)
+
+ATTACK_ROWS_WHITE = S[16] | S[17] | S[18] | S[19] | S[20] | S[21] | S[22] | S[23]
+
+ATTACK_ROWS_BLACK = S[8] | S[9] | S[10] | S[11] | S[12] | S[13] | S[14] | S[15]
+
+MAIN_DIAGONAL = S[0] | S[4] | S[9] | S[13] | S[18] | S[22] | S[27] | S[31]
+
+DOUBLE_DIAGONAL = (
+    S[3]
+    | S[6]
+    | S[10]
+    | S[13]
+    | S[17]
+    | S[20]
+    | S[24]
+    | S[7]
+    | S[11]
+    | S[14]
+    | S[18]
+    | S[21]
+    | S[25]
+    | S[28]
+)
