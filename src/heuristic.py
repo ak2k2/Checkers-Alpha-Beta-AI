@@ -1,6 +1,4 @@
-from typing import List
-
-from util.helpers import find_set_bits, count_bits
+from util.helpers import count_bits
 from util.masks import (
     BLACK_NORTHEAST,
     BLACK_NORTHWEST,

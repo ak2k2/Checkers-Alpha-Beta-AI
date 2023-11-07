@@ -6,6 +6,8 @@
 src/.pytest_cache/*
 .pytest_cache/
 *.pyc
+src/*.pyc
+src/__pycache__/*.pyc
 
 # venv
 checkersAI/

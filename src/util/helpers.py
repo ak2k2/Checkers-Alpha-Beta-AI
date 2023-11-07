@@ -1,3 +1,5 @@
+from enum import Enum
+
 MASK_32 = 0xFFFFFFFF  # To explicitly invoke 32-bit integers.
 
 PDN_MAP = {
@@ -36,6 +38,11 @@ PDN_MAP = {
 }
 
 REVERSE_PDN_MAP = {v: k for k, v in PDN_MAP.items()}
+
+
+class PlayerTurn(Enum):
+    WHITE = 1
+    BLACK = 2
 
 
 def bitboard_to_pdn_positions(bitboard):
@@ -145,6 +152,25 @@ def set_bit(bitboard, index) -> int:
     Returns the bitboard with the bit at the given index set to 1.
     """
     return bitboard | (1 << index)
+
+
+def switch_player(player):
+    return PlayerTurn.BLACK if player == PlayerTurn.WHITE else PlayerTurn.WHITE
+
+
+def print_legal_moves(legal_moves):
+    print(
+        f"Legal moves - {[f'{i}: {m}' for i,m in enumerate(convert_move_list_to_pdn(legal_moves))]}"
+    )
+
+
+def initialize_game():
+    (
+        WP,
+        BP,
+        K,
+    ) = get_fresh_board()
+    return WP, BP, K
 
 
 def print_board(WP, BP, kings) -> None:

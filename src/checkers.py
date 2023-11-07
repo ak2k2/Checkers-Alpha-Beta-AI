@@ -1,48 +1,5 @@
-from enum import Enum
-
-from util.helpers import (
-    PDN_MAP,
-    bitindex_to_coords,
-    convert_move_list_to_pdn,
-    coords_to_bitindex,
-    find_set_bits,
-    get_empty_board,
-    get_fresh_board,
-    insert_piece,
-    insert_piece_by_pdntext,
-    is_set,
-    print_bin_strings,
-    print_board,
-    remove_piece,
-    remove_piece_by_pdntext,
-    set_bit,
-)
-from util.masks import (
-    BLACK_JUMP_NORTHEAST,
-    BLACK_JUMP_NORTHWEST,
-    BLACK_NORTHEAST,
-    BLACK_NORTHWEST,
-    KING_ROW_BLACK,
-    KING_ROW_WHITE,
-    MASK_32,
-    MASK_L3,
-    MASK_L5,
-    MASK_R3,
-    MASK_R5,
-    WHITE_JUMP_SOUTHEAST,
-    WHITE_JUMP_SOUTHWEST,
-    WHITE_SOUTHEAST,
-    WHITE_SOUTHWEST,
-    JUMP_MASKS,
-    MOVE_MASKS,
-    DIRECTION_MAP,
-    S,
-)
-
-
-class PlayerTurn(Enum):
-    WHITE = 1
-    BLACK = 2
+from util.helpers import *
+from util.masks import *
 
 
 def do_move(WP, BP, K, moves, player):
