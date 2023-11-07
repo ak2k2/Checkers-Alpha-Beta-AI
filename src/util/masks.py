@@ -284,6 +284,7 @@ WHITE_JUMP_SOUTHWEST = {
     31: 22,
 }
 
+
 # To find the jumped position given the start and end positions # TODO: can be simplified at the expense of modifying move representation
 JUMP_MASKS = {
     "JSE": WHITE_JUMP_SOUTHEAST,

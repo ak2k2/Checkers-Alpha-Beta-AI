@@ -1,37 +1,37 @@
-from util.helpers import count_bits
+from checkers import (
+    PlayerTurn,
+    all_jump_sequences,
+    convert_move_list_to_pdn,
+    generate_simple_moves_black,
+    generate_simple_moves_white,
+    get_jumpers_black,
+    get_jumpers_white,
+    get_movers_black,
+    get_movers_white,
+    print_board,
+)
+from util.fen_pdn_helper import setup_board_from_position_lists
+from util.helpers import count_bits, find_set_bits, insert_piece, remove_piece
 from util.masks import (
-    BLACK_NORTHEAST,
-    BLACK_NORTHWEST,
+    ATTACK_ROWS_BLACK,
+    ATTACK_ROWS_WHITE,
     BLACK_JUMP_NORTHEAST,
     BLACK_JUMP_NORTHWEST,
-    WHITE_SOUTHEAST,
-    WHITE_SOUTHWEST,
-    WHITE_JUMP_SOUTHEAST,
-    WHITE_JUMP_SOUTHWEST,
+    BLACK_NORTHEAST,
+    BLACK_NORTHWEST,
     CENTER_8,
     DOUBLE_CORNER,
-    SINGLE_CORNER,
+    DOUBLE_DIAGONAL,
+    EDGES,
     KING_ROW_BLACK,
     KING_ROW_WHITE,
-    EDGES,
-    ATTACK_ROWS_WHITE,
-    ATTACK_ROWS_BLACK,
     MAIN_DIAGONAL,
-    DOUBLE_DIAGONAL,
     MASK_32,
-)
-
-from checkers import (
-    get_movers_white,
-    get_movers_black,
-    get_jumpers_white,
-    get_jumpers_black,
-    generate_simple_moves_white,
-    generate_simple_moves_black,
-    all_jump_sequences,
-    PlayerTurn,
-    print_board,
-    convert_move_list_to_pdn,
+    SINGLE_CORNER,
+    WHITE_JUMP_SOUTHEAST,
+    WHITE_JUMP_SOUTHWEST,
+    WHITE_SOUTHEAST,
+    WHITE_SOUTHWEST,
 )
 
 
@@ -40,48 +40,40 @@ def basic_heuristic(WP, BP, K):
 
 
 def new_heuristic(WP, BP, K):
-    men_score = 2000 * (count_bits(WP & ~K) - count_bits(BP & ~K))
-    kings_score = 4000 * (count_bits(WP & K) - count_bits(BP & K))
+    back_row_score = count_bits(WP & KING_ROW_BLACK) - count_bits(BP & KING_ROW_WHITE)
 
-    # Bonus for pieces on the back row (promoting row for the opponent)
-    white_back_row_score = 400 * count_bits(WP & KING_ROW_BLACK)
-    black_back_row_score = 400 * count_bits(BP & KING_ROW_WHITE)
+    center_score = count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
 
-    # Bonus for pieces in the center and on the middle row
-    center_score = 250 * (count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8))
-    middle_row_score = 50 * (
-        count_bits(WP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
-        - count_bits(BP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
+    middle_four_rows_score = count_bits(
+        WP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK)
+    ) - count_bits(BP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
+
+    edges_score = count_bits(WP & EDGES) - count_bits(BP & EDGES)
+
+    double_diagonals_score = count_bits(WP & DOUBLE_DIAGONAL) - count_bits(
+        BP & DOUBLE_DIAGONAL
     )
 
-    # Penalty for vulnerable pieces
-    # This is tricky as it depends on the actual game moves, but as an approximation,
-    # we could penalize pieces on the edge since they might be more vulnerable.
-    vulnerable_score = 300 * (count_bits(WP & EDGES) - count_bits(BP & EDGES))
-
-    # Bonus for protected pieces
-    # Similarly tricky, but we could consider pieces on the double diagonal to be generally protected.
-    protected_score = 300 * (
-        count_bits(WP & DOUBLE_DIAGONAL) - count_bits(BP & DOUBLE_DIAGONAL)
+    main_diagonal_score = count_bits(WP & MAIN_DIAGONAL) - count_bits(
+        BP & MAIN_DIAGONAL
     )
 
-    return (
-        men_score  # Assumed to be the difference between white and black men
-        + kings_score  # Assumed to be the difference between white and black kings
-        + white_back_row_score  # Positive if White has pieces in the back row
-        - black_back_row_score  # Negative if Black has pieces in the back row (hence the minus)
-        + center_score  # Center control score, positive for White, negative for Black
-        + middle_row_score  # Middle row control score, positive for White, negative for Black
-        - vulnerable_score  # Negative if White pieces are vulnerable, positive if Black pieces are
-        + protected_score  # Positive if White pieces are protected, negative if Black pieces are
-        + 500
-        * mobility_diff_score(
-            WP, BP, K
-        )  # Mobility difference, positive for White advantage
-        + 1000
-        * piece_count_diff_score(
-            WP, BP, K
-        )  # Piece count difference, positive for White advantage
+    dpl = calculate_total_distance_to_promotion_white(WP & ~K) - (
+        calculate_total_distance_to_promotion_black(BP & ~K)
+    )
+
+    mds = mobility_diff_score(WP, BP, K)
+
+    return int(
+        (400 * back_row_score)
+        + (250 * center_score)
+        + (100 * middle_four_rows_score)
+        + (300 * edges_score)
+        + (300 * double_diagonals_score)
+        + (300 * main_diagonal_score)
+        + (4000 * mds)
+        + (3000 * dpl if abs(mds) < 1000 else 1000 * mds)
+        + (2000 * piece_count_diff_score(WP, BP, K))
     )
 
 
@@ -137,158 +129,52 @@ def piece_count_diff_score(WP, BP, K, kw=1.5):
     return piece_count_score
 
 
-def count_safe_men(bitboard: int, edge_mask: int) -> int:
+def calculate_total_distance_to_promotion_white(bitboard):
     """
-    Counts the number of men that are on the edge of the board and are considered 'safe'.
+    Calculates the sum of the distances of all pieces on the bitboard to the promotion line.
     """
-    return count_bits(bitboard & edge_mask & MASK_32)
+    distance_sum = 0
+    for index in find_set_bits(bitboard):
+        if bitboard & (1 << index):
+            # Calculate the row by dividing by 4 (since 4 cells per row)
+            row = index // 4
+            # Distance to promotion is 7 minus the row number
+            distance = 7 - row
+            distance_sum += max(
+                0, distance
+            )  # Ensure distance is not negative for already promoted pieces
+
+    return distance_sum
 
 
-# def count_moveable_men(
-#     bitboard: int, empty_squares: int, own_kings: int, opponent_pieces: int
-# ) -> int:
-#     """
-#     Counts the number of men that can move (not considering jumps).
-#     """
-#     # TODO: Implement the actual move generation logic based on the game rules.
-#     pass
+def calculate_total_distance_to_promotion_black(bitboard):
+    """
+    Calculates the sum of the distances of all pieces on the bitboard to the promotion line.
+    """
+    distance_sum = 0
+    for index in find_set_bits(bitboard):
+        if bitboard & (1 << index):
+            # Calculate the row by dividing by 4 (since 4 cells per row)
+            row = index // 4
+            # Distance to promotion for black is the row number
+            distance = row
+            distance_sum += distance  # Distance for black is just the row number, since they move down the board
+
+    return distance_sum
 
 
-# def count_moveable_kings(
-#     kings_bitboard: int, empty_squares: int, opponent_pieces: int
-# ) -> int:
-#     """
-#     Counts the number of kings that can move (not considering jumps).
-#     """
-#     # TODO: Implement the actual move generation logic based on the game rules.
-#     pass
+WP, BP, K = setup_board_from_position_lists(
+    white_positions=["A3"], black_positions=["C3", "C1"]
+)
 
+print_board(WP, BP, K)
 
-# def aggregated_distance_to_promotion_line(bitboard: int, promotion_line: int) -> int:
-#     """
-#     Aggregates the distance of men to their promotion line.
-#     """
-#     # TODO: Define how distance is calculated and sum for all men.
-#     pass
+print(
+    f"Total distance to promotion for white: {calculate_total_distance_to_promotion_white(WP)}"
+)
+print(
+    f"Total distance to promotion for black: {calculate_total_distance_to_promotion_black(BP)}"
+)
 
-
-# def count_unoccupied_promotion_squares(empty_squares: int, promotion_line: int) -> int:
-#     """
-#     Counts the number of unoccupied fields on the promotion line.
-#     """
-#     return count_bits(empty_squares & promotion_line)
-
-
-# def count_defending_pieces(bitboard: int, defending_rows: int) -> int:
-#     """
-#     Counts the number of pieces in the defending rows.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_attacking_men(bitboard: int, attacking_rows: int) -> int:
-#     """
-#     Counts the number of men in the attacking rows.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_central_men(bitboard: int, center_mask: int) -> int:
-#     """
-#     Counts the number of men in the center squares of the board.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_central_kings(kings_bitboard: int, center_mask: int) -> int:
-#     """
-#     Counts the number of kings in the center squares of the board.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_main_diagonal_pieces(bitboard: int, main_diagonal: int) -> int:
-#     """
-#     Counts the number of pieces on the main diagonal.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_double_diagonal_pieces(bitboard: int, double_diagonal: int) -> int:
-#     """
-#     Counts the number of pieces on the double diagonal.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_loner_men(bitboard: int, adjacency_mask: int) -> int:
-#     """
-#     Counts the number of men that are not adjacent to any other piece.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_loner_kings(kings_bitboard: int, adjacency_mask: int) -> int:
-#     """
-#     Counts the number of kings that are not adjacent to any other piece.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def count_holes(bitboard: int, own_pieces_mask: int) -> int:
-#     """
-#     Counts the number of empty squares adjacent to at least three pieces of the same color.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# # Pattern detection functions
-
-
-# def has_triangle_pattern(bitboard: int, triangle_pattern_mask: int) -> bool:
-#     """
-#     Returns True if a triangle pattern is detected.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def has_oreo_pattern(bitboard: int, oreo_pattern_mask: int) -> bool:
-#     """
-#     Returns True if an oreo pattern is detected.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def has_bridge_pattern(bitboard: int, bridge_pattern_mask: int) -> bool:
-#     """
-#     Returns True if a bridge pattern is detected.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def has_dog_pattern(bitboard: int, dog_pattern_mask: int) -> bool:
-#     """
-#     Returns True if a dog pattern is detected.
-#     """
-#     # TODO: Implement this function.
-#     pass
-
-
-# def has_pyramid_pattern(bitboard: int, pyramid_pattern_mask: int) -> bool:
-#     """
-#     Returns True if a pyramid pattern is detected.
-#     """
-#     # TODO: Implement this function.
-#     pass
+print(f"Basic Heuristic: {basic_heuristic(WP, BP, K)}")
+print(f"New Heuristic: {new_heuristic(WP, BP, K)}")

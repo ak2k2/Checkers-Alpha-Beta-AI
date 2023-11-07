@@ -165,7 +165,7 @@ def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print(f"EVAL: {basic_heuristic(WP, BP, K)}")
+        print(f"EVAL: {new_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 
