@@ -67,8 +67,8 @@ def do_move(WP, BP, K, moves, player):
         is_jump = abs(start_pos - end_pos) > 5
 
         # Create a mask for the starting and ending positions
-        start_mask = 1 << start_pos & MASK_32
-        end_mask = 1 << end_pos & MASK_32
+        start_mask = (1 << start_pos) & MASK_32
+        end_mask = (1 << end_pos) & MASK_32
 
         # Update the board based on the player's move
         if player == PlayerTurn.WHITE:
@@ -286,5 +286,5 @@ def random_vs_AI():
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    human_vs_AI()
-    # random_vs_AI()
+    # human_vs_AI()
+    random_vs_AI()

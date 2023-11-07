@@ -97,7 +97,7 @@ def count_safe_men(bitboard: int, edge_mask: int) -> int:
     """
     Counts the number of men that are on the edge of the board and are considered 'safe'.
     """
-    return count_bits(bitboard & edge_mask)
+    return count_bits(bitboard & edge_mask & MASK_32)
 
 
 # def count_moveable_men(
