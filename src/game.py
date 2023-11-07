@@ -52,17 +52,6 @@ def find_jumped_pos(start_pos, end_pos):
     return None
 
 
-def choose_move(selected_move):
-    if len(selected_move) == 1:
-        return [(selected_move)]
-    else:
-        # selected_move looks like [(31, 22, 15, 6)] and we want [(31, 22), (22, 15), (15, 6)]
-        return [
-            (selected_move[i], selected_move[i + 1])
-            for i in range(len(selected_move) - 1)
-        ]
-
-
 def do_move(WP, BP, K, moves, player):
     if len(moves) == 1:
         move = [(moves)]
@@ -222,12 +211,11 @@ def human_vs_AI():
             if not legal_moves:
                 print(f"GAME OVER. {current_player.name} LOSES!")
                 break
-
             print(f"It's {current_player.name}'s Turn.\n")
             print_legal_moves(legal_moves)
             selected_move = legal_moves[int(input("Choose your move by index: "))]
 
-            print(f"Move chosen: {selected_move}")
+            print(f"Move chosen: {convert_move_list_to_pdn([selected_move])}")
             WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         else:  # AI's turn
@@ -237,6 +225,51 @@ def human_vs_AI():
                 print(f"GAME OVER. {current_player.name} LOSES!")
                 break
             print(f"AI chose move: {convert_move_list_to_pdn([best_move])}")
+            WP, BP, K = do_move(WP, BP, K, best_move, current_player)
+
+        print(f"HEURISTIC: {basic_heuristic(WP, BP, K)}")
+        print_board(WP, BP, K)
+        print("-" * 50 + "\n")
+
+        current_player = (
+            PlayerTurn.WHITE if current_player == PlayerTurn.BLACK else PlayerTurn.BLACK
+        )
+        move_count += 1
+
+    print(f"Game over in {move_count} moves.")
+
+
+def random_vs_AI():
+    WP, BP, K = initialize_game()
+    current_player = PlayerTurn.BLACK
+    move_count = 0
+    max_depth = 5
+
+    print_board(WP, BP, K)  # Assuming print_board() function to display the board
+    random.seed(2)
+    while move_count < 100:  # or some other termination condition like a draw
+        if current_player == PlayerTurn.BLACK:
+            legal_moves = generate_legal_moves(WP, BP, K, current_player)
+
+            if not legal_moves:
+                print(f"GAME OVER. {current_player.name} LOSES!")
+                break
+
+            print(f"It's {current_player.name}'s Turn.\n")
+            print_legal_moves(legal_moves)
+            # selected_move = legal_moves[int(input("Choose your move by index: "))]
+            selected_move = random.choice(legal_moves)
+
+            print(f"Random Move chosen: {selected_move}")
+            WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
+
+        else:  # AI's turn
+            print("AI is thinking...")
+            best_move = minimax_alphabeta.AI((WP, BP, K), max_depth)
+            if best_move is None:
+                print(f"GAME OVER. {current_player.name} LOSES!")
+                break
+            print(f"White chose move: {convert_move_list_to_pdn([best_move])}")
             WP, BP, K = do_move(WP, BP, K, best_move, current_player)
 
         print_board(WP, BP, K)
@@ -253,4 +286,5 @@ def human_vs_AI():
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    human_vs_AI()
+    # human_vs_AI()
+    random_vs_AI()
