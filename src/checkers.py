@@ -448,6 +448,6 @@ def all_jump_sequences(
         return jump_sequences
 
 
-if __name__ == "__main__":
-    WP, BP, K = get_fresh_board()
-    print_board(WP, BP, K)
+# if __name__ == "__main__":
+#     WP, BP, K = get_fresh_board()
+#     print_board(WP, BP, K)

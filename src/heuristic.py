@@ -14,10 +14,10 @@ from util.fen_pdn_helper import setup_board_from_position_lists
 from util.helpers import (
     count_bits,
     find_set_bits,
-    insert_piece,
-    remove_piece,
     get_empty_board,
     get_fresh_board,
+    insert_piece,
+    remove_piece,
 )
 from util.masks import (
     ATTACK_ROWS_BLACK,
@@ -43,7 +43,23 @@ from util.masks import (
 
 
 def basic_heuristic(WP, BP, K):
-    return mobility_diff_score(WP, BP, K) + piece_count_diff_score(WP, BP, K)
+    return mobility_diff_score(WP, BP, K, jw=2) + piece_count_diff_score(
+        WP, BP, K, kw=1.5
+    )
+
+
+def basic_heuristic_2(WP, BP, K):
+    return (
+        (100 * mobility_diff_score(WP, BP, K, jw=2))
+        + (200 * piece_count_diff_score(WP, BP, K, kw=1.5))
+        + (
+            50
+            * (
+                calculate_total_distance_to_promotion_white(WP & ~K)
+                - calculate_total_distance_to_promotion_black(BP & ~K)
+            )
+        )
+    )
 
 
 def new_heuristic(
@@ -193,20 +209,20 @@ def calculate_total_distance_to_promotion_black(bitboard):
     return distance_sum
 
 
-WP, BP, K = setup_board_from_position_lists(
-    white_positions=["D4", "F4", "B6", "KA7", "KG7"], black_positions=["KE5", "KC7"]
-)
+# WP, BP, K = setup_board_from_position_lists(
+#     white_positions=["D4", "F4", "B6", "KA7", "KG7"], black_positions=["KE5", "KC7"]
+# )
 
-print_board(WP, BP, K)
+# print_board(WP, BP, K)
 
-print(
-    f"Total distance to promotion for white: {calculate_total_distance_to_promotion_white(WP)}"
-)
-print(
-    f"Total distance to promotion for black: {calculate_total_distance_to_promotion_black(BP)}"
-)
+# print(
+#     f"Total distance to promotion for white: {calculate_total_distance_to_promotion_white(WP)}"
+# )
+# print(
+#     f"Total distance to promotion for black: {calculate_total_distance_to_promotion_black(BP)}"
+# )
 
-print(f"Mobility Score: {mobility_diff_score(WP, BP, K)}")
+# print(f"Mobility Score: {mobility_diff_score(WP, BP, K)}")
 
-print(f"Basic Heuristic: {basic_heuristic(WP, BP, K)}")
-print(f"New Heuristic: {new_heuristic(WP, BP, K)}")
+# print(f"Basic Heuristic: {basic_heuristic(WP, BP, K)}")
+# print(f"New Heuristic: {new_heuristic(WP, BP, K)}")

@@ -3,7 +3,7 @@ import signal
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import basic_heuristic, new_heuristic
+from heuristic import basic_heuristic, new_heuristic, basic_heuristic_2
 
 
 class TimeOutException(Exception):
@@ -23,7 +23,7 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuri
         if heuristic == "basic_heuristic":
             return basic_heuristic(*position)
         elif heuristic == "new_heuristic":
-            return new_heuristic(*position)
+            return basic_heuristic_2(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
