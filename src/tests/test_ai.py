@@ -8,8 +8,8 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 
-from game import do_move, find_jumped_pos, print_board, print_legal_moves
-from main import *
+from game import print_legal_moves
+from checkers import *
 from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *

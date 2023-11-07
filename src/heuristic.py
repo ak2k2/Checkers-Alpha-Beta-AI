@@ -23,7 +23,7 @@ from util.masks import (
     MASK_32,
 )
 
-from main import (
+from checkers import (
     get_movers_white,
     get_movers_black,
     get_jumpers_white,

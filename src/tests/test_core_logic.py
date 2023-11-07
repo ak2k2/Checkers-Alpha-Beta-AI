@@ -6,7 +6,7 @@ import pytest
 parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
-from main import (
+from checkers import (
     bitindex_to_coords,
     coords_to_bitindex,
     find_set_bits,

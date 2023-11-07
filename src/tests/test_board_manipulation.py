@@ -6,7 +6,7 @@ import pytest
 parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
-from main import (
+from checkers import (
     PlayerTurn,
     bitindex_to_coords,
     convert_move_list_to_pdn,

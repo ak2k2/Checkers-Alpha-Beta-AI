@@ -8,8 +8,8 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 
-from game import do_move, find_jumped_pos, print_board, print_legal_moves
-from main import *
+from game import print_legal_moves
+from checkers import *
 from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
@@ -139,6 +139,8 @@ def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneous
     print_board(WP, BP, K)
     WP, BP, K = do_move(WP, BP, K, (13, 9), PlayerTurn.WHITE)
     print_board(WP, BP, K)
+
+    # assert (WP, BP, K) == setup_board_from_position_lists(["KC3"], ["D2"]) # TODO: add assertions
 
 
 # def false_king_edge_case_simulation():  # FOUND THE ERRONEOUS KING PROMOTION

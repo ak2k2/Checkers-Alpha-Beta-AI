@@ -33,6 +33,9 @@ from util.masks import (
     WHITE_JUMP_SOUTHWEST,
     WHITE_SOUTHEAST,
     WHITE_SOUTHWEST,
+    JUMP_MASKS,
+    MOVE_MASKS,
+    DIRECTION_MAP,
     S,
 )
 
@@ -42,35 +45,100 @@ class PlayerTurn(Enum):
     BLACK = 2
 
 
-def make_move(move, WP, BP, K):
-    """
-    Takes a move tuple and updates the board accordingly.
-    """
-    # Extract source and destination from the move tuple
-    src, dest = move
-
-    # Convert FEN coordinates to bit indices
-    src_index = coords_to_bitindex(src)
-    dest_index = coords_to_bitindex(dest)
-
-    # Determine if the source is a white or black piece and move it accordingly
-    if WP & (1 << src_index):  # It's a white piece
-        WP = remove_piece(WP, src_index)  # Remove from source
-        WP = insert_piece(WP, dest_index)  # Insert to destination
-    elif BP & (1 << src_index):  # It's a black piece
-        BP = remove_piece(BP, src_index)  # Remove from source
-        BP = insert_piece(BP, dest_index)  # Insert to destination
+def do_move(WP, BP, K, moves, player):
+    if len(moves) == 1:
+        move = [(moves)]
     else:
-        raise ValueError("No piece at source location.")
+        moves = [(moves[i], moves[i + 1]) for i in range(len(moves) - 1)]
 
-    # Update kings if a king was moved
-    if K & (1 << src_index):
-        K = remove_piece(K, src_index)  # Remove from source
-        K = insert_piece(
-            K, dest_index
-        )  # Insert to destination (works for both white and black)
+    for move in moves:
+        start_pos, end_pos = move  # Move is a tuple: (start_pos, end_pos)
+
+        # Determine if this is a jump move
+        is_jump = abs(start_pos - end_pos) > 5
+
+        # Create a mask for the starting and ending positions
+        start_mask = (1 << start_pos) & MASK_32
+        end_mask = (1 << end_pos) & MASK_32
+
+        # Update the board based on the player's move
+        if player == PlayerTurn.WHITE:
+            WP = remove_piece(WP, start_pos)
+            WP = insert_piece(WP, end_pos)
+
+            # If a jump is made, remove the jumped piece from the opponent and UPDATE KING BITBOARD!
+            if is_jump:
+                jumped_pos = find_jumped_pos(start_pos, end_pos)
+                BP = remove_piece(BP, jumped_pos)
+                K = remove_piece(K, jumped_pos)  # UPDATE KING BITBOARD!
+
+            # Check for kinging
+            if end_mask & KING_ROW_WHITE:
+                K = insert_piece(K, end_pos)
+
+        elif player == PlayerTurn.BLACK:
+            BP = remove_piece(BP, start_pos)
+            BP = insert_piece(BP, end_pos)
+
+            if is_jump:
+                jumped_pos = find_jumped_pos(start_pos, end_pos)
+                # WP &= ~(1 << jumped_pos) & MASK_32
+                WP = remove_piece(WP, jumped_pos)
+                K = remove_piece(K, jumped_pos)  # UPDATE KING BITBOARD!
+
+            if end_mask & KING_ROW_BLACK:
+                K = insert_piece(K, end_pos)
+
+        # Update the kings bitboard if a king has been moved
+        if start_mask & K:
+            K = remove_piece(K, start_pos)
+            K = insert_piece(K, end_pos)
 
     return WP, BP, K
+
+
+def generate_legal_moves(WP, BP, K, turn):
+    """
+    Returns a list of all legal moves for the given player. If no moves are available, returns None.
+    """
+    if turn == PlayerTurn.WHITE:
+        # Check for jump moves first
+        white_jumpers = get_jumpers_white(WP, BP, K)
+        if white_jumpers:
+            return all_jump_sequences(WP, BP, K, white_jumpers, None, turn)
+
+        # If no jump moves, check for simple moves
+        white_movers = get_movers_white(WP, BP, K)
+
+        if white_movers:
+            return generate_simple_moves_white(WP, BP, K, white_movers)
+
+        return None  # No moves available - game over for white.
+
+    elif turn == PlayerTurn.BLACK:
+        black_jumpers = get_jumpers_black(WP, BP, K)
+        if black_jumpers:
+            return all_jump_sequences(WP, BP, K, None, black_jumpers, turn)
+
+        black_movers = get_movers_black(WP, BP, K)
+        if black_movers:
+            return generate_simple_moves_black(WP, BP, K, black_movers)
+
+        return None  # No moves available - game over for black.
+
+
+def find_jumped_pos(start_pos, end_pos):
+    """
+    Returns the position of the jumped piece given the start and end positions of a move.
+    """
+
+    for direction, jump_mask in JUMP_MASKS.items():
+        if jump_mask[start_pos] == end_pos:
+            # Get the mask for the move to find the jumped square
+            move_mask = MOVE_MASKS[DIRECTION_MAP[direction]]
+            return move_mask[start_pos]
+    # Will never happen unless the start and end positions are invalid
+    return None
 
 
 def get_movers_white(WP, BP, K):
@@ -421,36 +489,6 @@ def all_jump_sequences(
                 generate_all_jump_sequences(WP, BP, K, pos, is_king, player)
             )
         return jump_sequences
-
-
-def generate_legal_moves(WP, BP, K, turn):
-    """
-    Returns a list of all legal moves for the given player. If no moves are available, returns None.
-    """
-    if turn == PlayerTurn.WHITE:
-        # Check for jump moves first
-        white_jumpers = get_jumpers_white(WP, BP, K)
-        if white_jumpers:
-            return all_jump_sequences(WP, BP, K, white_jumpers, None, turn)
-
-        # If no jump moves, check for simple moves
-        white_movers = get_movers_white(WP, BP, K)
-
-        if white_movers:
-            return generate_simple_moves_white(WP, BP, K, white_movers)
-
-        return None  # No moves available - game over for white.
-
-    elif turn == PlayerTurn.BLACK:
-        black_jumpers = get_jumpers_black(WP, BP, K)
-        if black_jumpers:
-            return all_jump_sequences(WP, BP, K, None, black_jumpers, turn)
-
-        black_movers = get_movers_black(WP, BP, K)
-        if black_movers:
-            return generate_simple_moves_black(WP, BP, K, black_movers)
-
-        return None  # No moves available - game over for black.
 
 
 if __name__ == "__main__":
