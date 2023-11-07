@@ -1,8 +1,17 @@
 import time
+import signal
 
-import game
-from heuristic import basic_heuristic
 from checkers import *
+from checkers import PlayerTurn, do_move, generate_legal_moves
+from heuristic import basic_heuristic
+
+
+class TimeOutException(Exception):
+    pass
+
+
+def signal_handler(signum, frame):
+    raise TimeOutException("AI computation timed out")
 
 
 def minimax(position, depth, alpha, beta, current_player):

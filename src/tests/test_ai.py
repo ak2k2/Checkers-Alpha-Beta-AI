@@ -20,7 +20,7 @@ from heuristic import basic_heuristic
 def ai_vs_random_test_chases_with_king():
     WP, BP, K = setup_board_from_position_lists(
         white_positions=["KC3", "KA1"],
-        black_positions=["KH8"],
+        black_positions=["KH8", "D8"],
     )
 
     def get_stalling_move(WP, BP, K):
@@ -48,7 +48,9 @@ def ai_vs_random_test_chases_with_king():
             WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.WHITE)
             turn = PlayerTurn.BLACK
 
-        print_board(WP, BP, K)  # TODO: the AI does seem to be chasing the king
+        print_board(
+            WP, BP, K
+        )  # TODO: the AI does seem to be chasing the king. we need a endgame heuristic to make it win.
 
 
 ai_vs_random_test_chases_with_king()
