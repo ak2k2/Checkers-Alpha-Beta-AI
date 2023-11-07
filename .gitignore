@@ -4,3 +4,8 @@
 
 # pytest cache
 src/.pytest_cache/*
+.pytest_cache/
+*.pyc
+
+# venv
+checkersAI/
