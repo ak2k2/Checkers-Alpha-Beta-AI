@@ -36,11 +36,11 @@ from main import (
 )
 
 
-def heuristic(WP, BP, K):
-    return 0
+def basic_heuristic(WP, BP, K):
+    return mobility_diff_score(WP, BP, K) + piece_count_diff_score(WP, BP, K)
 
 
-def mobility_score(WP, BP, K):
+def mobility_diff_score(WP, BP, K, jw=2):
     # Get movers and jumpers for both white and black
     white_movers = get_movers_white(WP, BP, K)
     black_movers = get_movers_black(WP, BP, K)
@@ -57,19 +57,7 @@ def mobility_score(WP, BP, K):
         WP, BP, K, None, black_jumpers, player=PlayerTurn.BLACK
     )
 
-    print("White simple moves: ", convert_move_list_to_pdn(white_simple_moves))
-    print("Black simple moves: ", convert_move_list_to_pdn(black_simple_moves))
-    print(
-        "White jump sequences: ",
-        convert_move_list_to_pdn(white_jump_sequences),
-    )
-    print(
-        "Black jump sequences: ",
-        convert_move_list_to_pdn(black_jump_sequences),
-    )
-
     # Jumps could be considered (jw) times more valuable as they capture an opponent's piece
-    jw = 2
     white_score = len(white_simple_moves) + jw * sum(
         len(seq) for seq in white_jump_sequences
     )
@@ -84,18 +72,31 @@ def mobility_score(WP, BP, K):
     return mobility_score
 
 
-# def count_kings(bitboard: int, kings_bitboard: int) -> int:
-#     """
-#     Counts the number of kings in the bitboard.
-#     """
-#     return count_bits(bitboard & kings_bitboard)
+def piece_count_diff_score(WP, BP, K, kw=1.5):
+    # Count the number of men each player has
+    white_piece_count = count_bits(WP)
+    black_piece_count = count_bits(BP)
+
+    # Count the number of kings each player has
+    white_king_count = count_bits(WP & K)
+    black_king_count = count_bits(BP & K)
+
+    # Give kings a higher weight
+    white_score = white_piece_count + kw * white_king_count
+    black_score = black_piece_count + kw * black_king_count
+
+    # Calculate the difference
+    piece_count_score = white_score - black_score
+
+    # Positive score favors white, Negative score favors black
+    return piece_count_score
 
 
-# def count_safe_men(bitboard: int, edge_mask: int) -> int:
-#     """
-#     Counts the number of men that are on the edge of the board and are considered 'safe'.
-#     """
-#     return count_bits(bitboard & edge_mask)
+def count_safe_men(bitboard: int, edge_mask: int) -> int:
+    """
+    Counts the number of men that are on the edge of the board and are considered 'safe'.
+    """
+    return count_bits(bitboard & edge_mask)
 
 
 # def count_moveable_men(
@@ -205,7 +206,7 @@ def mobility_score(WP, BP, K):
 #     pass
 
 
-# # Pattern detection functions with type hints
+# # Pattern detection functions
 
 
 # def has_triangle_pattern(bitboard: int, triangle_pattern_mask: int) -> bool:

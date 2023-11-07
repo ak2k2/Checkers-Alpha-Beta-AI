@@ -1,5 +1,6 @@
 import random
 
+from heuristic import basic_heuristic
 from main import (
     BLACK_JUMP_NORTHEAST,
     BLACK_JUMP_NORTHWEST,
@@ -21,8 +22,7 @@ from main import (
     print_board,
 )
 
-from heuristic import heuristic
-
+import minimax_alphabeta
 
 JUMP_MASKS = {
     "JSE": WHITE_JUMP_SOUTHEAST,
@@ -111,7 +111,6 @@ def do_move(WP, BP, K, moves, player):
             K &= ~start_mask
             K |= end_mask
 
-    # No need to enforce 32-bit size for the bitboards if all operations are on 32-bit masks
     return WP, BP, K
 
 
@@ -180,9 +179,9 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
             move_count += 1
 
 
-def game_loop():
-    WP, BP, K = initialize_game_puzzle()
-    current_player = PlayerTurn.WHITE
+def human_vs_human():
+    WP, BP, K = initialize_game()
+    current_player = PlayerTurn.BLACK
     move_count = 0
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
 
@@ -197,12 +196,10 @@ def game_loop():
         print_legal_moves(legal_moves)
         selected_move = legal_moves[int(input("Choose your move by index: "))]
 
-        print(f"Move chosen: {selected_move}")
-
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {heuristic(WP, BP, K)}")
+        print(f"HEURISTIC: {basic_heuristic(WP, BP, K)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -210,6 +207,50 @@ def game_loop():
     print(f"Game over in {move_count} moves.")
 
 
+def human_vs_AI():
+    WP, BP, K = initialize_game()
+    current_player = PlayerTurn.BLACK
+    move_count = 0
+    max_depth = 7
+
+    print_board(WP, BP, K)  # Assuming print_board() function to display the board
+
+    while move_count < 100:  # or some other termination condition like a draw
+        if current_player == PlayerTurn.BLACK:
+            legal_moves = generate_legal_moves(WP, BP, K, current_player)
+
+            if not legal_moves:
+                print(f"GAME OVER. {current_player.name} LOSES!")
+                break
+
+            print(f"It's {current_player.name}'s Turn.\n")
+            print_legal_moves(legal_moves)
+            selected_move = legal_moves[int(input("Choose your move by index: "))]
+
+            print(f"Move chosen: {selected_move}")
+            WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
+
+        else:  # AI's turn
+            print("AI is thinking...")
+            best_move = minimax_alphabeta.AI((WP, BP, K), max_depth)
+            if best_move is None:
+                print(f"GAME OVER. {current_player.name} LOSES!")
+                break
+            print(f"AI chose move: {convert_move_list_to_pdn([best_move])}")
+            WP, BP, K = do_move(WP, BP, K, best_move, current_player)
+
+        print_board(WP, BP, K)
+        print(f"HEURISTIC: {basic_heuristic(WP, BP, K)}")
+
+        current_player = (
+            PlayerTurn.WHITE if current_player == PlayerTurn.BLACK else PlayerTurn.BLACK
+        )
+        move_count += 1
+
+    print(f"Game over in {move_count} moves.")
+
+
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
-    game_loop()
+    # human_vs_human()
+    human_vs_AI()
