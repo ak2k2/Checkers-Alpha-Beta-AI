@@ -128,56 +128,69 @@ def test_white_becoming_king():
     assert (WP, BP, K) == setup_board_from_position_lists(["KE1"], [])
 
 
-def nics_edge_case():  # FOUND THE ERRONEOUS KING PROMOTION
-    WP, BP, K = get_fresh_board()
-    turn = PlayerTurn.BLACK
-    game_hash = (
-        5,
-        0,
-        0,
-        4,
-        0,
-        5,
-        5,
-        4,
-        0,
-        0,
-        4,
-        0,
-        0,
-        7,
-        1,
-        4,
-        0,
-        2,
-        3,
-        0,
-        2,
-        2,
-        0,
-        0,
-        4,
-        0,
-        0,  # TODO: URGENT: this is the move that is causing the error
-    )
+def king_once_was_on_square_was_captured_man_returns_to_square_becomes_erroneously_kinged():
+    WP, BP, K = setup_board_from_position_lists(["KC3", "C5"], ["D2"])
+    print_board(WP, BP, K)
+    WP, BP, K = do_move(WP, BP, K, (5, 12), PlayerTurn.BLACK)
+    print_board(WP, BP, K)
+    WP, BP, K = do_move(WP, BP, K, (17, 13), PlayerTurn.WHITE)
+    print_board(WP, BP, K)
+    WP, BP, K = do_move(WP, BP, K, (12, 16), PlayerTurn.BLACK)
+    print_board(WP, BP, K)
+    WP, BP, K = do_move(WP, BP, K, (13, 9), PlayerTurn.WHITE)
+    print_board(WP, BP, K)
 
-    i = 0
-    while i < len(game_hash):
-        if turn == PlayerTurn.BLACK:
-            legal_move_list = generate_legal_moves(WP, BP, K, turn)
-            print(f"Before move: WP={WP:032b}, BP={BP:032b}, K={K:032b}")
-            WP, BP, K = do_move(
-                WP, BP, K, legal_move_list[game_hash[i]], PlayerTurn.BLACK
-            )
-            print(f"After move: WP={WP:032b}, BP={BP:032b}, K={K:032b}")
-            i += 1
-            turn = PlayerTurn.WHITE
-        else:
-            ai_move = AI((WP, BP, K), max_depth=7)
-            WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.WHITE)
-            turn = PlayerTurn.BLACK
 
-        print_board(WP, BP, K)
+# def false_king_edge_case_simulation():  # FOUND THE ERRONEOUS KING PROMOTION
+#     WP, BP, K = get_fresh_board()
+#     turn = PlayerTurn.BLACK
+#     game_hash = (
+#         5,
+#         0,
+#         0,
+#         4,
+#         0,
+#         5,
+#         5,
+#         4,
+#         0,
+#         0,
+#         4,
+#         0,
+#         0,
+#         7,
+#         1,
+#         4,
+#         0,
+#         2,
+#         3,
+#         0,
+#         2,
+#         2,
+#         0,
+#         0,
+#         4,
+#         0,
+#         0,
+#     )
+
+#     i = 0
+#     while i < len(game_hash):
+#         if turn == PlayerTurn.BLACK:
+#             legal_move_list = generate_legal_moves(WP, BP, K, turn)
+#             print(f"Before move: WP={WP:032b}, BP={BP:032b}, K={K:032b}")
+#             WP, BP, K = do_move(
+#                 WP, BP, K, legal_move_list[game_hash[i]], PlayerTurn.BLACK
+#             )
+#             print(f"After move: WP={WP:032b}, BP={BP:032b}, K={K:032b}")
+#             i += 1
+#             turn = PlayerTurn.WHITE
+#         else:
+#             ai_move = AI((WP, BP, K), max_depth=7)
+#             WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.WHITE)
+#             turn = PlayerTurn.BLACK
+
+#         print_board(WP, BP, K)
 
 
 # def oscilate_to_test_bit_errors():
@@ -232,6 +245,6 @@ def nics_edge_case():  # FOUND THE ERRONEOUS KING PROMOTION
 
 if __name__ == "__main__":
     # pytest.main()
-    nics_edge_case()
+    # nics_edge_case()
     # test_do_move()
-    # pytest.main()
+    king_once_lived_on_square_was_captured_king_bitboard_should_reflect()

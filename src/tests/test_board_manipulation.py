@@ -83,15 +83,29 @@ def test_captures_becomes_king_can_no_longer_capture():
     WP, BP, K = get_empty_board()
     BP = insert_piece_by_pdntext(BP, "B6")
     WP = insert_piece_by_pdntext(WP, "C7")
-    # should not be captured as black becomes a king
+    # WP on E7 can not be captured since black becomes a king
     WP = insert_piece_by_pdntext(WP, "E7")
-    # print_board(WP, BP, K)
 
     black_moves = convert_move_list_to_pdn(
         generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
     )
 
     assert set(black_moves) == set(["B6->D8"])
+
+    WP, BP, K = get_empty_board()
+    BP = insert_piece_by_pdntext(BP, "B6")
+    K = insert_piece_by_pdntext(K, "B6")
+    WP = insert_piece_by_pdntext(WP, "C7")
+    # WP on E7 can not be captured since black becomes a king
+    WP = insert_piece_by_pdntext(WP, "E7")
+
+    black_moves = convert_move_list_to_pdn(
+        generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
+    )
+
+    assert set(black_moves) == set(
+        ["B6->D8->F6"]
+    )  # WP on E7 now CAN be captured since BP is a king
 
 
 def test_king_cyclical_capture_weird_diagonal():
@@ -287,9 +301,7 @@ def test_grid_capture_puzzle():
 
 def test_black_piece_thinks_it_can_move_into_corner():
     WP, BP, K = get_empty_board()
-    WP = insert_piece_by_pdntext(  # NOTE: making this a BP results in empty move list and throws TypeError: 'NoneType' object is not iterable
-        WP, "B8"
-    )  # TODO: black thinks he can captire by moving into a piece that is weird
+    WP = insert_piece_by_pdntext(WP, "B8")
     BP = insert_piece_by_pdntext(BP, "C7")
     BP = insert_piece_by_pdntext(BP, "E5")
     K = insert_piece_by_pdntext(K, "E5")
@@ -297,10 +309,10 @@ def test_black_piece_thinks_it_can_move_into_corner():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
+    assert set(convert_move_list_to_pdn(white_moves)) == set(["B8->D6->F4"])
+    assert set(convert_move_list_to_pdn(black_moves)) == set(
+        ["E5->F6", "E5->D6", "E5->D4", "E5->F4", "C7->D8"]
+    )
 
 
 def test_white_piece_bottom():
@@ -313,10 +325,6 @@ def test_white_piece_bottom():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set([])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["C1->E3", "E1->C3"])
 
@@ -330,10 +338,6 @@ def test_white_piece_upper_half():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["D8->B6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["C7->B8"])
 
@@ -347,10 +351,6 @@ def test_white_piece_upper_half_switch():  ## BROKE
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["D8->F6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["E7->F8"])
 
@@ -365,10 +365,6 @@ def test_black_piece_upper_half():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["C7->B6", "C7->D6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["D8->B6"])
 
@@ -382,10 +378,6 @@ def test_white_piece_left():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["A5->C3"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["B4->C5"])
 
@@ -399,10 +391,6 @@ def test_white_piece_right():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["H6->F4"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["G5->F6"])
 
@@ -416,10 +404,6 @@ def test_black_piece_right():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["G5->F4", "G5->H4"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["H6->G7"])
 
@@ -439,10 +423,6 @@ def test_triangle():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["D2->E1", "F2->E1"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["C1->B2"])
 
@@ -466,10 +446,6 @@ def test_setup_teams():
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
     assert set(convert_move_list_to_pdn(white_moves)) == set(["C5->E3", "D8->B6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["D6->F8", "D4->B6"])
 
@@ -492,11 +468,6 @@ def test_complex_situation():
 
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
-
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
 
     assert set(convert_move_list_to_pdn(white_moves)) == set(["E5->G3", "D8->F6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["A3->C1"])
@@ -521,11 +492,6 @@ def test_second_complex_situation():
 
     white_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
     black_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
-
-    print(f"White moves: {convert_move_list_to_pdn(white_moves)}")
-    print(f"Black moves: {convert_move_list_to_pdn(black_moves)}")
-
-    print_board(WP, BP, K)
 
     assert set(convert_move_list_to_pdn(white_moves)) == set(["C5->E3", "D8->B6"])
     assert set(convert_move_list_to_pdn(black_moves)) == set(["D6->F8", "D4->B6"])

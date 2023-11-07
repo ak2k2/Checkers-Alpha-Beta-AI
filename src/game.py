@@ -83,7 +83,7 @@ def do_move(WP, BP, K, moves, player):
             if is_jump:
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
                 BP = remove_piece(BP, jumped_pos)
-                K = remove_piece(K, jumped_pos)
+                K = remove_piece(K, jumped_pos)  # UPDATE KING BITBOARD!
 
             # Check for kinging
             if end_mask & KING_ROW_WHITE:
@@ -97,16 +97,14 @@ def do_move(WP, BP, K, moves, player):
                 jumped_pos = find_jumped_pos(start_pos, end_pos)
                 # WP &= ~(1 << jumped_pos) & MASK_32
                 WP = remove_piece(WP, jumped_pos)
-                K = remove_piece(K, jumped_pos)
+                K = remove_piece(K, jumped_pos)  # UPDATE KING BITBOARD!
 
             if end_mask & KING_ROW_BLACK:
                 K = insert_piece(K, end_pos)
 
         # Update the kings bitboard if a king has been moved
         if start_mask & K:
-            # K &= ~start_mask & MASK_32
             K = remove_piece(K, start_pos)
-            # K |= end_mask & MASK_32
             K = insert_piece(K, end_pos)
 
     return WP, BP, K
@@ -252,7 +250,7 @@ def random_vs_AI():
     WP, BP, K = initialize_game()
     current_player = PlayerTurn.BLACK
     move_count = 0
-    max_depth = 5
+    max_depth = 12
 
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
     random.seed(2)
@@ -295,5 +293,5 @@ def random_vs_AI():
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    human_vs_AI()
-    # random_vs_AI()
+    # human_vs_AI()
+    random_vs_AI()
