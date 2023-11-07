@@ -1,3 +1,5 @@
+MASK_32 = 0xFFFFFFFF  # To explicitly invoke 32-bit integers.
+
 PDN_MAP = {
     0: "A1",
     1: "C1",
@@ -85,7 +87,7 @@ def insert_piece(bitboard, index) -> int:
     Returns the bitboard with the bit at the given index set to 1.
     """
     mask = 1 << index
-    return bitboard | mask
+    return bitboard | mask & MASK_32
 
 
 def insert_piece_by_pdntext(bitboard, pdn_text) -> int:
@@ -103,7 +105,7 @@ def remove_piece(bitboard, index) -> int:
     Returns the bitboard with the bit at the given index set to 0.
     """
     mask = ~(1 << index)
-    return bitboard & mask
+    return bitboard & mask & MASK_32
 
 
 def remove_piece_by_pdntext(bitboard, pdn_text) -> int:
@@ -135,7 +137,7 @@ def is_set(bitboard, index) -> bool:
     """
     Returns True if the bit at the given index is set to 1 in the bitboard.
     """
-    return (bitboard & (1 << index)) != 0
+    return (bitboard & (1 << index) & MASK_32) != 0
 
 
 def set_bit(bitboard, index) -> int:
