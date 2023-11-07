@@ -8,7 +8,7 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 
-from game import print_legal_moves
+from main import print_legal_moves
 from checkers import *
 from util.fen_pdn_helper import *
 from util.helpers import *

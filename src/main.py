@@ -240,5 +240,6 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
+    AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=7, time_limit=2)
+    # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
     # random_vs_AI()

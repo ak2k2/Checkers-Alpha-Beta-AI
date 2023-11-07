@@ -10,7 +10,7 @@ sys.path.append(str(parent))
 
 
 from checkers import *
-from game import print_legal_moves
+from main import print_legal_moves
 from heuristic import basic_heuristic
 from minimax_alphabeta import AI
 from util.fen_pdn_helper import *
