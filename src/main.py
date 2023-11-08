@@ -56,9 +56,10 @@ def human_vs_AI(who_moves_first, human_color):
         if current_player == human_color:
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
 
-            if not legal_moves:
-                print(f"GAME OVER. {human_color.name} LOSES!")
+            if not legal_moves:  # No legal moves left for human
+                print(f"\nGame Over... {switch_player(current_player).name} won!")
                 break
+
             print(f"It's {human_color.name}'s Turn.\n")
             print_legal_moves(legal_moves)
             selected_move_index = int(input("Choose your move by index: "))
@@ -76,7 +77,7 @@ def human_vs_AI(who_moves_first, human_color):
             start_time = time.time()
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
 
-            if not legal_moves:
+            if not legal_moves:  # No legal moves left for AI
                 print(f"\nGame Over... {switch_player(current_player).name} won!")
                 break
 
