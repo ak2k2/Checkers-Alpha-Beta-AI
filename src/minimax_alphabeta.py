@@ -1,9 +1,12 @@
-import time
 import signal
+import time
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import basic_heuristic, new_heuristic, basic_heuristic_2
+from heuristic import (
+    basic_heuristic,
+    basic_heuristic_monty,
+)
 
 
 class TimeOutException(Exception):
@@ -11,7 +14,7 @@ class TimeOutException(Exception):
 
 
 def signal_handler(signum, frame):
-    raise TimeOutException("AI computation timed out")
+    raise TimeOutException()
 
 
 def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuristic"):
@@ -23,14 +26,13 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuri
     ):  # If at max depth or no legal moves, then it's a terminal state or a leaf node
         if not legal_moves:
             # If there are no legal moves, then this player has lost
-            print("A terminal state has been reached")
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
             # Here we reach the maximum depth, so we evaluate the position using the heuristic function
             if heuristic == "basic_heuristic":
                 return basic_heuristic(*position)
             elif heuristic == "new_heuristic":
-                return new_heuristic(*position)
+                return basic_heuristic_monty(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
@@ -57,10 +59,9 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuri
 def AI(position, current_player, max_depth, time_limit=5, heuristic="basic_heuristic"):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
-    depth_reached = 0  # Initialize depth reached
+    depth_reached = 0
     start_time = time.time()
 
-    # Set the signal alarm
     signal.signal(signal.SIGALRM, signal_handler)
     signal.alarm(time_limit)
 
@@ -71,7 +72,8 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="basic_heuri
             legal_moves = generate_legal_moves(*position, current_player)
 
             if not legal_moves:
-                raise (None, depth)
+                # No legal moves available, return immediately indicating game is lost
+                return None, depth
 
             for move in legal_moves:
                 new_position = do_move(*position, move, current_player)
@@ -83,36 +85,35 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="basic_heuri
                     PlayerTurn.BLACK
                     if current_player == PlayerTurn.WHITE
                     else PlayerTurn.WHITE,
-                    heuristic,  # Pass the heuristic function
+                    heuristic,
                 )
 
-                if current_player == PlayerTurn.WHITE and score > best_score:
-                    best_score = score
-                    best_move = move
-                elif current_player == PlayerTurn.BLACK and score < best_score:
-                    best_score = score
-                    best_move = move
-
                 if current_player == PlayerTurn.WHITE:
+                    if score > best_score:
+                        best_score = score
+                        best_move = move
                     alpha = max(alpha, score)
                 else:
+                    if score < best_score:
+                        best_score = score
+                        best_move = move
                     beta = min(beta, score)
 
                 if beta <= alpha:
                     break
 
-                # Check time constraint
                 if time.time() - start_time >= time_limit:
                     raise TimeOutException()
 
-            depth_reached = depth  # Update the depth reached
+            depth_reached = depth
 
         signal.alarm(0)  # Cancel the alarm if we finished in time
+
     except TimeOutException:
         signal.alarm(0)  # Cancel the alarm since we've run out of time
+        # If a timeout occurs but we don't have a best move, we select any legal move.
+        # It is assumed that generate_legal_moves will always return a list when there are moves available.
         if best_move is None and legal_moves:
-            best_move = legal_moves[
-                0
-            ]  # Choose any move if none was selected. This should not happen.
+            best_move = legal_moves[0]
 
     return best_move, depth_reached
