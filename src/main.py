@@ -40,8 +40,8 @@ def human_vs_human():
 
 # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
 def human_vs_AI(who_moves_first, human_color):
-    # WP, BP, K = initialize_game()
-    WP, BP, K = load_board()
+    WP, BP, K = initialize_game()
+    # WP, BP, K = load_board()
     current_player = who_moves_first  # Start with the passed player
     ai_color = switch_player(human_color)
     move_count = 0
