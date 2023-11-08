@@ -10,8 +10,44 @@ def load_board():
     return setup_board_from_position_lists(["KB8", "KF8", "KH8"], ["D6"])
 
 
+def load_game_from_sable_file(file_path):
+    WP, BP, K = get_empty_board()
+
+    with open(file_path, "r") as file:
+        board_lines = file.readlines()
+
+    # We expect the first 8 lines to contain the board state.
+    for row, line in enumerate(board_lines[:8]):
+        # Extracting pieces from the text line
+        pieces = line.strip().split()
+
+        for col, piece in enumerate(pieces):
+            # Calculate the bit index
+            bit_index = (7 - row) * 4 + col
+
+            # Mapping the piece to the correct bitboard
+            if piece == "1":
+                WP = insert_piece(WP, bit_index)
+            elif piece == "2":
+                BP = insert_piece(BP, bit_index)
+            elif piece == "3":
+                WP = insert_piece(WP, bit_index)
+                K = insert_piece(K, bit_index)
+            elif piece == "4":
+                BP = insert_piece(BP, bit_index)
+                K = insert_piece(K, bit_index)
+
+    # The 9th line should contain the current player's turn.
+    current_player = int(board_lines[8].strip())
+
+    # The 10th line should contain the time limit for the computer's turn.
+    time_limit = int(board_lines[9].strip())
+
+    return WP, BP, K, current_player, time_limit
+
+
 def human_vs_human():
-    WP, BP, K = initialize_game()
+    WP, BP, K = get_fresh_board()
     current_player = PlayerTurn.BLACK
     move_count = 0
     print_board(WP, BP, K)  # Assuming print_board() function to display the board
@@ -39,17 +75,28 @@ def human_vs_human():
 
 
 # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
-def human_vs_AI(who_moves_first, human_color):
-    WP, BP, K = initialize_game()
-    # WP, BP, K = load_board()
-    current_player = who_moves_first  # Start with the passed player
+def human_vs_AI(
+    who_moves_first=None, human_color=None, initial_board=None, time_limit=None
+):
+    if initial_board is None:
+        (WP, BP, K) = get_fresh_board()
+    else:
+        WP, BP, K = initial_board
+
+    if time_limit is None:
+        time_limit = 5
+    if who_moves_first is None:
+        who_moves_first = PlayerTurn.BLACK
+    if human_color is None:
+        human_color = PlayerTurn.BLACK
+
+    current_player = who_moves_first
     ai_color = switch_player(human_color)
     move_count = 0
     max_depth = 12
-    time_limit = 5
 
     print(
-        f"\nWelcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first."
+        f"\nWelcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first. The AI has {time_limit} seconds to make a move."
     )
     print_board(WP, BP, K)
     while move_count < 150:
@@ -62,12 +109,24 @@ def human_vs_AI(who_moves_first, human_color):
 
             print(f"It's {human_color.name}'s Turn.\n")
             print_legal_moves(legal_moves)
-            selected_move_index = int(input("Choose your move by index: "))
 
-            if selected_move_index not in range(len(legal_moves)):
-                print("Invalid index selected. Try again...")
-                continue
+            selected_move_index = None
+
+            while True:
+                print("Choose your move by index: ")
+                user_input = input("-> ")
+
+                try:
+                    selected_move_index = int(user_input)
+                    if selected_move_index not in range(len(legal_moves)):
+                        print("Invalid index selected. Try again...")
+                    else:
+                        break  # Break the loop if a valid index has been selected
+                except ValueError:
+                    print("Invalid input! Please enter a number.")
+
             selected_move = legal_moves[selected_move_index]
+            print(f"Move chosen: {selected_move}")
 
             print(f"Move chosen: {convert_move_list_to_pdn([selected_move])}")
             WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
@@ -122,12 +181,24 @@ def human_vs_AI(who_moves_first, human_color):
     print(f"\nGame lasted {move_count} moves.")
 
 
-def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
-    WP, BP, K = initialize_game()
+def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None):
+    if time_limit is None:
+        time_limit = 5
+    if who_moves_first is None:
+        who_moves_first = PlayerTurn.BLACK
+
+    if initial_board is None:
+        WP, BP, K = get_fresh_board()
+    else:
+        WP, BP, K = initial_board
+
     current_player = who_moves_first
 
     move_count = 0
     game_over = False
+    print(
+        f"\nWelcome to Checkers! AI vs AI mode! {current_player.name} moves first. The AIs each have {time_limit} seconds to make a move."
+    )
 
     print_board(WP, BP, K)
     while move_count < 150 and not game_over:
@@ -191,7 +262,7 @@ def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
 
 
 # def random_vs_AI():
-#     WP, BP, K = initialize_game()
+#     WP, BP, K = get_fresh_board()
 #     current_player = PlayerTurn.BLACK
 #     move_count = 0
 #     max_depth = 5
@@ -244,7 +315,7 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
     random.seed(0)
     for _ in range(n):
         # Initialize the board
-        WP, BP, K = initialize_game()
+        WP, BP, K = get_fresh_board()
         current_player = first_player
 
         move_count = 0
@@ -264,8 +335,78 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 
 
 if __name__ == "__main__":
-    # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
-    # human_vs_human()
-    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=1)
-    human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.BLACK)
-    # random_vs_AI()
+    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=3)
+
+    from_file = input("Would you like to load a game from a file (Y/N)? ")
+
+    if from_file.upper() == "Y":
+        print("Got it. Loading game state from file...\n")
+        mode = input("Human vs AI (HA) or AI vs AI (AA)? ")
+        if mode.upper() == "HA":
+            board_file_path = "boards/sample-cb2.txt"
+            WP, BP, K, current_player, time_limit = load_game_from_sable_file(
+                board_file_path
+            )
+            print(f"\nLoaded board from {board_file_path}.")
+
+            human_color = input("What color should the human play as? (W/B): ")
+
+            if human_color == "W":
+                human_color = PlayerTurn.WHITE
+            else:
+                human_color = PlayerTurn.BLACK
+
+            human_vs_AI(
+                who_moves_first=PlayerTurn.BLACK
+                if current_player == 1
+                else PlayerTurn.WHITE,
+                human_color=human_color,
+                initial_board=(WP, BP, K),
+                time_limit=time_limit,
+            )
+        elif mode.upper() == "AA":
+            board_file_path = "boards/sample-cb2.txt"
+            WP, BP, K, current_player, time_limit = load_game_from_sable_file(
+                board_file_path
+            )
+            print(f"\nLoaded board from {board_file_path}.")
+
+            AI_vs_AI(
+                who_moves_first=PlayerTurn.BLACK
+                if current_player == 1
+                else PlayerTurn.WHITE,
+                time_limit=time_limit,
+                initial_board=(WP, BP, K),
+            )
+    elif from_file.upper() == "N":
+        print("\nGot it. Loading starting position...\n")
+        mode = input("Human vs AI (HA) or AI vs AI (AA)? ")
+        if mode.upper() == "HA":
+            human_color = input("\nWhat color should the human play as? (W/B): ")
+            moves_first = input("\nWho moves first? (W/B): ")
+
+            if human_color == "W":
+                human_color = PlayerTurn.WHITE
+            else:
+                human_color = PlayerTurn.BLACK
+
+            if moves_first == "W":
+                moves_first = PlayerTurn.WHITE
+            else:
+                moves_first = PlayerTurn.BLACK
+
+            human_vs_AI(
+                human_color=human_color,
+                who_moves_first=moves_first,
+                time_limit=5,
+            )
+
+        elif mode.upper() == "AA":
+            moves_first = input("\nWho moves first? (W/B): ")
+
+            if moves_first == "W":
+                moves_first = PlayerTurn.WHITE
+            else:
+                moves_first = PlayerTurn.BLACK
+
+            AI_vs_AI(who_moves_first=moves_first, time_limit=5)

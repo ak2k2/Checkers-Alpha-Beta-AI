@@ -164,15 +164,6 @@ def print_legal_moves(legal_moves):
     )
 
 
-def initialize_game():
-    (
-        WP,
-        BP,
-        K,
-    ) = get_fresh_board()
-    return WP, BP, K
-
-
 def print_board(WP, BP, kings) -> None:
     """
     Prints a visual representation of the board to the console.
