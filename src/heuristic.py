@@ -223,9 +223,9 @@ def calculate_total_distance_to_promotion_black(bitboard):
     return distance_sum
 
 
-# WP, BP, K = setup_board_from_position_lists(
-#     white_positions=["D4", "F4", "B6", "KA7", "KG7"], black_positions=["KE5", "KC7"]
-# )
+WP, BP, K = setup_board_from_position_lists(
+    white_positions=["D4", "F4", "B6", "KA7", "KG7"], black_positions=["KE5", "KC7"]
+)
 
 # print_board(WP, BP, K)
 

@@ -6,6 +6,10 @@ from minimax_alphabeta import *
 from util.helpers import *
 
 
+def load_board():
+    return setup_board_from_position_lists(["KB8", "KF8", "KH8"], ["D6"])
+
+
 def human_vs_human():
     WP, BP, K = initialize_game()
     current_player = PlayerTurn.BLACK
@@ -36,7 +40,8 @@ def human_vs_human():
 
 # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
 def human_vs_AI(who_moves_first, human_color):
-    WP, BP, K = initialize_game()
+    # WP, BP, K = initialize_game()
+    WP, BP, K = load_board()
     current_player = who_moves_first  # Start with the passed player
     ai_color = switch_player(human_color)
     move_count = 0
@@ -44,7 +49,7 @@ def human_vs_AI(who_moves_first, human_color):
     time_limit = 5
 
     print(
-        f"Welcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first."
+        f"\nWelcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first."
     )
     print_board(WP, BP, K)
     while move_count < 150:
@@ -70,8 +75,12 @@ def human_vs_AI(who_moves_first, human_color):
             print("AI: Thinking...")
             start_time = time.time()
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
-            immediate_move = len(legal_moves) == 1
 
+            if not legal_moves:
+                print(f"\nGame Over... {switch_player(current_player).name} won!")
+                break
+
+            immediate_move = len(legal_moves) == 1
             if immediate_move:
                 print(f"AI: Chose the only move available.")
                 best_move = legal_moves[0]
@@ -87,7 +96,7 @@ def human_vs_AI(who_moves_first, human_color):
             end_time = time.time()
             elapsed_time = end_time - start_time
             if best_move is None:
-                print(f"GAME OVER. {current_player.name} LOSES!")
+                print(f"\nGame Over... {switch_player(current_player)} WINS!")
                 break
 
             move_description = convert_move_list_to_pdn([best_move])
@@ -109,7 +118,7 @@ def human_vs_AI(who_moves_first, human_color):
         current_player = switch_player(current_player)
         move_count += 1
 
-    print(f"Game lasted {move_count} moves!")
+    print(f"\nGame lasted {move_count} moves.")
 
 
 def AI_vs_AI(who_moves_first, max_depth=7, time_limit=5):
@@ -256,6 +265,6 @@ def simulate_random_games(n, first_player=PlayerTurn.WHITE):
 if __name__ == "__main__":
     # simulate_random_games(10000, first_player=PlayerTurn.WHITE)
     # human_vs_human()
-    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=3)
-    human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.BLACK)
+    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=5)
+    human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
     # random_vs_AI()

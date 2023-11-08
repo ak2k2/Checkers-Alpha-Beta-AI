@@ -186,4 +186,5 @@ def test_black_ai_chases_white_man_on_run_with_king_for_win():
 
 
 if __name__ == "__main__":
-    pytest.main()
+    # pytest.main()
+    test_black_ai_chases_white_man_on_run_with_king_for_win()
