@@ -16,7 +16,7 @@ def new_heuristic(WP, BP, K):
         500 * num_black_man + 775 * num_black_king
     )  # white wants to maximize this
 
-    back_row = 400 * (
+    back_row = 200 * (
         count_bits(WP & MASK_32 & KING_ROW_BLACK)
         - count_bits(BP & MASK_32 & KING_ROW_WHITE)
     )
@@ -26,11 +26,11 @@ def new_heuristic(WP, BP, K):
         - count_white_pieces_that_can_be_captured_by_black(WP, BP, K)
     )  # white wants to maximize number of black pieces that can be captured and minimize number of white pieces that can be captured
 
-    center_score = 25 * (
+    center_score = 100 * (
         count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
     )  # white wants to maximize center control
 
-    mobility_score = 150 * mobility_diff_score(
+    mobility_score = 200 * mobility_diff_score(
         WP, BP, K
     )  # white wants to maximize its mobility and minimize black's mobility
 
@@ -42,7 +42,7 @@ def new_heuristic(WP, BP, K):
         count_bits(WP & ~K & DOUBLE_DIAGONAL) - count_bits(BP & ~K & DOUBLE_DIAGONAL)
     )
 
-    safety_score = 200 * (
+    safety_score = 100 * (
         calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
     )
 
@@ -57,15 +57,15 @@ def new_heuristic(WP, BP, K):
         + safety_score
     )
 
-    if num_total_pieces < 6:  # less than 6 pieces on the board. endgame stage.
+    if num_total_pieces < 6:  # less than 15 pieces on the board. midgame
         chebychev_distance = calculate_sum_distances(WP, BP)
         if piece_count_score > 0:  # white has more weighted material
             final_eval += (
-                -100 * chebychev_distance
+                -300 * chebychev_distance
             )  # white wants to minimize chevychev distance and get closer to black
         else:  # white has less weighted material
             final_eval += (
-                100 * chebychev_distance
+                300 * chebychev_distance
             )  # # white wants to maximize chevychev distance and get further from black
 
     # elif num_total_pieces > 20:  # if were still in opening stage.
