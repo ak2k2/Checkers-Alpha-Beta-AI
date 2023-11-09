@@ -340,6 +340,8 @@ MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11]
 # MASKS for the center and corners and terminal ranks
 CENTER_8 = S[9] | S[10] | S[13] | S[14] | S[17] | S[18] | S[21] | S[22]
 
+MID_ROW_NOT_MID_BOX = S[8] | S[12] | S[16] | S[11] | S[15] | S[19]
+
 DOUBLE_CORNER = S[3] | S[7] | S[24] | S[28]
 SINGLE_CORNER = S[0] | S[31]
 

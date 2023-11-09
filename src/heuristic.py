@@ -3,6 +3,68 @@ from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
 
+import random
+
+
+def wed_heuristic(WP, BP, K):
+    val = 0
+
+    # Count the number of pawns and kings for both players
+    p1Pawns = count_bits(WP & ~K)
+    p2Pawns = count_bits(BP & ~K)
+    p1Kings = count_bits(WP & K)
+    p2Kings = count_bits(BP & K)
+
+    # Basic piece values
+    val += (p2Pawns - p1Pawns) * 100
+    val += (p2Kings - p1Kings) * 155
+
+    # Check if pawns are on the home row
+    p1Bottom = count_bits(WP & ~K & KING_ROW_BLACK & MASK_32)
+    p2Top = count_bits(BP & ~K & KING_ROW_WHITE & MASK_32)
+
+    # Middle box and mid-rows control
+    p1MidBox = count_bits(WP & CENTER_8)
+    p2MidBox = count_bits(BP & CENTER_8)
+    p1MidRows = count_bits(WP & MID_ROW_NOT_MID_BOX)
+    p2MidRows = count_bits(BP & MID_ROW_NOT_MID_BOX)
+
+    total_pieces = p1Pawns + p2Pawns + p1Kings + p2Kings
+    currentP1Pcs = p1Pawns + p1Kings
+    currentP2Pcs = p2Pawns + p2Kings
+
+    # End-game condition
+    end_game_triggered = (
+        total_pieces <= 10
+        or (currentP2Pcs * (2 / 3) >= currentP1Pcs)
+        or (currentP1Pcs * (2 / 3) >= currentP2Pcs)
+        or (total_pieces <= 14 and abs(p1Kings - p2Kings) > 0)
+    )
+
+    if end_game_triggered:
+        if currentP2Pcs > currentP1Pcs:
+            val += (total_pieces - currentP1Pcs) * 30
+        elif currentP1Pcs > currentP2Pcs:
+            val -= (total_pieces - currentP2Pcs) * 30
+        # Kings are more valuable
+        val += p2Kings * 20
+        val -= p1Kings * 20
+    else:
+        # Positional play adjustments for mid and late game
+        val += (p2Top * 50) + (p2MidBox * 50) + (p2MidRows * 10)
+        val -= (p1Bottom * 50) + (p1MidBox * 50) + (p1MidRows * 10)
+
+    # Home row advantage
+    if p1Pawns > 0:
+        val += 40 * p2Top
+    if p2Pawns > 0:
+        val -= 40 * p1Bottom
+
+    # Add some randomness
+    val += random.randint(0, 9)
+
+    return val
+
 
 def new_heuristic(WP, BP, K):
     num_total_pieces = count_bits(WP) + count_bits(BP)
@@ -80,32 +142,32 @@ def new_heuristic(WP, BP, K):
     return final_eval
 
 
-def wed_heuristic(WP, BP, K):
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
+# def wed_heuristic(WP, BP, K):
+#     num_white_man = count_bits(WP & ~K & MASK_32)
+#     num_white_king = count_bits(WP & K & MASK_32)
+#     num_black_man = count_bits(BP & ~K & MASK_32)
+#     num_black_king = count_bits(BP & K & MASK_32)
 
-    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-        500 * num_black_man + 775 * num_black_king
-    )
+#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+#         500 * num_black_man + 775 * num_black_king
+#     )
 
-    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+#     back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
 
-    # mobility_score = mobility_diff_score(WP, BP, K)
-    # promotion_score = calculate_total_distance_to_promotion_white(
-    #     WP & ~K
-    # ) - calculate_total_distance_to_promotion_black(BP & ~K)
+#     # mobility_score = mobility_diff_score(WP, BP, K)
+#     # promotion_score = calculate_total_distance_to_promotion_white(
+#     #     WP & ~K
+#     # ) - calculate_total_distance_to_promotion_black(BP & ~K)
 
-    # chebychev_distance = calculate_sum_distances(WP, BP)
+#     # chebychev_distance = calculate_sum_distances(WP, BP)
 
-    capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
-        WP, BP, K
-    ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
-        WP, BP, K
-    )
+#     capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
+#         WP, BP, K
+#     ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+#         WP, BP, K
+#     )
 
-    return piece_count_score + back_row + capture_score
+#     return piece_count_score + back_row + capture_score
 
 
 # def wed_heuristic(WP, BP, K):
