@@ -14,19 +14,19 @@ def enhanced_heuristic(WP, BP, K):
         500 * num_black_man + 775 * num_black_king
     )
 
-    # white wants to maximize white pieces on the back row and minimize black pieces on the back row
-    back_row = 400 * (
-        count_bits(WP & MASK_32 & KING_ROW_BLACK)
-        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
-    )
+    # # white wants to maximize white pieces on the back row and minimize black pieces on the back row
+    # back_row = 400 * (
+    #     count_bits(WP & MASK_32 & KING_ROW_BLACK)
+    #     - count_bits(BP & MASK_32 & KING_ROW_WHITE)
+    # )
 
-    # white wants to maximize black pieces that can be captured minus white pieces that can be captured
-    capture_score = 300 * (
-        count_black_pieces_that_can_be_captured(WP, BP, K)
-        - count_white_pieces_that_can_be_captured(WP, BP, K)
-    )
+    # # white wants to maximize black pieces that can be captured minus white pieces that can be captured
+    # capture_score = 300 * (
+    #     count_black_pieces_that_can_be_captured(WP, BP, K)
+    #     - count_white_pieces_that_can_be_captured(WP, BP, K)
+    # )
 
-    return piece_count_score + back_row + capture_score
+    return piece_count_score
 
 
 def wed_heuristic(WP, BP, K):
@@ -65,10 +65,10 @@ def wed_heuristic(WP, BP, K):
 
     final_eval = (
         piece_count_score
-        # + back_row
-        # + capture_score
-        # + center_score
-        # + mobility_score
+        + back_row
+        + capture_score
+        + center_score
+        + mobility_score
         # + promotion_score
     )
 
