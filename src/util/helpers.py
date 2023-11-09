@@ -171,7 +171,6 @@ def print_board(WP, BP, kings) -> None:
     """
     # ANSI escape codes for colors and styles
     RED = "\033[41m"
-    BLACK = "\033[40m"
     RESET = "\033[0m"
 
     # File names
@@ -189,15 +188,14 @@ def print_board(WP, BP, kings) -> None:
 
             if row % 2 != col % 2:
                 # Playable square
-                char = BLACK + "   " + RESET
                 if WP & (1 << index):
-                    char = BLACK + ("(W)" if is_king else " w ") + RESET
+                    char = "(W)" if is_king else " w "
                 elif BP & (1 << index):
-                    char = BLACK + ("(B)" if is_king else " b ") + RESET
+                    char = "(B)" if is_king else " b "
                 else:
-                    char = BLACK + "   " + RESET
+                    char = "   "
             else:
-                # Unplayable square (white square)
+                # Unplayable square (red square)
                 char = RED + "   " + RESET
 
             row_str += f"{char}|"
