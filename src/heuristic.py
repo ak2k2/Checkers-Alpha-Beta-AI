@@ -1,57 +1,26 @@
-from checkers import (
-    PlayerTurn,
-    all_jump_sequences,
-    convert_move_list_to_pdn,
-    generate_simple_moves_black,
-    generate_simple_moves_white,
-    get_jumpers_black,
-    get_jumpers_white,
-    get_movers_black,
-    get_movers_white,
-    print_board,
-)
-from util.fen_pdn_helper import setup_board_from_position_lists
-from util.helpers import (
-    count_bits,
-    find_set_bits,
-    get_empty_board,
-    get_fresh_board,
-    insert_piece,
-    remove_piece,
-)
-from util.masks import (
-    ATTACK_ROWS_BLACK,
-    ATTACK_ROWS_WHITE,
-    BLACK_JUMP_NORTHEAST,
-    BLACK_JUMP_NORTHWEST,
-    BLACK_NORTHEAST,
-    BLACK_NORTHWEST,
-    CENTER_8,
-    DOUBLE_CORNER,
-    DOUBLE_DIAGONAL,
-    EDGES,
-    KING_ROW_BLACK,
-    KING_ROW_WHITE,
-    MAIN_DIAGONAL,
-    MASK_32,
-    SINGLE_CORNER,
-    WHITE_JUMP_SOUTHEAST,
-    WHITE_JUMP_SOUTHWEST,
-    WHITE_SOUTHEAST,
-    WHITE_SOUTHWEST,
-)
+from checkers import *
+from util.fen_pdn_helper import *
+from util.helpers import *
+from util.masks import *
 
 
-# def basic_heuristic(WP, BP, K):
-#     return mobility_diff_score(WP, BP, K, jw=2) + piece_count_diff_score(
-#         WP, BP, K, kw=1.5
-#     )
+def simplest_heuristic(WP, BP, K):
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+
+    score = (100 * num_white_man + 150 * num_white_king) - (
+        100 * num_black_man + 150 * num_black_king
+    )
+
+    return score
 
 
-def basic_heuristic(WP, BP, K):
+def busy_heuristic(WP, BP, K):
     return (
-        (100 * mobility_diff_score(WP, BP, K, jw=2))
-        + (200 * piece_count_diff_score(WP, BP, K, kw=1.5))
+        (100 * mobility_diff_score(WP, BP, K))
+        + (200 * piece_count_diff_score(WP, BP, K))
         + (
             50
             * (
@@ -62,66 +31,32 @@ def basic_heuristic(WP, BP, K):
     )
 
 
-def basic_heuristic_monty(WP, BP, K):
-    chebychev_distance = calculate_sum_distances(WP, BP)
+def enhanced_heuristic(WP, BP, K):
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
 
-    if count_bits(WP) > count_bits(
-        BP
-    ):  # if white has more pieces than black we want it to move towards the black pieces
-        chebychev_score = chebychev_distance * -50
-    else:
-        # if white is losing we want it to move away from the black pieces
-        chebychev_score = chebychev_distance * 50
-
-    return (
-        (200 * mobility_diff_score(WP, BP, K, jw=2))
-        + (400 * piece_count_diff_score(WP, BP, K, kw=1.5))
-        + (
-            50
-            * (
-                calculate_total_distance_to_promotion_white(WP & ~K)
-                - calculate_total_distance_to_promotion_black(BP & ~K)
-            )
-        )
-        + (
-            -25 * (count_bits(WP & EDGES) - count_bits(BP & EDGES))
-        )  # penalize pieces on the edges
-        # reward controlling the center
-        + (25 * count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8))
-        + chebychev_score
+    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+        500 * num_black_man + 775 * num_black_king
     )
 
+    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
 
-def bit_to_coordinates(bit_index):
-    # Convert the single-dimensional bit index to 2D coordinates,
-    # taking into account that the board is only half filled
-    # and playable squares are zigzagged.
-    x = (bit_index % 4) * 2 + ((bit_index // 4) % 2)
-    y = bit_index // 4
-    return (x, y)
+    # mobility_score = mobility_diff_score(WP, BP, K)
+    # promotion_score = calculate_total_distance_to_promotion_white(
+    #     WP & ~K
+    # ) - calculate_total_distance_to_promotion_black(BP & ~K)
 
+    # chebychev_distance = calculate_sum_distances(WP, BP)
 
-def calculate_sum_distances(WP, BP):
-    total_distance = 0
-    for w_index in find_set_bits(WP):
-        w_coords = bit_to_coordinates(w_index)
-        for b_index in find_set_bits(BP):
-            # print(f"pair: {w_index}, {b_index}")
-            b_coords = bit_to_coordinates(b_index)
-            # print(f"coords: {w_coords}, {b_coords}")
-            distance = max(
-                abs(b_coords[0] - w_coords[0]), abs(b_coords[1] - w_coords[1])
-            )
-            total_distance += distance
+    capture_score = 300 * count_black_pieces_that_can_be_captured(
+        WP, BP, K
+    ) - count_white_pieces_that_can_be_captured(  # white wants to maximize this
+        WP, BP, K
+    )
 
-    return total_distance
-
-
-# WP, BP, K = setup_board_from_position_lists(["E5", "D8"], ["B4", "C1"])
-# # print(bit_to_coordinates(18))
-# sum_distances = calculate_distances(WP, BP)
-# print_board(WP, BP, K)
-# print(f"Sum of distances: {sum_distances}")
+    return piece_count_score + back_row + capture_score
 
 
 def mobility_diff_score(WP, BP, K, jw=2):
@@ -156,18 +91,18 @@ def mobility_diff_score(WP, BP, K, jw=2):
     return mobility_score
 
 
-def piece_count_diff_score(WP, BP, K, kw=1.5):
+def piece_count_diff_score(WP, BP, K):
     # Count the number of men each player has
-    white_piece_count = count_bits(WP)
-    black_piece_count = count_bits(BP)
+    white_man_count = count_bits(WP & ~K & MASK_32)
+    black_man_count = count_bits(BP & ~K & MASK_32)
 
     # Count the number of kings each player has
     white_king_count = count_bits(WP & K & MASK_32)
     black_king_count = count_bits(BP & K & MASK_32)
 
     # Give kings a higher weight
-    white_score = white_piece_count + kw * white_king_count
-    black_score = black_piece_count + kw * black_king_count
+    white_score = white_man_count + 1.5 * white_king_count
+    black_score = black_man_count + 1.5 * black_king_count
 
     # Calculate the difference
     piece_count_score = white_score - black_score
@@ -210,81 +145,80 @@ def calculate_total_distance_to_promotion_black(bitboard):
     return distance_sum
 
 
-def new_heuristic(
-    WP,
-    BP,
-    K,
-    back_row_weight=500,
-    center_weight=300,
-    middle_four_rows_weight=150,
-    edges_weight=-200,
-    double_diagonals_weight=200,
-    main_diagonal_weight=250,
-    mobility_weight=3000,
-    promotion_weight_a=1000,
-    promotion_weight_b=100,
-    promotion_weight_threshold=5,
-    piece_count_diff_weight=7000,
-    tpw=-100,
-):
-    back_row_score = count_bits(WP & KING_ROW_BLACK) - count_bits(BP & KING_ROW_WHITE)
-    center_score = count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
-    middle_four_rows_score = count_bits(
-        WP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK)
-    ) - count_bits(BP & (ATTACK_ROWS_WHITE | ATTACK_ROWS_BLACK))
-    edges_score = count_bits(WP & EDGES) - count_bits(BP & EDGES)
-    double_diagonals_score = count_bits(WP & DOUBLE_DIAGONAL) - count_bits(
-        BP & DOUBLE_DIAGONAL
-    )
-    main_diagonal_score = count_bits(WP & MAIN_DIAGONAL) - count_bits(
-        BP & MAIN_DIAGONAL
-    )
-    mds = mobility_diff_score(WP, BP, K)
-    dpl = calculate_total_distance_to_promotion_white(
-        WP & ~K
-    ) - calculate_total_distance_to_promotion_black(BP & ~K)
+def calculate_sum_distances(WP, BP):
+    total_distance = 0
+    for w_index in find_set_bits(WP):
+        w_coords = bit_to_coordinates(w_index)
+        for b_index in find_set_bits(BP):
+            # print(f"pair: {w_index}, {b_index}")
+            b_coords = bit_to_coordinates(b_index)
+            # print(f"coords: {w_coords}, {b_coords}")
+            distance = max(
+                abs(b_coords[0] - w_coords[0]), abs(b_coords[1] - w_coords[1])
+            )
+            total_distance += distance
 
-    # calculate how many pieces are being threatened by the opponent (i.e. how many pieces are on the opponent's attack rows)
-    threatened_pieces = count_bits(WP & ATTACK_ROWS_BLACK) + count_bits(
-        BP & ATTACK_ROWS_WHITE
+    return total_distance
+
+
+def bit_to_coordinates(bit_index):
+    # Convert the single-dimensional bit index to 2D coordinates,
+    # taking into account that the board is only half filled
+    # and playable squares are zigzagged.
+    x = (bit_index % 4) * 2 + ((bit_index // 4) % 2)
+    y = bit_index // 4
+    return (x, y)
+
+
+def count_black_pieces_that_can_be_captured(WP, BP, K):
+    # Get white's jump sequences (potential captures)
+    white_jump_sequences = all_jump_sequences(
+        WP, BP, K, get_jumpers_white(WP, BP, K), None, player=PlayerTurn.WHITE
     )
 
-    # Apply the weights to the respective scores
-    total_score = (
-        (back_row_weight * back_row_score)
-        + (center_weight * center_score)
-        + (middle_four_rows_weight * middle_four_rows_score)
-        + (edges_weight * edges_score)
-        + (double_diagonals_weight * double_diagonals_score)
-        + (main_diagonal_weight * main_diagonal_score)
-        + (mobility_weight * mds)
-        + (
-            promotion_weight_a * dpl
-            if abs(mds)
-            < promotion_weight_threshold  # the pieces have very simmilair mobility
-            else promotion_weight_b * dpl
-        )
-        + (piece_count_diff_weight * piece_count_diff_score(WP, BP, K))
-        + (tpw * threatened_pieces)
+    capturable_pieces = set()
+
+    for sequence in white_jump_sequences:
+        if len(sequence) == 2:
+            capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+        else:
+            pairs = [[sequence[i], sequence[i + 1]] for i in range(len(sequence) - 1)]
+            for sequence in pairs:
+                capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+
+    return len(capturable_pieces)
+
+
+def count_white_pieces_that_can_be_captured(WP, BP, K):
+    # Determine which player is the opponent
+    # If white has the next turn, then we look for what black can capture, and vice versa.
+    # This example assumes that it is black's turn to move, so we look for what white can capture.
+
+    # Get white's jumpers
+    black_jumpers = get_jumpers_black(WP, BP, K)
+
+    # Get white's jump sequences (potential captures)
+    black_jump_sequences = all_jump_sequences(
+        WP, BP, K, None, black_jumpers, player=PlayerTurn.BLACK
     )
 
-    return int(total_score)
+    # Count the unique pieces that can be captured by white in the next turn
+    # A set is used to ensure each piece is only counted once, even if it can be captured in multiple ways.
+    capturable_pieces = set()
+
+    for sequence in black_jump_sequences:
+        if len(sequence) == 2:
+            capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+        else:
+            pairs = [[sequence[i], sequence[i + 1]] for i in range(len(sequence) - 1)]
+            for sequence in pairs:
+                capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+
+    return len(capturable_pieces)
 
 
-# WP, BP, K = setup_board_from_position_lists(
-#     white_positions=["D4", "F4", "B6", "KA7", "KG7"], black_positions=["KE5", "KC7"]
-# )
-
+# WP, BP, K = setup_board_from_position_lists(["D4", "KD6", "B4", "B6"], ["KC3", "E7"])
 # print_board(WP, BP, K)
 
-# print(
-#     f"Total distance to promotion for white: {calculate_total_distance_to_promotion_white(WP)}"
-# )
-# print(
-#     f"Total distance to promotion for black: {calculate_total_distance_to_promotion_black(BP)}"
-# )
-
-# print(f"Mobility Score: {mobility_diff_score(WP, BP, K)}")
-
-# print(f"Basic Heuristic: {basic_heuristic(WP, BP, K)}")
-# print(f"New Heuristic: {new_heuristic(WP, BP, K)}")
+# print(count_black_pieces_that_can_be_captured(WP, BP, K))
+# print(count_white_pieces_that_can_be_captured(WP, BP, K))

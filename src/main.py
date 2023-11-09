@@ -66,7 +66,7 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {basic_heuristic(WP, BP, K)}")
+        print(f"HEURISTIC: {enhanced_heuristic(WP, BP, K)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -150,7 +150,7 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="basic_heuristic",
+                    heuristic="enhanced_heuristic",
                 )
 
             end_time = time.time()
@@ -171,8 +171,12 @@ def human_vs_AI(
                 else:
                     print(f"AI hit the 'time limit' and reached depth {depth_reached}.")
 
-        print(f"EVAL: {basic_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
+        print(f"EVAL (enhanced heuristic): {enhanced_heuristic(WP, BP, K)}")
+        print(f"Number of White Men: {count_bits(WP & ~K)}")
+        print(f"Number of White Kings: {count_bits(WP & K)}")
+        print(f"Number of Black Men: {count_bits(BP & ~K)}")
+        print(f"Number of Black Kings: {count_bits(BP & K)}")
         print("-" * 50 + "\n")
 
         current_player = switch_player(current_player)
@@ -201,7 +205,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
     )
 
     print_board(WP, BP, K)
-    while move_count < 150 and not game_over:
+    while move_count < 200 and not game_over:
         print(f"It's {current_player.name}'s Turn.\n")
         start_time = time.time()
 
@@ -223,9 +227,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="new_heuristic"
+                heuristic="simplest_heuristic"
                 if current_player == PlayerTurn.WHITE
-                else "basic_heuristic",  # WHITE uses MONTY heuristic against BLACK using BASIC heuristic
+                else "enhanced_heuristic",  # WHITE uses simplest_heuristic against BLACK using enhanced_heuristic
             )
 
         end_time = time.time()
@@ -250,7 +254,8 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print(f"EVAL: {new_heuristic(WP, BP, K)}")
+        print(f"Simple Heuristic: {simplest_heuristic(WP, BP, K)}")
+        print(f"Enchanced Heuristic: {busy_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 
@@ -261,82 +266,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
         print(f"GAME OVER in {move_count} moves! DRAW.")
 
 
-# def random_vs_AI():
-#     WP, BP, K = get_fresh_board()
-#     current_player = PlayerTurn.BLACK
-#     move_count = 0
-#     max_depth = 5
-
-#     print_board(WP, BP, K)
-#     random.seed(2)
-#     while move_count < 100:
-#         if current_player == PlayerTurn.BLACK:
-#             legal_moves = generate_legal_moves(WP, BP, K, current_player)
-
-#             if not legal_moves:
-#                 print(f"GAME OVER. {current_player.name} LOSES!")
-#                 break
-
-#             print(f"It's {current_player.name}'s Turn.\n")
-#             print_legal_moves(legal_moves)
-
-#             selected_move = random.choice(legal_moves)
-
-#             print(f"Random Move chosen: {selected_move}")
-#             WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
-
-#         else:  # AI's turn
-#             print("AI is thinking...")
-#             best_move = AI(
-#                 (WP, BP, K),
-#                 current_player,
-#                 max_depth,
-#                 time_limit=5,
-#                 heuristic="new_heuristic",
-#             )
-#             if best_move is None:
-#                 print(f"GAME OVER. {current_player.name} LOSES!")
-#                 break
-#             print(f"White chose move: {convert_move_list_to_pdn([best_move])}")
-#             WP, BP, K = do_move(WP, BP, K, best_move, current_player)
-
-#         print_board(WP, BP, K)
-#         print(f"HEURISTIC: {basic_heuristic(WP, BP, K)}")
-
-#         current_player = (
-#             PlayerTurn.WHITE if current_player == PlayerTurn.BLACK else PlayerTurn.BLACK
-#         )
-#         move_count += 1
-
-#     print(f"Game over in {move_count} moves.")
-
-
-def simulate_random_games(n, first_player=PlayerTurn.WHITE):
-    random.seed(0)
-    for _ in range(n):
-        # Initialize the board
-        WP, BP, K = get_fresh_board()
-        current_player = first_player
-
-        move_count = 0
-
-        while move_count < 100:
-            legal_moves = generate_legal_moves(WP, BP, K, current_player)
-            if not legal_moves:
-                break
-
-            # Select a random move from the legal moves
-            move = random.choice(legal_moves)
-            WP, BP, K = do_move(WP, BP, K, move, current_player)
-
-            # Switch players
-            current_player = switch_player(current_player)
-            move_count += 1
-
-
 if __name__ == "__main__":
-    # AI_vs_AI(who_moves_first=PlayerTurn.BLACK, max_depth=20, time_limit=3)
-
     from_file = input("Would you like to load a game from a file (Y/N)? ")
 
     if from_file.upper() == "Y":
@@ -347,11 +277,11 @@ if __name__ == "__main__":
             WP, BP, K, current_player, time_limit = load_game_from_sable_file(
                 board_file_path
             )
-            print(f"\nLoaded board from {board_file_path}.")
+            print(f"\nLoaded board from {board_file_path}.\n")
 
             human_color = input("What color should the human play as? (W/B): ")
 
-            if human_color == "W":
+            if human_color.upper() == "W":
                 human_color = PlayerTurn.WHITE
             else:
                 human_color = PlayerTurn.BLACK
@@ -378,19 +308,25 @@ if __name__ == "__main__":
                 time_limit=time_limit,
                 initial_board=(WP, BP, K),
             )
+        else:
+            print("Invalid input. Exiting...")
     elif from_file.upper() == "N":
         print("\nGot it. Loading starting position...\n")
+        time_limit = int(
+            input("How many seconds should the AI have to make a move? (integer) ")
+        )
+        print("\n")
         mode = input("Human vs AI (HA) or AI vs AI (AA)? ")
         if mode.upper() == "HA":
             human_color = input("\nWhat color should the human play as? (W/B): ")
             moves_first = input("\nWho moves first? (W/B): ")
 
-            if human_color == "W":
+            if human_color.upper() == "W":
                 human_color = PlayerTurn.WHITE
             else:
                 human_color = PlayerTurn.BLACK
 
-            if moves_first == "W":
+            if moves_first.upper() == "W":
                 moves_first = PlayerTurn.WHITE
             else:
                 moves_first = PlayerTurn.BLACK
@@ -398,15 +334,20 @@ if __name__ == "__main__":
             human_vs_AI(
                 human_color=human_color,
                 who_moves_first=moves_first,
-                time_limit=5,
+                time_limit=time_limit,
             )
 
         elif mode.upper() == "AA":
             moves_first = input("\nWho moves first? (W/B): ")
 
-            if moves_first == "W":
+            if moves_first.upper() == "W":
                 moves_first = PlayerTurn.WHITE
             else:
                 moves_first = PlayerTurn.BLACK
 
-            AI_vs_AI(who_moves_first=moves_first, time_limit=5)
+            AI_vs_AI(who_moves_first=moves_first, time_limit=time_limit)
+
+        else:
+            print("Invalid input. Exiting...")
+    else:
+        print("Invalid input. Exiting...")

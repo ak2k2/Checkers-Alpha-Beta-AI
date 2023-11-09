@@ -4,8 +4,9 @@ import time
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
 from heuristic import (
-    basic_heuristic,
-    basic_heuristic_monty,
+    simplest_heuristic,
+    enhanced_heuristic,
+    busy_heuristic,
 )
 
 
@@ -17,7 +18,9 @@ def signal_handler(signum, frame):
     raise TimeOutException()
 
 
-def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuristic"):
+def minimax(
+    position, depth, alpha, beta, current_player, heuristic="enhanced_heuristic"
+):
     legal_moves = generate_legal_moves(*position, current_player)
 
     # Check if the game has ended (either by reaching a terminal state or by reaching the maximum depth)
@@ -29,10 +32,10 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuri
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
             # Here we reach the maximum depth, so we evaluate the position using the heuristic function
-            if heuristic == "basic_heuristic":
-                return basic_heuristic(*position)
-            elif heuristic == "new_heuristic":
-                return basic_heuristic_monty(*position)
+            if heuristic == "simplest_heuristic":
+                return simplest_heuristic(*position)
+            elif heuristic == "enhanced_heuristic":
+                return busy_heuristic(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
@@ -56,7 +59,9 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="basic_heuri
         return min_eval
 
 
-def AI(position, current_player, max_depth, time_limit=5, heuristic="basic_heuristic"):
+def AI(
+    position, current_player, max_depth, time_limit=5, heuristic="enhanced_heuristic"
+):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
     depth_reached = 0

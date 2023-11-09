@@ -8,12 +8,10 @@ parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
 
-from main import print_legal_moves
 from checkers import *
 from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
-from minimax_alphabeta import AI
 
 
 def test_find_jump_position():

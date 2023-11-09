@@ -6,31 +6,9 @@ import pytest
 parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
-from checkers import (
-    bitindex_to_coords,
-    coords_to_bitindex,
-    find_set_bits,
-    generate_jump_moves,
-    generate_simple_moves_black,
-    generate_simple_moves_white,
-    get_empty_board,
-    get_fresh_board,
-    get_jumpers_black,
-    get_jumpers_white,
-    get_movers_black,
-    get_movers_white,
-    insert_piece,
-    insert_piece_by_pdntext,
-    is_set,
-    print_board,
-    remove_piece,
-    remove_piece_by_pdntext,
-    convert_move_list_to_pdn,
-    PlayerTurn,
-)
-
-from util.helpers import bitboard_to_pdn_positions, count_bits, PDN_MAP
-from util.fen_pdn_helper import setup_board_from_position_lists
+from checkers import *
+from util.helpers import *
+from util.fen_pdn_helper import *
 
 
 # Test the get_empty_board function
