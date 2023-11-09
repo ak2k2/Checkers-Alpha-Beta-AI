@@ -93,7 +93,7 @@ def human_vs_AI(
     current_player = who_moves_first
     ai_color = switch_player(human_color)
     move_count = 0
-    max_depth = 12
+    max_depth = 20
 
     print(
         f"\nWelcome to Checkers! You are playing as {human_color.name}. AI is playing as {ai_color.name}. {current_player.name} moves first. The AI has {time_limit} seconds to make a move."
@@ -150,7 +150,7 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="enhanced_heuristic",
+                    heuristic="wed_heuristic",
                 )
 
             end_time = time.time()
@@ -227,9 +227,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="enhanced_heuristic"
-                if current_player == PlayerTurn.WHITE
-                else "wed_heuristic",  # WHITE uses simplest_heuristic against BLACK using enhanced_heuristic
+                heuristic="wed_heuristic"
+                if current_player == PlayerTurn.BLACK
+                else "wed_heuristic",  # BLACK uses enhanced_heuristic against WHITE using really simple one
             )
 
         end_time = time.time()
@@ -254,8 +254,8 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print(f"Simple Heuristic: {simplest_heuristic(WP, BP, K)}")
-        print(f"Enchanced Heuristic: {busy_heuristic(WP, BP, K)}")
+        print(f"Enhanced Heuristic: {enhanced_heuristic(WP, BP, K)}")
+        print(f"WED Heuristic: {wed_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 

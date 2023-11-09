@@ -14,12 +14,16 @@ def enhanced_heuristic(WP, BP, K):
         500 * num_black_man + 775 * num_black_king
     )
 
-    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+    # white wants to maximize white pieces on the back row and minimize black pieces on the back row
+    back_row = 400 * (
+        count_bits(WP & MASK_32 & KING_ROW_BLACK)
+        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
+    )
 
-    capture_score = 300 * count_black_pieces_that_can_be_captured(
-        WP, BP, K
-    ) - count_white_pieces_that_can_be_captured(  # white wants to maximize this
-        WP, BP, K
+    # white wants to maximize black pieces that can be captured minus white pieces that can be captured
+    capture_score = 300 * (
+        count_black_pieces_that_can_be_captured(WP, BP, K)
+        - count_white_pieces_that_can_be_captured(WP, BP, K)
     )
 
     return piece_count_score + back_row + capture_score
@@ -33,30 +37,69 @@ def wed_heuristic(WP, BP, K):
 
     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
         500 * num_black_man + 775 * num_black_king
+    )  # white wants to maximize this
+
+    back_row = 400 * (
+        count_bits(WP & MASK_32 & KING_ROW_BLACK)
+        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
     )
 
-    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+    capture_score = 300 * (
+        count_black_pieces_that_can_be_captured(WP, BP, K)
+        - count_white_pieces_that_can_be_captured(WP, BP, K)
+    )  # white wants to maximize number of black pieces that can be captured minus number of white pieces that can be captured
 
-    capture_score = 300 * count_black_pieces_that_can_be_captured(
+    center_score = 25 * (
+        count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
+    )  # white wants to maximize center control
+
+    mobility_score = 100 * mobility_diff_score(
         WP, BP, K
-    ) - count_white_pieces_that_can_be_captured(  # white wants to maximize number of black pieces that can be captured minus number of white pieces that can be captured
-        WP, BP, K
+    )  # white wants to maximize its mobility and minimize black's mobility
+
+    # white wants to maximize blacks distance to promote and minimize its own
+    # promotion_score = 100 * (
+    #     calculate_total_distance_to_promotion_black(BP & ~K)
+    #     - calculate_total_distance_to_promotion_white(WP & ~K)
+    # )
+
+    final_eval = (
+        piece_count_score
+        # + back_row
+        # + capture_score
+        # + center_score
+        # + mobility_score
+        # + promotion_score
     )
 
-    mobility_score = mobility_diff_score(WP, BP, K) # white wants to maximize its mobility and minimize black's mobility
-
-    promotion_score = -1 * (calculate_total_distance_to_promotion_white(
-        WP & ~K
-    ) - calculate_total_distance_to_promotion_black(BP & ~K)) # white wants to maximize blacks distance to promote and minimze its own distance to promote
-
-
-    final_eval = piece_count_score + back_row + capture_score + mobility_score + promotion_score
-
-    if count_bits(WP) + count_bits(BP) < 6: # less than 6 pieces on the board
-        chebychev_distance = calculate_sum_distances(WP, BP)
-        final_eval += chebychev_distance
+    # if count_bits(WP) + count_bits(BP) < 6:  # less than 6 pieces on the board
+    #     chebychev_distance = calculate_sum_distances(WP, BP)
+    #     if piece_count_score > 0:  # white has more weighted material
+    #         final_eval += (
+    #             -400 * chebychev_distance
+    #         )  # white wants to minimize chevychev distance and get closer to black
+    #     else:  # white has less weighted material
+    #         final_eval += (
+    #             400 * chebychev_distance
+    #         )  # # white wants to maximize chevychev distance and get further from black
 
     return final_eval
+
+
+def calculate_sum_distances(WP, BP):
+    total_distance = 0
+    for w_index in find_set_bits(WP):
+        w_coords = bit_to_coordinates(w_index)
+        for b_index in find_set_bits(BP):
+            # print(f"pair: {w_index}, {b_index}")
+            b_coords = bit_to_coordinates(b_index)
+            # print(f"coords: {w_coords}, {b_coords}")
+            distance = max(
+                abs(b_coords[0] - w_coords[0]), abs(b_coords[1] - w_coords[1])
+            )
+            total_distance += distance
+
+    return total_distance
 
 
 def mobility_diff_score(WP, BP, K, jw=2):
@@ -145,22 +188,6 @@ def calculate_total_distance_to_promotion_black(bitboard):
     return distance_sum
 
 
-def calculate_sum_distances(WP, BP):
-    total_distance = 0
-    for w_index in find_set_bits(WP):
-        w_coords = bit_to_coordinates(w_index)
-        for b_index in find_set_bits(BP):
-            # print(f"pair: {w_index}, {b_index}")
-            b_coords = bit_to_coordinates(b_index)
-            # print(f"coords: {w_coords}, {b_coords}")
-            distance = max(
-                abs(b_coords[0] - w_coords[0]), abs(b_coords[1] - w_coords[1])
-            )
-            total_distance += distance
-
-    return total_distance
-
-
 def bit_to_coordinates(bit_index):
     # Convert the single-dimensional bit index to 2D coordinates,
     # taking into account that the board is only half filled
@@ -192,16 +219,9 @@ def count_black_pieces_that_can_be_captured(WP, BP, K):
 
 
 def count_white_pieces_that_can_be_captured(WP, BP, K):
-    # Determine which player is the opponent
-    # If white has the next turn, then we look for what black can capture, and vice versa.
-    # This example assumes that it is black's turn to move, so we look for what white can capture.
-
-    # Get white's jumpers
-    black_jumpers = get_jumpers_black(WP, BP, K)
-
     # Get white's jump sequences (potential captures)
     black_jump_sequences = all_jump_sequences(
-        WP, BP, K, None, black_jumpers, player=PlayerTurn.BLACK
+        WP, BP, K, None, get_jumpers_black(WP, BP, K), player=PlayerTurn.BLACK
     )
 
     # Count the unique pieces that can be captured by white in the next turn
@@ -219,9 +239,6 @@ def count_white_pieces_that_can_be_captured(WP, BP, K):
     return len(
         capturable_pieces
     )  # number of unique white pieces that can be captured by black on next turn
-
-def count_black_pieces_that_are_protected(WP, BP, K):
-
 
 
 def simplest_heuristic(WP, BP, K):
@@ -251,8 +268,10 @@ def busy_heuristic(WP, BP, K):
     )
 
 
-if __name__ == "__main__"
-    WP, BP, K = setup_board_from_position_lists(["D4", "KD6", "B4", "B6"], ["KC3", "E7"])
+if __name__ == "__main__":
+    WP, BP, K = setup_board_from_position_lists(
+        ["D4", "KD6", "B4", "B6"], ["KC3", "E7"]
+    )
     print_board(WP, BP, K)
 
     print(count_black_pieces_that_can_be_captured(WP, BP, K))

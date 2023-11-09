@@ -420,7 +420,7 @@ def all_jump_sequences(
     WP, BP, K, white_jumpers=None, black_jumpers=None, player=PlayerTurn.WHITE
 ):
     """
-    Returns a list of all possible jump sequences for the given player.
+    Returns a list of all possible jump sequences for the given player, sorted by length in descending order.
         Input: WP, BP, K, white_jumpers, black_jumpers, player
         Output: List of all possible jump sequences for the given player.
                 ex. [[8, 17, 26], [0, 9, 18, 27]]
@@ -435,14 +435,16 @@ def all_jump_sequences(
             jump_sequences.extend(
                 generate_all_jump_sequences(WP, BP, K, pos, is_king, player)
             )
-        return jump_sequences
 
     elif player == PlayerTurn.BLACK:
         # Generate sequences for black pieces
         for pos in find_set_bits(black_jumpers):
-            # print(f"Generating sequences for black piece at {bitindex_to_coords(pos)}")
             is_king = is_set(K, pos)
             jump_sequences.extend(
                 generate_all_jump_sequences(WP, BP, K, pos, is_king, player)
             )
-        return jump_sequences
+
+    # Sort the jump sequences by the length of each sequence in descending order
+    jump_sequences.sort(key=lambda sequence: len(sequence), reverse=True)
+
+    return jump_sequences

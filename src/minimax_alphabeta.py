@@ -86,9 +86,7 @@ def AI(
                     depth - 1,
                     alpha,
                     beta,
-                    PlayerTurn.BLACK
-                    if current_player == PlayerTurn.WHITE
-                    else PlayerTurn.WHITE,
+                    switch_player(current_player),
                     heuristic,
                 )
 
