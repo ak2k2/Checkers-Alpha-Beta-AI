@@ -88,42 +88,70 @@ def wed_heuristic(WP, BP, K):
 
     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
         500 * num_black_man + 775 * num_black_king
-    )  # white wants to maximize this
-
-    back_row = 400 * (
-        count_bits(WP & MASK_32 & KING_ROW_BLACK)
-        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
     )
 
-    capture_score = 300 * (
-        count_black_pieces_that_can_be_captured_by_white(WP, BP, K)
-        - count_white_pieces_that_can_be_captured_by_black(WP, BP, K)
-    )  # white wants to maximize number of black pieces that can be captured minus number of white pieces that can be captured
+    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
 
-    center_score = 25 * (
-        count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
-    )  # white wants to maximize center control
+    # mobility_score = mobility_diff_score(WP, BP, K)
+    # promotion_score = calculate_total_distance_to_promotion_white(
+    #     WP & ~K
+    # ) - calculate_total_distance_to_promotion_black(BP & ~K)
 
-    mobility_score = 100 * mobility_diff_score(
+    # chebychev_distance = calculate_sum_distances(WP, BP)
+
+    capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
         WP, BP, K
-    )  # white wants to maximize its mobility and minimize black's mobility
-
-    # white wants to maximize blacks distance to promote and minimize its own
-    # promotion_score = 100 * (
-    #     calculate_total_distance_to_promotion_black(BP & ~K)
-    #     - calculate_total_distance_to_promotion_white(WP & ~K)
-    # )
-
-    final_eval = (
-        piece_count_score
-        + back_row
-        + capture_score
-        + center_score
-        + mobility_score
-        # + promotion_score
+    ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+        WP, BP, K
     )
 
-    return final_eval
+    return piece_count_score + back_row + capture_score
+
+
+# def wed_heuristic(WP, BP, K):
+#     num_white_man = count_bits(WP & ~K & MASK_32)
+#     num_white_king = count_bits(WP & K & MASK_32)
+#     num_black_man = count_bits(BP & ~K & MASK_32)
+#     num_black_king = count_bits(BP & K & MASK_32)
+
+#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+#         500 * num_black_man + 775 * num_black_king
+#     )  # white wants to maximize this
+
+#     back_row = 400 * (
+#         count_bits(WP & MASK_32 & KING_ROW_BLACK)
+#         - count_bits(BP & MASK_32 & KING_ROW_WHITE)
+#     )
+
+#     capture_score = 300 * (
+#         count_black_pieces_that_can_be_captured_by_white(WP, BP, K)
+#         - count_white_pieces_that_can_be_captured_by_black(WP, BP, K)
+#     )  # white wants to maximize number of black pieces that can be captured minus number of white pieces that can be captured
+
+#     center_score = 25 * (
+#         count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
+#     )  # white wants to maximize center control
+
+#     mobility_score = 100 * mobility_diff_score(
+#         WP, BP, K
+#     )  # white wants to maximize its mobility and minimize black's mobility
+
+#     # white wants to maximize blacks distance to promote and minimize its own
+#     # promotion_score = 100 * (
+#     #     calculate_total_distance_to_promotion_black(BP & ~K)
+#     #     - calculate_total_distance_to_promotion_white(WP & ~K)
+#     # )
+
+#     final_eval = (
+#         piece_count_score
+#         + back_row
+#         + capture_score
+#         + center_score
+#         + mobility_score
+#         # + promotion_score
+#     )
+
+#     return final_eval
 
 
 def piece_count_heuristic(WP, BP, K):
