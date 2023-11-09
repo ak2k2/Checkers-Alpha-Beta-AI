@@ -4,7 +4,9 @@ from util.helpers import *
 from util.masks import *
 
 
-def enhanced_heuristic(WP, BP, K):
+def new_heuristic(WP, BP, K):
+    num_total_pieces = count_bits(WP) + count_bits(BP)
+
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
     num_black_man = count_bits(BP & ~K & MASK_32)
@@ -12,21 +14,63 @@ def enhanced_heuristic(WP, BP, K):
 
     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
         500 * num_black_man + 775 * num_black_king
+    )  # white wants to maximize this
+
+    back_row = 400 * (
+        count_bits(WP & MASK_32 & KING_ROW_BLACK)
+        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
     )
 
-    # # white wants to maximize white pieces on the back row and minimize black pieces on the back row
-    # back_row = 400 * (
-    #     count_bits(WP & MASK_32 & KING_ROW_BLACK)
-    #     - count_bits(BP & MASK_32 & KING_ROW_WHITE)
-    # )
+    capture_score = 300 * (
+        count_black_pieces_that_can_be_captured(WP, BP, K)
+        - count_white_pieces_that_can_be_captured(WP, BP, K)
+    )  # white wants to maximize number of black pieces that can be captured and minimize number of white pieces that can be captured
 
-    # # white wants to maximize black pieces that can be captured minus white pieces that can be captured
-    # capture_score = 300 * (
-    #     count_black_pieces_that_can_be_captured(WP, BP, K)
-    #     - count_white_pieces_that_can_be_captured(WP, BP, K)
-    # )
+    center_score = 25 * (
+        count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
+    )  # white wants to maximize center control
 
-    return piece_count_score
+    mobility_score = 150 * mobility_diff_score(
+        WP, BP, K
+    )  # white wants to maximize its mobility and minimize black's mobility
+
+    kings_on_main_diagonal = 50 * ((WP & K & MAIN_DIAGONAL) - (BP & K & MAIN_DIAGONAL))
+
+    men_on_side_diagonals = 50 * (
+        (WP & ~K & DOUBLE_DIAGONAL) - (BP & ~K & DOUBLE_DIAGONAL)
+    )
+
+    final_eval = (
+        piece_count_score
+        + back_row
+        + capture_score
+        + center_score
+        + mobility_score
+        + kings_on_main_diagonal
+        + men_on_side_diagonals
+    )
+
+    if num_total_pieces < 6:  # less than 6 pieces on the board. endgame stage.
+        chebychev_distance = calculate_sum_distances(WP, BP)
+        if piece_count_score > 0:  # white has more weighted material
+            final_eval += (
+                -400 * chebychev_distance
+            )  # white wants to minimize chevychev distance and get closer to black
+        else:  # white has less weighted material
+            final_eval += (
+                400 * chebychev_distance
+            )  # # white wants to maximize chevychev distance and get further from black
+
+    elif num_total_pieces > 20:  # if were still in opening stage.
+        promotion_score = (
+            200
+            * (  # white wants to maximize blacks distance to promote and minimize its own
+                calculate_total_distance_to_promotion_black(BP & ~K)
+                - calculate_total_distance_to_promotion_white(WP & ~K)
+            )
+        )
+
+    return final_eval
 
 
 def wed_heuristic(WP, BP, K):
@@ -72,18 +116,20 @@ def wed_heuristic(WP, BP, K):
         # + promotion_score
     )
 
-    # if count_bits(WP) + count_bits(BP) < 6:  # less than 6 pieces on the board
-    #     chebychev_distance = calculate_sum_distances(WP, BP)
-    #     if piece_count_score > 0:  # white has more weighted material
-    #         final_eval += (
-    #             -400 * chebychev_distance
-    #         )  # white wants to minimize chevychev distance and get closer to black
-    #     else:  # white has less weighted material
-    #         final_eval += (
-    #             400 * chebychev_distance
-    #         )  # # white wants to maximize chevychev distance and get further from black
-
     return final_eval
+
+
+def piece_count_heuristic(WP, BP, K):
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+
+    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+        500 * num_black_man + 775 * num_black_king
+    )
+
+    return piece_count_score
 
 
 def calculate_sum_distances(WP, BP):

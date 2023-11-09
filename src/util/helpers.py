@@ -166,11 +166,16 @@ def print_legal_moves(legal_moves):
 
 def print_board(WP, BP, kings) -> None:
     """
-    Prints a visual representation of the board to the console.
+    Prints a visual representation of the board to the console with colored squares.
+    Regular pieces are lowercase, kings are uppercase.
     """
+    # ANSI escape codes for colors and styles
+    RED = "\033[41m"
+    BLACK = "\033[40m"
+    RESET = "\033[0m"
+
     # File names
-    print("\n")
-    print("    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
+    print("\n    " + "   ".join(["A", "B", "C", "D", "E", "F", "G", "H"]))
     print("  +" + "---+" * 8)
 
     for row in range(8):
@@ -179,18 +184,21 @@ def print_board(WP, BP, kings) -> None:
 
         for col in range(8):
             # Index from 32-bit board representation
-            if row % 2 != col % 2:
-                index = (7 - row) * 4 + (col // 2)
-                if WP & (1 << index):
-                    char = "W" if kings & (1 << index) else "w"
-                elif BP & (1 << index):
-                    char = "B" if kings & (1 << index) else "b"
-                else:
-                    char = " "  # Playable empty square
-            else:
-                char = " "  # Unplayable square (white square)
+            index = (7 - row) * 4 + (col // 2)
+            is_king = kings & (1 << index)
 
-            row_str += f" {char} |"
+            if row % 2 != col % 2:
+                # Playable square
+                char = BLACK + "   " + RESET
+                if WP & (1 << index):
+                    char = BLACK + ("(W)" if is_king else " w ") + RESET
+                elif BP & (1 << index):
+                    char = BLACK + ("(B)" if is_king else " b ") + RESET
+            else:
+                # Unplayable square (white square)
+                char = RED + "   " + RESET
+
+            row_str += f"{char}|"
 
         print(row_str)
         print("  +" + "---+" * 8)  # Print the row separator

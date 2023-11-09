@@ -66,7 +66,7 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {enhanced_heuristic(WP, BP, K)}")
+        print(f"HEURISTIC: {wed_heuristic(WP, BP, K)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -172,7 +172,7 @@ def human_vs_AI(
                     print(f"AI hit the 'time limit' and reached depth {depth_reached}.")
 
         print_board(WP, BP, K)
-        print(f"EVAL (enhanced heuristic): {enhanced_heuristic(WP, BP, K)}")
+        print(f"EVAL (new heuristic): {new_heuristic(WP, BP, K)}")
         print(f"Number of White Men: {count_bits(WP & ~K)}")
         print(f"Number of White Kings: {count_bits(WP & K)}")
         print(f"Number of Black Men: {count_bits(BP & ~K)}")
@@ -227,9 +227,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="enhanced_heuristic"
-                if current_player == PlayerTurn.WHITE
-                else "wed_heuristic",  # BLACK uses enhanced_heuristic against WHITE using wed_heuristic
+                heuristic="wed_heuristic"
+                if current_player == PlayerTurn.BLACK
+                else "new_heuristic",  # WHITE uses new_heuristic against BLACK using wed_heuristic
             )
 
         end_time = time.time()
@@ -254,7 +254,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print(f"Enhanced Heuristic: {enhanced_heuristic(WP, BP, K)}")
+        print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
         print(f"WED Heuristic: {wed_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
@@ -273,7 +273,7 @@ if __name__ == "__main__":
         print("Got it. Loading game state from file...\n")
         mode = input("Human vs AI (HA) or AI vs AI (AA)? ")
         if mode.upper() == "HA":
-            board_file_path = "boards/sample-cb2.txt"
+            board_file_path = "src/boards/sample-cb2.txt"
             WP, BP, K, current_player, time_limit = load_game_from_sable_file(
                 board_file_path
             )
@@ -295,7 +295,7 @@ if __name__ == "__main__":
                 time_limit=time_limit,
             )
         elif mode.upper() == "AA":
-            board_file_path = "boards/sample-cb2.txt"
+            board_file_path = "src/boards/sample-cb2.txt"
             WP, BP, K, current_player, time_limit = load_game_from_sable_file(
                 board_file_path
             )
