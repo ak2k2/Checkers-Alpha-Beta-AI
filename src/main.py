@@ -227,9 +227,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="simplest_heuristic"
+                heuristic="enhanced_heuristic"
                 if current_player == PlayerTurn.WHITE
-                else "enhanced_heuristic",  # WHITE uses simplest_heuristic against BLACK using enhanced_heuristic
+                else "wed_heuristic",  # WHITE uses simplest_heuristic against BLACK using enhanced_heuristic
             )
 
         end_time = time.time()

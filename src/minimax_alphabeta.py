@@ -4,9 +4,8 @@ import time
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
 from heuristic import (
-    simplest_heuristic,
     enhanced_heuristic,
-    busy_heuristic,
+    wed_heuristic,
 )
 
 
@@ -32,10 +31,10 @@ def minimax(
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
             # Here we reach the maximum depth, so we evaluate the position using the heuristic function
-            if heuristic == "simplest_heuristic":
-                return simplest_heuristic(*position)
-            elif heuristic == "enhanced_heuristic":
-                return busy_heuristic(*position)
+            if heuristic == "enhanced_heuristic":
+                return enhanced_heuristic(*position)
+            elif heuristic == "wed_heuristic":
+                return wed_heuristic(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
