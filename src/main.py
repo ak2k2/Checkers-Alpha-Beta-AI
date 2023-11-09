@@ -150,7 +150,7 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="wed_heuristic",
+                    heuristic="new_heuristic",
                 )
 
             end_time = time.time()
@@ -211,7 +211,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
 
         legal_moves = generate_legal_moves(WP, BP, K, current_player)
         if not legal_moves:
-            print(f"GAME OVER. {switch_player(current_player).name} WON!")
+            print(
+                f"GAME OVER. {switch_player(current_player).name} WON in {move_count} moves!"
+            )
             game_over = True
             break
 
@@ -229,14 +231,16 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 time_limit,
                 heuristic="wed_heuristic"
                 if current_player == PlayerTurn.BLACK
-                else "new_heuristic",  # WHITE uses new_heuristic against BLACK using wed_heuristic
+                else "new_heuristic",
             )
 
         end_time = time.time()
         elapsed_time = end_time - start_time
 
         if best_move is None:
-            print(f"GAME OVER. {switch_player(current_player).name} WON!")
+            print(
+                f"GAME OVER. {switch_player(current_player).name} WON in {move_count} moves!"
+            )
             game_over = True
             break
 

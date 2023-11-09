@@ -194,6 +194,8 @@ def print_board(WP, BP, kings) -> None:
                     char = BLACK + ("(W)" if is_king else " w ") + RESET
                 elif BP & (1 << index):
                     char = BLACK + ("(B)" if is_king else " b ") + RESET
+                else:
+                    char = BLACK + "   " + RESET
             else:
                 # Unplayable square (white square)
                 char = RED + "   " + RESET
