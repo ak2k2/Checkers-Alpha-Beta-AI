@@ -16,8 +16,8 @@ from heuristic import *
 from util.helpers import *
 
 MAX_MOVES = 150
-TIME_LIMIT = 1
-MAX_DEPTH = 2
+TIME_LIMIT = 6
+MAX_DEPTH = 100
 
 
 def write_winning_weights_to_file(score, trial_params):
