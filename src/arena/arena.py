@@ -187,7 +187,7 @@ def objective(trial):
         )
         winning_weights = trial.params
         write_winning_weights_to_file(score, winning_weights)
-    elif result["winner"] == "WHITE ":
+    elif result["winner"] == "WHITE":
         score = -1 * abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
