@@ -15,7 +15,7 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-MAX_MOVES = 100
+MAX_MOVES = 150
 
 
 def write_winning_weights_to_file(score, trial_params):
@@ -49,6 +49,19 @@ def AI_vs_AI_tuning(
 
     while move_count < MAX_MOVES and not game_over:
         legal_moves = generate_legal_moves(WP, BP, K, current_player)
+        num_white_pieces = count_bits(WP)
+        num_black_pieces = count_bits(BP)
+        if (
+            num_white_pieces - num_black_pieces >= 4
+        ):  # if the champion has a 4 piece advantage, it's a win
+            return {
+                "winner": "WHITE",
+                "white_men_left": count_bits(WP & ~K),
+                "white_kings_left": count_bits(WP & K),
+                "black_men_left": count_bits(BP & ~K),
+                "black_kings_left": count_bits(BP & K),
+            }
+
         if not legal_moves:
             game_over = True
             break
