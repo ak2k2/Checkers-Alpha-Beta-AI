@@ -1,20 +1,28 @@
-from functools import partial
-import sys
 import pathlib
+import sys
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 
 parent = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.append(str(parent))
 
+import json
+
 import optuna
-from tqdm import tqdm
+from threadsafe_alpha_beta import threadsafe_AI
 
 from checkers import *
 from heuristic import *
-from threadsafe_alpha_beta import threadsafe_AI
 from util.helpers import *
 
-
 MAX_MOVES = 100
+
+
+def write_winning_weights_to_file(score, trial_params):
+    with open("src/arena/winning_weights.txt", "w") as file:
+        file.write(f"Score: {score}\n")
+        json.dump(trial_params, file)
+        file.write("\n\n")
 
 
 def AI_vs_AI_tuning(
@@ -52,7 +60,7 @@ def AI_vs_AI_tuning(
             best_move, depth_reached = threadsafe_AI(
                 (WP, BP, K),
                 current_player,
-                max_depth,
+                max_depth=3,
                 time_limit=2,
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
@@ -155,36 +163,21 @@ def objective(trial):
         )
         if score > 0:
             print("\n\nCONTENDOR BEAT THE CHAMPION\n\n")
+            winning_weights = trial.params
+            write_winning_weights_to_file(score, winning_weights)
     else:
         score = 0  # Loss or draw results in a score of 0
-        print(result)
 
     return score
 
 
 if __name__ == "__main__":
-    study_name = "checkers_study"
-    storage_url = f"sqlite:///{study_name}.db"
-    study = optuna.create_study(
-        direction="maximize",
-        study_name=study_name,
-        storage=storage_url,
-        load_if_exists=True,
-    )
-    n_trials = 4
-    with tqdm(total=n_trials) as pbar:
+    # Use SQLite as a storage backend
+    storage_url = "sqlite:///example.db"
+    study = optuna.create_study(direction="maximize", storage=storage_url)
 
-        def callback(study, trial):
-            pbar.update(1)
-            if trial.value > 0:  # Check if the current trial is a new winner
-                with open("src/arena/winning_weights.txt", "a") as file:
-                    file.write(
-                        f"Trial {trial.number} Winning Weights: {trial.params}\n"
-                    )
-                    file.write(f"Score: {trial.value}\n\n")
-                    file.write("\n\n" + "-" * 50 + "\n\n")
-
-        study.optimize(objective, n_trials=n_trials, callbacks=[callback], n_jobs=4)
+    # Optuna's optimize function will automatically manage parallelization
+    study.optimize(objective, n_trials=5, n_jobs=-1)
 
     print("Best hyperparameters:", study.best_params)
     completed_trials = [
@@ -192,9 +185,11 @@ if __name__ == "__main__":
     ]
 
     # Filter successful trials
-    successful_trials = [t for t in completed_trials if t.value > 0]
+    successful_trials = [t for t in completed_trials if t.value is not None]
 
     # Choose the trial with the highest score
     if successful_trials:
         best_trial = max(successful_trials, key=lambda t: t.value)
+        print("\n\nDONE!\n\n")
         print("Best successful trial hyperparameters:", best_trial.params)
+        print(f"\n\nBEST SCORE: {best_trial.value}\n\n")

@@ -111,7 +111,9 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
         return min_eval
 
 
-def threadsafe_AI(position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"):
+def threadsafe_AI(
+    position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"
+):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
     depth_reached = 0
