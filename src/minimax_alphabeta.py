@@ -8,6 +8,9 @@ from heuristic import (
     old_heuristic,
 )
 
+global NC
+NC = 0
+
 
 class TimeOutException(Exception):
     pass
@@ -24,6 +27,8 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
     if (
         depth == 0 or not legal_moves
     ):  # If at max depth or no legal moves, then it's a terminal state or a leaf node
+        global NC
+        NC += 1
         if not legal_moves:
             # If there are no legal moves, then this player has lost
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
@@ -76,6 +81,9 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
                 return None, depth
 
             for move in legal_moves:
+                if time.time() - start_time >= time_limit:
+                    raise TimeOutException()
+
                 new_position = do_move(*position, move, current_player)
                 score = minimax(
                     new_position,
@@ -100,9 +108,6 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
                 if beta <= alpha:
                     break
 
-                if time.time() - start_time >= time_limit:
-                    raise TimeOutException()
-
             depth_reached = depth
 
         signal.alarm(0)  # Cancel the alarm if we finished in time
@@ -110,8 +115,7 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
     except TimeOutException:
         signal.alarm(0)  # Cancel the alarm since we've run out of time
         # If a timeout occurs but we don't have a best move, we select any legal move.
-        # It is assumed that generate_legal_moves will always return a list when there are moves available.
         if best_move is None and legal_moves:
-            best_move = legal_moves[0]
-
+            best_move = legal_moves[0]  # Select the first legal move as a last resort
+    print("Total nodes evaluated:", NC)
     return best_move, depth_reached

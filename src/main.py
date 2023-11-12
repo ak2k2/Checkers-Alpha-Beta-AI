@@ -150,7 +150,7 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="old_heuristic",
+                    heuristic="new_heuristic",
                 )
 
             end_time = time.time()
@@ -230,7 +230,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
             )
 
