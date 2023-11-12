@@ -1,13 +1,14 @@
+import pathlib
 import signal
+import sys
 import time
+
+parent = pathlib.Path(__file__).parent.parent.absolute()
+sys.path.append(str(parent))
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import (
-    new_heuristic,
-    old_heuristic,
-    evolve_base,
-)
+from heuristic import evolve_base, new_heuristic, old_heuristic
 
 global NC
 NC = 0
@@ -110,34 +111,29 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
         return min_eval
 
 
-def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"):
+def threadsafe_AI(position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
     depth_reached = 0
     start_time = time.time()
-
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(time_limit)
 
     try:
         for depth in range(1, max_depth + 1):
             alpha = float("-inf")
             beta = float("inf")
 
-            legal_moves = (
-                sort_moves_by_heuristic(  # Generate legal moves sorted by heuristic
-                    generate_legal_moves(*position, current_player),
-                    position,
-                    current_player,
-                    heuristic,
-                )
+            legal_moves = sort_moves_by_heuristic(
+                generate_legal_moves(*position, current_player),
+                position,
+                current_player,
+                heuristic,
             )
 
             if not legal_moves:
-                # No legal moves available, return immediately indicating game is lost
                 return None, depth
 
             for move in legal_moves:
+                # Check for time limit
                 if time.time() - start_time >= time_limit:
                     raise TimeOutException()
 
@@ -167,12 +163,9 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
 
             depth_reached = depth
 
-        signal.alarm(0)  # Cancel the alarm if we finished in time
-
     except TimeOutException:
-        signal.alarm(0)  # Cancel the alarm since we've run out of time
-        # If a timeout occurs but we don't have a best move, we select any legal move.
+        # If a timeout occurs but we don't have a best move, select any legal move.
         if best_move is None and legal_moves:
-            best_move = legal_moves[0]  # Select the first legal move as a last resort
-    print("Total nodes evaluated:", NC)
+            best_move = legal_moves[0]
+
     return best_move, depth_reached

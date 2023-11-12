@@ -1,5 +1,3 @@
-import random
-
 from checkers import *
 from heuristic import *
 from minimax_alphabeta import *
@@ -260,6 +258,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
 
         print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
         print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
+        print(f"EVOLVE1: {evolve_base(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 
@@ -276,8 +275,8 @@ if __name__ == "__main__":
     if from_file.upper() == "Y":
         print("Got it. Loading game state from file...\n")
         mode = input("Human vs AI (HA) or AI vs AI (AA)? ")
+        board_file_path = "src/boards/sample-cb2.txt"
         if mode.upper() == "HA":
-            board_file_path = "src/boards/sample-cb2.txt"
             WP, BP, K, current_player, time_limit = load_game_from_sable_file(
                 board_file_path
             )
@@ -299,7 +298,6 @@ if __name__ == "__main__":
                 time_limit=time_limit,
             )
         elif mode.upper() == "AA":
-            board_file_path = "src/boards/sample-cb2.txt"
             WP, BP, K, current_player, time_limit = load_game_from_sable_file(
                 board_file_path
             )

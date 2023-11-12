@@ -1,0 +1,7 @@
+Trial 17 Winning Weights: {'cont_man_weight': 935.6039040945701, 'cont_king_weight': 785.7704467826617, 'cont_chebychev_distance_weight': 196.16274976063593, 'cont_verge_king_weight': 96.55319380978173, 'cont_mobility_weight': 75.50850554989405, 'cont_jump_weight': 1.4798585233118844, 'cont_capture_safety_weight': 96.05032433247507, 'cont_kinged_mult': 4.172948748270679, 'cont_land_edge_mult': 8.763305526446532, 'cont_took_king_mult': 6.922278684487547, 'cont_back_row_importance_factor': 23.182932035203514, 'cont_back_row_weight': 7.076080764345328, 'cont_backwards_backup_factor': 48.14977373380916, 'cont_backwards_backup_weight': 5.5324279570766794, 'cont_center_control_factor': 28.347737396958177, 'cont_center_control_weight': 47.64052568070723, 'cont_kings_main_diagonal_weight': 0.59441423654224, 'cont_men_side_diagonals_weight': 2.2532496607512775}
+Score: 5.0
+
+
+
+--------------------------------------------------
+
