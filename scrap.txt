@@ -1,4 +1,147 @@
 
+from checkers import *
+from checkers import PlayerTurn, do_move, generate_legal_moves
+from heuristic import (
+    new_heuristic,
+    old_heuristic,
+)
+import time
+import signal
+from functools import lru_cache
+import hashlib
+
+global NC
+NC = 0
+
+class TimeOutException(Exception):
+    pass
+
+def signal_handler(signum, frame):
+    raise TimeOutException()
+
+# Hash function for board positions
+def hash_position(position):
+    return hashlib.sha256(str(position).encode()).hexdigest()
+
+# Transposition table with a fixed size and an LRU eviction policy
+transposition_table = {}
+
+def minimax(position, depth, alpha, beta, current_player, heuristic="new_heuristic"):
+    global NC
+    position_key = hash_position(position)
+
+    # Check if the position is already evaluated
+    if position_key in transposition_table and transposition_table[position_key]['depth'] >= depth:
+        NC += 1
+        return transposition_table[position_key]['value']
+
+    legal_moves = generate_legal_moves(*position, current_player)
+
+    if depth == 0 or not legal_moves:
+        NC += 1
+        if not legal_moves:
+            value = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+        else:
+            if heuristic == "new_heuristic":
+                value = new_heuristic(*position, current_player)
+            elif heuristic == "old_heuristic":
+                value = old_heuristic(*position)
+
+        transposition_table[position_key] = {'value': value, 'depth': depth}
+        return value
+
+    if current_player == PlayerTurn.WHITE:
+        max_eval = float("-inf")
+        for move in legal_moves:
+            new_position = do_move(*position, move, current_player)
+            eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.BLACK, heuristic)
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        transposition_table[position_key] = {'value': max_eval, 'depth': depth}
+        return max_eval
+    else:
+        min_eval = float("inf")
+        for move in legal_moves:
+            new_position = do_move(*position, move, current_player)
+            eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.WHITE, heuristic)
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        transposition_table[position_key] = {'value': min_eval, 'depth': depth}
+        return min_eval
+
+def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"):
+    best_move = None
+    best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+    depth_reached = 0
+    start_time = time.time()
+
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(time_limit)
+
+    try:
+        for depth in range(1, max_depth + 1):
+            alpha = float("-inf")
+            beta = float("inf")
+            legal_moves = generate_legal_moves(*position, current_player)
+
+            if not legal_moves:
+                return None, depth
+
+            for move in legal_moves:
+                if time.time() - start_time >= time_limit:
+                    raise TimeOutException()
+
+                new_position = do_move(*position, move, current_player)
+                score = minimax(
+                    new_position,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    switch_player(current_player),
+                    heuristic,
+                )
+
+                if current_player == PlayerTurn.WHITE:
+                    if score > best_score:
+                        best_score = score
+                        best_move = move
+                    alpha = max(alpha, score)
+                else:
+                    if score < best_score:
+                        best_score = score
+                        best_move = move
+                    beta = min(beta, score)
+
+                if beta <= alpha:
+                    break
+
+            depth_reached = depth
+
+        signal.alarm(0)
+
+    except TimeOutException:
+        signal.alarm(0)
+        if best_move is None and legal_moves:
+            best_move = legal_moves[0]
+
+    print("Total nodes evaluated:", NC)
+    return best_move, depth_reached
+
+
+
+
+
+
+
+
+
+
+
+
 # def cheat_two_move_score(WP, BP, K):
 #     return num_pieces_that_can_be_captured_by_white_if_he_gets_two_consecutive_jumps(
 #         WP, BP, K
