@@ -39,6 +39,7 @@ def evolve_base_B(
     mrnbw=0,
     promotion_weight=0,
     pgw=0,
+    cssw=0,
 ):
     num_total_pieces = count_bits(WP) + count_bits(BP)
 
@@ -105,6 +106,8 @@ def evolve_base_B(
                 took_king_mult=took_king_mult,
             )
             capture_safety_score = -capture_safety_weight * capture_safety_score
+
+        capture_safety_score += cssw * num_total_pieces
 
         back_row_importance = (
             num_total_pieces / back_row_importance_factor
