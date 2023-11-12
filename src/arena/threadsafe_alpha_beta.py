@@ -62,7 +62,7 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
     return sorted_moves
 
 
-def minimax(position, depth, alpha, beta, current_player, heuristic="new_heuristic"):
+def minimax(position, depth, alpha, beta, current_player, heuristic="evolve_base_B"):
     legal_moves = generate_legal_moves(*position, current_player)
 
     # Check if the game has ended (either by reaching a terminal state or by reaching the maximum depth)
@@ -112,7 +112,7 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
 
 
 def threadsafe_AI(
-    position, current_player, max_depth, time_limit=5, heuristic="new_heuristic"
+    position, current_player, max_depth, time_limit=5, heuristic="evolve_base_B"
 ):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")

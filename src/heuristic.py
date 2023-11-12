@@ -40,6 +40,8 @@ def evolve_base_B(
     promotion_weight=0,
     pgw=0,
     cssw=0,
+    vkg=0,
+    mbgw=0,
 ):
     num_total_pieces = count_bits(WP) + count_bits(BP)
 
@@ -82,9 +84,13 @@ def evolve_base_B(
         return int(EVAL)
     else:
         verge_of_kinging = verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K)
+        verge_of_kinging += vkg * num_total_pieces
+
         mobility_score = mobility_weight * mobility_diff_score(
             WP, BP, K, jw=jump_weight
         )
+        mobility_score += mbgw * num_total_pieces
+
         capture_safety_score = 0
         if turn == PlayerTurn.WHITE:
             capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
