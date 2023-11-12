@@ -20,6 +20,33 @@ def signal_handler(signum, frame):
     raise TimeOutException()
 
 
+def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
+    if not legal_moves:
+        return []
+    if heuristic == "new_heuristic":
+        heuristic_function = new_heuristic
+    elif heuristic == "old_heuristic":
+        heuristic_function = old_heuristic
+    else:
+        raise ValueError("Invalid heuristic function specified")
+
+    move_evaluations = [
+        (
+            move,
+            heuristic_function(
+                *do_move(*position, move, current_player), current_player
+            ),
+        )
+        for move in legal_moves
+    ]
+
+    move_evaluations.sort(
+        key=lambda x: x[1], reverse=current_player == PlayerTurn.WHITE
+    )
+    sorted_moves = [move for move, _ in move_evaluations]
+    return sorted_moves
+
+
 def minimax(position, depth, alpha, beta, current_player, heuristic="new_heuristic"):
     legal_moves = generate_legal_moves(*position, current_player)
 
@@ -74,7 +101,15 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
         for depth in range(1, max_depth + 1):
             alpha = float("-inf")
             beta = float("inf")
-            legal_moves = generate_legal_moves(*position, current_player)
+
+            legal_moves = (
+                sort_moves_by_heuristic(  # Generate legal moves sorted by heuristic
+                    generate_legal_moves(*position, current_player),
+                    position,
+                    current_player,
+                    heuristic,
+                )
+            )
 
             if not legal_moves:
                 # No legal moves available, return immediately indicating game is lost

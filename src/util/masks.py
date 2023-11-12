@@ -387,3 +387,6 @@ DOUBLE_DIAGONAL = (
     | S[25]
     | S[28]
 )
+
+RANK7 = S[24] | S[25] | S[26] | S[27]
+RANK2 = S[4] | S[5] | S[6] | S[7]

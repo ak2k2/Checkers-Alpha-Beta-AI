@@ -3,7 +3,17 @@ from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
 
-import random
+# print("TURN: " + str(turn))
+# print("Piece Count Score: ", piece_count_score)
+# print("Back Row Score: ", back_row_score)
+# print("Capture Safety Score: ", capture_safety_score)
+# print("Center Score: ", center_score)
+# print("Men with Backwards Backup: ", men_with_backwards_backup)
+# print("Mobility Score: ", mobility_score)
+# print("Kings on Main Diagonal: ", kings_on_main_diagonal)
+# print("Men on Side Diagonals: ", men_on_side_diagonals)
+# print("Verge of Kinging: ", verge_of_kinging)
+# Combine all evaluations into a final score.
 
 
 def new_heuristic(WP, BP, K, turn=None):
@@ -25,27 +35,49 @@ def new_heuristic(WP, BP, K, turn=None):
     )
 
     # Sum of the chebychev distances"
-    if num_total_pieces < 6:
-        EVAL = 0
+    if num_total_pieces <= 5:
+        EVAL = piece_count_score
         sum_chebychev_distance = calculate_sum_distances(WP, BP)
         if piece_count_score > 0:  # White has more weighted material.
-            EVAL = (
-                50 * sum_chebychev_distance
+            EVAL += (
+                10 * sum_chebychev_distance
             )  # White wants to minimize chevychev distance and get closer to black.
 
         elif piece_count_score < 0:  # Black has more weighted material.
-            EVAL = (
-                50 * sum_chebychev_distance
+            EVAL += (
+                10 * sum_chebychev_distance
             )  # White wants to maximize chevychev distance and get further from black.
         else:
             # If the piece count is equal the player with more mobility should have the advantage. This will prevent giving up and forcing draws if/when applicable.
-            EVAL = 50 * mobility_diff_score(WP, BP, K)
+            EVAL += 50 * mobility_diff_score(
+                WP, BP, K, jw=10
+            )  # a jump at this point is extremely valuable.
         return int(EVAL)
     else:
+        verge_of_kinging = 50 * pieces_on_verge_of_kinging(WP, BP, K)
+
         # Mobility is defined as a weighted sum of the number of simple and jump moves white has vs. black. More mobility generally means more options.
-        mobility_score = 250 * mobility_diff_score(
-            WP, BP, K, jw=5
+        mobility_score = 10 * mobility_diff_score(
+            WP, BP, K, jw=4
         )  # jw is the weight of jumps vs. simple moves.
+
+        # Refects the tradeoff between capturing and being captured wrt. the current turn.
+        capture_safety_score = 0
+        if turn == PlayerTurn.WHITE:
+            capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
+                WP,
+                BP,
+                K,
+                kinged_mult=5,  # multiplier for moved in which black is kinged as a result of a jump sequence.
+                land_edge_mult=2,  # multiplier for moves in which black lands on the edge of the board.
+                took_king_mult=2,  # multiplier for moves in which black captures a white king.
+            )  # White wants to capture as MANY black pieces as he can by MAXIMIZING this score.
+            capture_safety_score = 50 * capture_safety_score
+        else:  # turn == PlayerTurn.BLACK
+            capture_safety_score = count_white_pieces_that_can_be_captured_by_black(
+                WP, BP, K, kinged_mult=5, land_edge_mult=2, took_king_mult=2
+            )  # Black wants to capture as MANY white pieces as he can by MINIMIZING this score.
+            capture_safety_score = -50 * capture_safety_score
 
         # As the game progresses, the back row's importance diminishes since it prevents kinging.
         # Early game, it is important to control the back row to prevent the opponent from kinging.
@@ -66,29 +98,21 @@ def new_heuristic(WP, BP, K, turn=None):
         )
 
         # To be a "man with backwards backup" a piece must have only friendly pieces or walls directly behind them.
-        men_with_backwards_backup = 50 * (
-            calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
+        backwards_backup_weight = (
+            num_total_pieces / 24
+        )  # taper off as the number of pieces decreases. encourage defensive play in the opening and mid-game.
+        men_with_backwards_backup = (
+            backwards_backup_weight
+            * 25
+            * (calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K))
         )
-
-        # Refects the tradeoff between capturing and being captured wrt. the current turn.
-        capture_safety_score = 0
-        if turn == PlayerTurn.WHITE:
-            capture_safety_score += count_black_pieces_that_can_be_captured_by_white(
-                WP, BP, K
-            )  # White wants to capture as MANY black pieces as he can by MAXIMIZING this score.
-        else:  # turn == PlayerTurn.BLACK
-            capture_safety_score -= count_white_pieces_that_can_be_captured_by_black(
-                WP, BP, K
-            )  # Black is wants to capture as MANY white pieces as he can by MINIMIZING this score.
-
-        capture_safety_score *= 20
 
         # Center control is crucial in the opening and mid-game for mobility and kinging paths.
         center_control_importance = (
             num_total_pieces / 24
         )  # Tapers off as the number of pieces decreases.
         center_score = (
-            50
+            25
             * center_control_importance
             * (
                 count_bits(WP & CENTER_8 & MASK_32)
@@ -97,7 +121,7 @@ def new_heuristic(WP, BP, K, turn=None):
         )
 
         # Kings positioned on the main diagonal can control more squares.
-        kings_on_main_diagonal = 20 * (
+        kings_on_main_diagonal = 10 * (
             count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
         )
 
@@ -107,7 +131,6 @@ def new_heuristic(WP, BP, K, turn=None):
             - count_bits(BP & ~K & DOUBLE_DIAGONAL)
         )
 
-        # Combine all evaluations into a final score.
         EVAL = (
             piece_count_score
             + back_row_score
@@ -117,14 +140,15 @@ def new_heuristic(WP, BP, K, turn=None):
             + mobility_score
             + kings_on_main_diagonal
             + men_on_side_diagonals
+            + verge_of_kinging
         )
 
         return int(EVAL)
 
 
+# ----------------- ************* -----------------
 # ----------------- OLD HEURISTIC -----------------
-# ----------------- OLD HEURISTIC -----------------
-# ----------------- OLD HEURISTIC -----------------
+# ----------------- ************* -----------------
 
 
 def old_heuristic(WP, BP, K, turn=None):
@@ -222,18 +246,70 @@ def old_heuristic(WP, BP, K, turn=None):
         )
 
         # Combine all evaluations into a final score.
+
         EVAL = (
             piece_count_score
             + back_row_score
             + capture_safety_score
             + center_score
-            # + men_with_backwards_backup
             + mobility_score
             + kings_on_main_diagonal
             + men_on_side_diagonals
         )
 
         return int(EVAL)
+
+
+# ----------------- ************* -----------------
+# ---------------  HELPER FUNCTIONS -----------------
+# ----------------- ************* -----------------
+
+
+def pieces_on_verge_of_kinging(WP, BP, K):
+    # Create a bitboard for empty squares
+    empty_squares = ~(WP | BP) & MASK_32
+
+    # Get all white and black piece positions on the verge of kinging
+    black_verge_positions = find_set_bits(BP & ~K & MASK_32 & RANK7)
+    white_verge_positions = find_set_bits(WP & ~K & MASK_32 & RANK2)
+
+    # Check for unblocked paths for each black and white piece
+    unblocked_black_verge = [
+        pos
+        for pos in black_verge_positions
+        if (
+            (
+                BLACK_NORTHEAST.get(pos) is not None
+                and is_set(empty_squares, BLACK_NORTHEAST.get(pos))
+            )
+            or (
+                BLACK_NORTHWEST.get(pos) is not None
+                and is_set(empty_squares, BLACK_NORTHWEST.get(pos))
+            )
+        )
+    ]
+    unblocked_white_verge = [
+        pos
+        for pos in white_verge_positions
+        if (
+            (
+                WHITE_SOUTHEAST.get(pos) is not None
+                and is_set(empty_squares, WHITE_SOUTHEAST.get(pos))
+            )
+            or (
+                WHITE_SOUTHWEST.get(pos) is not None
+                and is_set(empty_squares, WHITE_SOUTHWEST.get(pos))
+            )
+        )
+    ]
+
+    # Count the unblocked pieces
+    black_verge_count = len(unblocked_black_verge)
+    white_verge_count = len(unblocked_white_verge)
+
+    # Return the difference in count
+    val = white_verge_count - black_verge_count
+    return val
 
 
 def calculate_sum_distances(WP, BP):
@@ -260,13 +336,21 @@ def mobility_diff_score(WP, BP, K, jw=4):
     black_jumpers = get_jumpers_black(WP, BP, K)
 
     # Generate simple and jump moves for both sides
-    white_simple_moves = generate_simple_moves_white(WP, BP, K, white_movers)
-    black_simple_moves = generate_simple_moves_black(BP, WP, K, black_movers)
-    white_jump_sequences = all_jump_sequences(
-        WP, BP, K, white_jumpers, None, player=PlayerTurn.WHITE
+    white_simple_moves = (
+        generate_simple_moves_white(WP, BP, K, white_movers) if white_movers else []
     )
-    black_jump_sequences = all_jump_sequences(
-        WP, BP, K, None, black_jumpers, player=PlayerTurn.BLACK
+    black_simple_moves = (
+        generate_simple_moves_black(BP, WP, K, black_movers) if black_movers else []
+    )
+    white_jump_sequences = (
+        all_jump_sequences(WP, BP, K, white_jumpers, None, player=PlayerTurn.WHITE)
+        if white_jumpers
+        else []
+    )
+    black_jump_sequences = (
+        all_jump_sequences(WP, BP, K, None, black_jumpers, player=PlayerTurn.BLACK)
+        if black_jumpers
+        else []
     )
 
     # Jumps could be considered (jw) times more valuable as they capture an opponent's piece
@@ -347,29 +431,86 @@ def bit_to_coordinates(bit_index):
     return (x, y)
 
 
-def count_black_pieces_that_can_be_captured_by_white(WP, BP, K):
+def count_black_pieces_that_can_be_captured_by_white(
+    WP, BP, K, kinged_mult=1, land_edge_mult=1, took_king_mult=1
+):
     # Get white's jump sequences (potential captures)
+    if get_jumpers_white(WP, BP, K) == 0:
+        return 0
     white_jump_sequences = all_jump_sequences(
         WP, BP, K, get_jumpers_white(WP, BP, K), None, player=PlayerTurn.WHITE
     )
 
     capturable_pieces = set()
-
+    mult = 1
     for sequence in white_jump_sequences:
-        if len(sequence) == 2:
+        if sequence[-1] in [
+            0,
+            1,
+            2,
+            3,
+        ] and is_set(
+            WP & ~K & MASK_32, sequence[0]
+        ):  # white man started the jump seq and ended on the back row and became a king
+            mult += kinged_mult
+        if len(sequence) == 2:  # single jump
             capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
-        else:
+            if sequence[-1] in [
+                0,
+                1,
+                2,
+                3,
+                7,
+                15,
+                23,
+                31,
+                30,
+                29,
+                28,
+                24,
+                16,
+                8,
+            ]:  # land on edge
+                mult += land_edge_mult
+            if is_set(BP & K, sequence[-1]):
+                mult += took_king_mult
+        else:  # more than one jump
             pairs = [[sequence[i], sequence[i + 1]] for i in range(len(sequence) - 1)]
             for sequence in pairs:
                 capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+            if sequence[-1] in [
+                0,
+                1,
+                2,
+                3,
+                7,
+                15,
+                23,
+                31,
+                30,
+                29,
+                28,
+                24,
+                16,
+                8,
+            ]:  # land on edge
+                mult += land_edge_mult
+            for s in sequence[1 : len(sequence) - 1]:
+                if is_set(BP & K, s):
+                    mult += took_king_mult
 
-    return len(
+    return mult * len(
         capturable_pieces
     )  # number of unique black pieces that can be captured by white in the next turn
 
 
-def count_white_pieces_that_can_be_captured_by_black(WP, BP, K):
+def count_white_pieces_that_can_be_captured_by_black(
+    WP, BP, K, kinged_mult=1, land_edge_mult=1, took_king_mult=1
+):
     # Get white's jump sequences (potential captures)
+    if get_jumpers_black(WP, BP, K) == 0:
+        return 0
+
     black_jump_sequences = all_jump_sequences(
         WP, BP, K, None, get_jumpers_black(WP, BP, K), player=PlayerTurn.BLACK
     )
@@ -377,16 +518,33 @@ def count_white_pieces_that_can_be_captured_by_black(WP, BP, K):
     # Count the unique pieces that can be captured by white in the next turn
     # A set is used to ensure each piece is only counted once, even if it can be captured in multiple ways.
     capturable_pieces = set()
-
+    mult = 1
     for sequence in black_jump_sequences:
+        if sequence[-1] in [
+            28,
+            29,
+            30,
+            31,
+        ] and is_set(
+            BP & ~K & MASK_32, sequence[0]
+        ):  # a black man started the jump seq and ended on the back row and became a king
+            mult = kinged_mult
         if len(sequence) == 2:
             capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
+            if sequence[-1] in [0, 1, 2, 3, 7, 15, 23, 31, 30, 29, 28, 24, 16, 8]:
+                mult += land_edge_mult
+            if is_set(WP & K, sequence[-1]):
+                mult += took_king_mult
         else:
             pairs = [[sequence[i], sequence[i + 1]] for i in range(len(sequence) - 1)]
             for sequence in pairs:
                 capturable_pieces.add(find_jumped_pos(sequence[0], sequence[1]))
-
-    return len(
+            if sequence[-1] in [0, 1, 2, 3, 7, 15, 23, 31, 30, 29, 28, 24, 16, 8]:
+                mult += land_edge_mult
+            for s in sequence[1 : len(sequence) - 1]:
+                if is_set(WP & K, s):
+                    mult += took_king_mult
+    return mult * len(
         capturable_pieces
     )  # number of unique white pieces that can be captured by black on next turn
 
@@ -450,14 +608,10 @@ def calculate_safe_black_pieces(BP, K):
 
 if __name__ == "__main__":
     WP, BP, K = setup_board_from_position_lists(
-        ["B4", "B6", "C5", "D6", "F2", "F4"], ["KC3", "KE7"]
+        ["B6", "C5", "E7", "G7"],
+        ["KB4", "E3", "F4"],
     )
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
-    print(
-        num_pieces_that_can_be_captured_by_black_if_he_gets_two_consecutive_jumps(
-            WP, BP, K
-        )
-    )
-    print(count_white_pieces_that_can_be_captured_by_black(WP, BP, K))
-    # print(cheat_two_move_score(WP, BP, K))
+
+    print(new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE))
