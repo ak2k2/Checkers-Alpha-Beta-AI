@@ -52,7 +52,7 @@ def AI_vs_AI_tuning(
         num_white_pieces = count_bits(WP)
         num_black_pieces = count_bits(BP)
         if (
-            num_white_pieces - num_black_pieces >= 4
+            num_white_pieces - num_black_pieces >= 5
         ):  # if the champion has a 4 piece advantage, it's a win
             return {
                 "winner": "WHITE",
@@ -128,22 +128,22 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base,
-        man_weight=trial.suggest_float("cont_man_weight", 0, 1000),
-        king_weight=trial.suggest_float("cont_king_weight", 0, 1000),
+        man_weight=trial.suggest_float("cont_man_weight", 100, 1000),
+        king_weight=trial.suggest_float("cont_king_weight", 150, 1000),
         chebychev_distance_weight=trial.suggest_float(
             "cont_chebychev_distance_weight", 0, 200
         ),
-        verge_king_weight=trial.suggest_float("cont_verge_king_weight", 0, 100),
-        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 100),
+        verge_king_weight=trial.suggest_float("cont_verge_king_weight", 0, 200),
+        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 200),
         jump_weight=trial.suggest_float("cont_jump_weight", 0, 10),
-        capture_safety_weight=trial.suggest_float("cont_capture_safety_weight", 0, 100),
+        capture_safety_weight=trial.suggest_float("cont_capture_safety_weight", 0, 200),
         kinged_mult=trial.suggest_float("cont_kinged_mult", 0, 10),
         land_edge_mult=trial.suggest_float("cont_land_edge_mult", 0, 10),
         took_king_mult=trial.suggest_float("cont_took_king_mult", 0, 10),
         back_row_importance_factor=trial.suggest_float(
             "cont_back_row_importance_factor", 0, 50
         ),
-        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 100),
+        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 150),
         backwards_backup_factor=trial.suggest_float(
             "cont_backwards_backup_factor", 0, 50
         ),
@@ -151,7 +151,7 @@ def objective(trial):
             "cont_backwards_backup_weight", 0, 100
         ),
         center_control_factor=trial.suggest_float("cont_center_control_factor", 0, 50),
-        center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 50),
+        center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 100),
         kings_main_diagonal_weight=trial.suggest_float(
             "cont_kings_main_diagonal_weight", 0, 20
         ),
