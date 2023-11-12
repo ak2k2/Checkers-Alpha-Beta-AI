@@ -1,6 +1,34 @@
 Score: 4
-{"cont_man_weight": 608.8462781606083, "cont_king_weight": 317.99394969266064, "cont_chebychev_distance_weight": 68.03533160329832, "cont_verge_king_weight": 182.267541477446, "cont_mobility_weight": 146.76006165546275, "cont_jump_weight": 5.09457378720086, "cont_capture_safety_weight": 112.30648719825263, "cont_kinged_mult": 4.867057328792849, "cont_land_edge_mult": 7.470896348193875, "cont_took_king_mult": 7.8376565998520995, "cont_back_row_importance_factor": 22.438048173114417, "cont_back_row_weight": 36.89243623700597, "cont_backwards_backup_factor": 26.886052233244246, "cont_backwards_backup_weight": 25.642640119603332, "cont_center_control_factor": 1.7337088351377261, "cont_center_control_weight": 59.58668465304978, "cont_kings_main_diagonal_weight": 17.975130317456355, "cont_men_side_diagonals_weight": 9.441794229030902, "cont_endgame_threshold": 7, "cont_double_corner_weight": 175.38858163036227, "cont_single_corner_weight": 13.545439077731935, "cont_kgw": 4.072412782606396}
-
-Score: 7
-{"cont_man_weight": 231.1333465794808, "cont_king_weight": 850.4988472481424, "cont_chebychev_distance_weight": 3.418185872356605, "cont_verge_king_weight": 26.07174210528409, "cont_mobility_weight": 77.4645855773334, "cont_jump_weight": 0.8252468149956582, "cont_capture_safety_weight": 184.90440042830744, "cont_kinged_mult": 0.8241013407080244, "cont_land_edge_mult": 7.928389516252525, "cont_took_king_mult": 7.0675582827947006, "cont_back_row_importance_factor": 40.21964851747614, "cont_back_row_weight": 81.8864819997993, "cont_backwards_backup_factor": 3.548379585934774, "cont_backwards_backup_weight": 88.43305402112033, "cont_center_control_factor": 40.130673272699084, "cont_center_control_weight": 85.4772595675443, "cont_kings_main_diagonal_weight": 14.855124581993703, "cont_men_side_diagonals_weight": 10.563271874060291, "cont_endgame_threshold": 5, "cont_double_corner_weight": 57.882076756821, "cont_single_corner_weight": 176.78716425136835, "cont_kgw": 1.215100579367161}
+{
+    "cont_man_weight": 786.5266490785807,
+    "cont_king_weight": 866.4735294294625,
+    "cont_chebychev_distance_weight": 85.71832320422114,
+    "cont_verge_king_weight": 116.15937263618741,
+    "cont_mobility_weight": 168.8522349132105,
+    "cont_jump_weight": 1.7887905971304179,
+    "cont_capture_safety_weight": 33.48192411913678,
+    "cont_kinged_mult": 7.856269697108688,
+    "cont_land_edge_mult": 6.0164698617645955,
+    "cont_took_king_mult": 1.4075154405279635,
+    "cont_back_row_importance_factor": 30.964796267861903,
+    "cont_back_row_weight": 149.00045661924742,
+    "cont_backwards_backup_factor": 20.557953056325015,
+    "cont_backwards_backup_weight": 99.68452164106745,
+    "cont_center_control_factor": 23.095514088299943,
+    "cont_center_control_weight": 76.18670611628858,
+    "cont_kings_main_diagonal_weight": 4.054363589314872,
+    "cont_men_side_diagonals_weight": 0.07122017666796276,
+    "cont_endgame_threshold": 5,
+    "cont_double_corner_weight": 78.3849825552273,
+    "cont_single_corner_weight": 117.56973775249313,
+    "cont_kgw": 1.9867581647285888,
+    "cont_mgw": -1.853993420038191,
+    "cont_maj_loss_thresh": 0.7240469240864155,
+    "cont_attack_weight": 166.70525210906538,
+    "cont_agw": -2.0925868574998825,
+    "cont_mix_row_not_box_weight": 125.60493648449226,
+    "cont_mrnbw": -1.6868015018589972,
+    "cont_promotion_weight": 100.10085659371222,
+    "cont_pgw": -3.252283975547853
+}
 

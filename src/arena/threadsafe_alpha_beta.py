@@ -8,7 +8,7 @@ sys.path.append(str(parent))
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import evolve_base, new_heuristic, old_heuristic
+from heuristic import evolve_base_B, new_heuristic, old_heuristic
 
 global NC
 NC = 0
@@ -23,15 +23,15 @@ def signal_handler(signum, frame):
 
 
 def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
-    if not legal_moves:
-        return []
+    if not legal_moves or legal_moves == []:
+        return None
     if isinstance(heuristic, str):
         if heuristic == "new_heuristic":
             heuristic_function = new_heuristic
         elif heuristic == "old_heuristic":
             heuristic_function = old_heuristic
-        elif heuristic == "evolve_base":
-            heuristic_function = evolve_base
+        elif heuristic == "evolve_base_B":
+            heuristic_function = evolve_base_B
         else:
             raise ValueError("Invalid heuristic function specified")
 
@@ -67,11 +67,11 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
 
     # Check if the game has ended (either by reaching a terminal state or by reaching the maximum depth)
     if (
-        depth == 0 or not legal_moves
+        depth == 0 or legal_moves == [] or not legal_moves
     ):  # If at max depth or no legal moves, then it's a terminal state or a leaf node
         global NC
         NC += 1
-        if not legal_moves:
+        if not legal_moves or legal_moves == []:
             # If there are no legal moves, then this player has lost
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
@@ -81,8 +81,8 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
                     return new_heuristic(*position, current_player)
                 elif heuristic == "old_heuristic":
                     return old_heuristic(*position)
-                elif heuristic == "evolve_base":
-                    return evolve_base(*position, current_player)
+                elif heuristic == "evolve_base_B":
+                    return evolve_base_B(*position, current_player)
                 else:
                     raise ValueError("Invalid heuristic function specified")
             elif callable(heuristic):
@@ -131,7 +131,7 @@ def threadsafe_AI(
                 heuristic,
             )
 
-            if not legal_moves:
+            if not legal_moves or legal_moves == []:
                 return None, depth
 
             for move in legal_moves:

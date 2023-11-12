@@ -3,11 +3,7 @@ import time
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import (
-    new_heuristic,
-    old_heuristic,
-    evolve_base,
-)
+from heuristic import evolve_base, new_heuristic, old_heuristic
 
 global NC
 NC = 0
@@ -22,37 +18,27 @@ def signal_handler(signum, frame):
 
 
 def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
-    if not legal_moves:
-        return []
-    if isinstance(heuristic, str):
-        if heuristic == "new_heuristic":
-            heuristic_function = new_heuristic
-        elif heuristic == "old_heuristic":
-            heuristic_function = old_heuristic
-        elif heuristic == "evolve_base":
-            heuristic_function = evolve_base
-        else:
-            raise ValueError("Invalid heuristic function specified")
+    if not legal_moves or legal_moves == []:
+        return None
 
-        move_evaluations = [
-            (
-                move,
-                heuristic_function(
-                    *do_move(*position, move, current_player), current_player
-                ),
-            )
-            for move in legal_moves
-        ]
-
-    elif callable(heuristic):
-        # Directly use the callable heuristic function
-        move_evaluations = [
-            (move, heuristic(*do_move(*position, move, current_player), current_player))
-            for move in legal_moves
-        ]
-
+    if heuristic == "new_heuristic":
+        heuristic_function = new_heuristic
+    elif heuristic == "old_heuristic":
+        heuristic_function = old_heuristic
+    elif heuristic == "evolve_base":
+        heuristic_function = evolve_base
     else:
         raise ValueError("Invalid heuristic function specified")
+
+    move_evaluations = [
+        (
+            move,
+            heuristic_function(
+                *do_move(*position, move, current_player), current_player
+            ),
+        )
+        for move in legal_moves
+    ]
 
     move_evaluations.sort(
         key=lambda x: x[1], reverse=current_player == PlayerTurn.WHITE
@@ -66,27 +52,23 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
 
     # Check if the game has ended (either by reaching a terminal state or by reaching the maximum depth)
     if (
-        depth == 0 or not legal_moves
+        depth == 0 or not legal_moves or legal_moves == []
     ):  # If at max depth or no legal moves, then it's a terminal state or a leaf node
         global NC
         NC += 1
-        if not legal_moves:
+        if legal_moves == [] or not legal_moves:
             # If there are no legal moves, then this player has lost
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
-            if isinstance(heuristic, str):
-                # Here we reach the maximum depth, so we evaluate the position using the heuristic function
-                if heuristic == "new_heuristic":
-                    return new_heuristic(*position, current_player)
-                elif heuristic == "old_heuristic":
-                    return old_heuristic(*position)
-                elif heuristic == "evolve_base":
-                    return evolve_base(*position, current_player)
-                else:
-                    raise ValueError("Invalid heuristic function specified")
-            elif callable(heuristic):
-                # Directly use the callable heuristic function
-                return heuristic(*position, turn=current_player)
+            # Here we reach the maximum depth, so we evaluate the position using the heuristic function
+            if heuristic == "new_heuristic":
+                return new_heuristic(*position, current_player)
+            elif heuristic == "old_heuristic":
+                return old_heuristic(*position)
+            elif heuristic == "evolve_base":
+                return evolve_base(*position, current_player)
+            else:
+                raise ValueError("Invalid heuristic function specified")
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")
@@ -133,7 +115,7 @@ def AI(position, current_player, max_depth, time_limit=5, heuristic="new_heurist
                 )
             )
 
-            if not legal_moves:
+            if legal_moves == [] or not legal_moves:
                 # No legal moves available, return immediately indicating game is lost
                 return None, depth
 

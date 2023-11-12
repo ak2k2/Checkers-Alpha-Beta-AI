@@ -16,12 +16,17 @@ from heuristic import *
 from util.helpers import *
 
 MAX_MOVES = 150
+TIME_LIMIT = 1
+MAX_DEPTH = 2
 
 
 def write_winning_weights_to_file(score, trial_params):
-    with open("src/arena/winning_weights.txt", "a") as file:
+    # open the file and clear it
+
+    with open("src/arena/winning_weights.txt", "w") as file:
+        file.truncate(0)
         file.write(f"Score: {score}\n")
-        json.dump(trial_params, file)
+        file.write(json.dumps(trial_params, indent=4))
         file.write("\n\n")
 
 
@@ -29,8 +34,8 @@ def AI_vs_AI_tuning(
     who_moves_first,
     heuristic_white,
     heuristic_black,
-    max_depth,
-    time_limit,
+    max_depth=None,
+    time_limit=None,
     initial_board=None,
 ):
     if time_limit is None:
@@ -74,8 +79,8 @@ def AI_vs_AI_tuning(
             best_move, depth_reached = threadsafe_AI(
                 (WP, BP, K),
                 current_player,
-                max_depth=100,
-                time_limit=7,
+                max_depth=MAX_DEPTH,
+                time_limit=TIME_LIMIT,
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
                 else heuristic_white,
@@ -107,7 +112,7 @@ def AI_vs_AI_tuning(
 def objective(trial):
     # Initialize the CONTENDER
     CHAMPION = partial(
-        evolve_base,
+        evolve_base_B,
         man_weight=703.0013689332421,
         king_weight=742.0181308525031,
         chebychev_distance_weight=115.76682955495899,
@@ -130,10 +135,18 @@ def objective(trial):
         double_corner_weight=115.76682955495899,
         single_corner_weight=115.76682955495899,
         kgw=0,
+        mgw=0,
+        maj_loss_thresh=0.6666666666666666,
+        attack_weight=0,
+        agw=0,
+        mix_row_not_box_weight=0,
+        mrnbw=0,
+        promotion_weight=0,
+        pgw=0,
     )
 
     CONTENDER = partial(
-        evolve_base,
+        evolve_base_B,
         man_weight=trial.suggest_float("cont_man_weight", 100, 1000),
         king_weight=trial.suggest_float("cont_king_weight", 150, 1000),
         chebychev_distance_weight=trial.suggest_float(
@@ -147,27 +160,39 @@ def objective(trial):
         land_edge_mult=trial.suggest_float("cont_land_edge_mult", 0, 10),
         took_king_mult=trial.suggest_float("cont_took_king_mult", 0, 10),
         back_row_importance_factor=trial.suggest_float(
-            "cont_back_row_importance_factor", 0, 50
+            "cont_back_row_importance_factor", -50, 50
         ),
         back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 150),
         backwards_backup_factor=trial.suggest_float(
-            "cont_backwards_backup_factor", 0, 50
+            "cont_backwards_backup_factor", -50, 50
         ),
         backwards_backup_weight=trial.suggest_float(
             "cont_backwards_backup_weight", 0, 100
         ),
-        center_control_factor=trial.suggest_float("cont_center_control_factor", 0, 50),
+        center_control_factor=trial.suggest_float(
+            "cont_center_control_factor", -50, 50
+        ),
         center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 100),
         kings_main_diagonal_weight=trial.suggest_float(
-            "cont_kings_main_diagonal_weight", 0, 20
+            "cont_kings_main_diagonal_weight", -100, 100
         ),
         men_side_diagonals_weight=trial.suggest_float(
-            "cont_men_side_diagonals_weight", 0, 20
+            "cont_men_side_diagonals_weight", -100, 100
         ),
-        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
+        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 3, 9),
         double_corner_weight=trial.suggest_float("cont_double_corner_weight", 0, 200),
         single_corner_weight=trial.suggest_float("cont_single_corner_weight", 0, 200),
-        kgw=trial.suggest_float("cont_kgw", 0, 5),
+        kgw=trial.suggest_float("cont_kgw", -5, 5),
+        mgw=trial.suggest_float("cont_mgw", -5, 5),
+        maj_loss_thresh=trial.suggest_float("cont_maj_loss_thresh", 0, 1),
+        attack_weight=trial.suggest_float("cont_attack_weight", 0, 200),
+        agw=trial.suggest_float("cont_agw", -5, 5),
+        mix_row_not_box_weight=trial.suggest_float(
+            "cont_mix_row_not_box_weight", 0, 200
+        ),
+        mrnbw=trial.suggest_float("cont_mrnbw", -5, 5),
+        promotion_weight=trial.suggest_float("cont_promotion_weight", 0, 200),
+        pgw=trial.suggest_float("cont_pgw", -5, 5),
     )
 
     # Play the game
@@ -175,8 +200,8 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,
-        max_depth=100,
-        time_limit=7,
+        max_depth=MAX_DEPTH,
+        time_limit=TIME_LIMIT,
     )
 
     # Calculate the score based on the result
@@ -186,10 +211,10 @@ def objective(trial):
             result["white_men_left"] + result["white_kings_left"]
         )
         winning_weights = trial.params
-        write_winning_weights_to_file(score, winning_weights)
-    elif result["winner"] == "WHITE":
-        score = -1 * abs(result["black_men_left"] + result["black_kings_left"]) - (
-            result["white_men_left"] + result["white_kings_left"]
+    elif result["winner"] == "WHITE":  # WHITE the the OG champion.
+        score = -1 * (
+            abs(result["black_men_left"] + result["black_kings_left"])
+            - (result["white_men_left"] + result["white_kings_left"])
         )
     else:
         score = 0
@@ -202,10 +227,15 @@ def objective(trial):
 if __name__ == "__main__":
     # Use SQLite as a storage backend
     storage_url = "sqlite:///example.db"
-    study = optuna.create_study(direction="maximize", storage=storage_url)
+    study = optuna.create_study(
+        direction="maximize",
+        storage=storage_url,
+        load_if_exists=True,
+        study_name="tuningcheckers",
+    )
 
     # Optuna's optimize function will automatically manage parallelization
-    study.optimize(objective, n_trials=5, n_jobs=-1)
+    study.optimize(objective, n_trials=16, n_jobs=-1, show_progress_bar=True)
 
     print("Best hyperparameters:", study.best_params)
     completed_trials = [
