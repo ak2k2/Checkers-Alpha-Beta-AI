@@ -9,24 +9,28 @@ def evolve_base(
     BP,
     K,
     turn=None,
-    man_weight=500,
-    king_weight=750,
-    chebychev_distance_weight=100,
-    verge_king_weight=50,
-    mobility_weight=50,
-    jump_weight=4,
-    capture_safety_weight=50,
-    kinged_mult=5,
-    land_edge_mult=5,
-    took_king_mult=5,
-    back_row_importance_factor=24,
-    back_row_weight=50,
-    backwards_backup_factor=24,
-    backwards_backup_weight=50,
-    center_control_factor=24,
-    center_control_weight=25,
-    kings_main_diagonal_weight=10,
-    men_side_diagonals_weight=10,
+    man_weight=703.0013689332421,
+    king_weight=742.0181308525031,
+    chebychev_distance_weight=115.76682955495899,
+    verge_king_weight=56.67775009304168,
+    mobility_weight=50.1582997888212,
+    jump_weight=9.378160411934207,
+    capture_safety_weight=94.5652792759392,
+    kinged_mult=6.362973149622056,
+    land_edge_mult=0.38480787077298406,
+    took_king_mult=1.0131168126451606,
+    back_row_importance_factor=43.04383692865011,
+    back_row_weight=17.874331360077267,
+    backwards_backup_factor=45.622932127330245,
+    backwards_backup_weight=38.10038709306349,
+    center_control_factor=23.61850346296953,
+    center_control_weight=23.62445621620175,
+    kings_main_diagonal_weight=18.27923086275151,
+    men_side_diagonals_weight=11.050875827750238,
+    endgame_threshold=6,
+    double_corner_weight=115.76682955495899,
+    single_corner_weight=115.76682955495899,
+    kgw=0,
 ):
     num_total_pieces = count_bits(WP) + count_bits(BP)
 
@@ -35,34 +39,34 @@ def evolve_base(
     num_black_man = count_bits(BP & ~K & MASK_32)
     num_black_king = count_bits(BP & K & MASK_32)
 
+    king_weight += (
+        kgw * num_total_pieces
+    )  # increase king weight as the game progresses?
+
     piece_count_score = (man_weight * num_white_man + king_weight * num_white_king) - (
         man_weight * num_black_man + king_weight * num_black_king
     )
 
-    if num_total_pieces <= 6:
+    if num_total_pieces <= endgame_threshold:
         EVAL = piece_count_score
         sum_chebychev_distance = calculate_sum_distances(WP, BP)
         if piece_count_score > 0:
             EVAL -= chebychev_distance_weight * sum_chebychev_distance
             if count_bits(BP) < 2 / 3 * count_bits(WP):
                 EVAL -= (
-                    count_bits(BP & ~K & MASK_32 & DOUBLE_CORNER)
-                    * chebychev_distance_weight
+                    count_bits(BP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
                 )
                 EVAL += (
-                    count_bits(BP & ~K & MASK_32 & SINGLE_CORNER)
-                    * chebychev_distance_weight
+                    count_bits(BP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
                 )
         elif piece_count_score < 0:
             EVAL += chebychev_distance_weight * sum_chebychev_distance
             if count_bits(WP) < 2 / 3 * count_bits(BP):
                 EVAL += (
-                    count_bits(WP & ~K & MASK_32 & DOUBLE_CORNER)
-                    * chebychev_distance_weight
+                    count_bits(WP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
                 )
                 EVAL -= (
-                    count_bits(WP & ~K & MASK_32 & SINGLE_CORNER)
-                    * chebychev_distance_weight
+                    count_bits(WP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
                 )
         return int(EVAL)
     else:

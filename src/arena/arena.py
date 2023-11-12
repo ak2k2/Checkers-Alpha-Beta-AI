@@ -19,7 +19,7 @@ MAX_MOVES = 150
 
 
 def write_winning_weights_to_file(score, trial_params):
-    with open("src/arena/winning_weights.txt", "w") as file:
+    with open("src/arena/winning_weights.txt", "a") as file:
         file.write(f"Score: {score}\n")
         json.dump(trial_params, file)
         file.write("\n\n")
@@ -60,6 +60,7 @@ def AI_vs_AI_tuning(
                 "white_kings_left": count_bits(WP & K),
                 "black_men_left": count_bits(BP & ~K),
                 "black_kings_left": count_bits(BP & K),
+                "move_count": move_count,
             }
 
         if not legal_moves:
@@ -73,8 +74,8 @@ def AI_vs_AI_tuning(
             best_move, depth_reached = threadsafe_AI(
                 (WP, BP, K),
                 current_player,
-                max_depth=3,
-                time_limit=2,
+                max_depth=100,
+                time_limit=7,
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
                 else heuristic_white,
@@ -94,6 +95,7 @@ def AI_vs_AI_tuning(
         "white_kings_left": count_bits(WP & K),
         "black_men_left": count_bits(BP & ~K),
         "black_kings_left": count_bits(BP & K),
+        "move_count": move_count,
     }
 
     if not game_over:
@@ -106,24 +108,28 @@ def objective(trial):
     # Initialize the CONTENDER
     CHAMPION = partial(
         evolve_base,
-        man_weight=500,
-        king_weight=750,
-        chebychev_distance_weight=100,
-        verge_king_weight=50,
-        mobility_weight=50,
-        jump_weight=4,
-        capture_safety_weight=50,
-        kinged_mult=5,
-        land_edge_mult=5,
-        took_king_mult=5,
-        back_row_importance_factor=24,
-        back_row_weight=50,
-        backwards_backup_factor=24,
-        backwards_backup_weight=50,
-        center_control_factor=24,
-        center_control_weight=25,
-        kings_main_diagonal_weight=10,
-        men_side_diagonals_weight=10,
+        man_weight=703.0013689332421,
+        king_weight=742.0181308525031,
+        chebychev_distance_weight=115.76682955495899,
+        verge_king_weight=56.67775009304168,
+        mobility_weight=50.1582997888212,
+        jump_weight=9.378160411934207,
+        capture_safety_weight=94.5652792759392,
+        kinged_mult=6.362973149622056,
+        land_edge_mult=0.38480787077298406,
+        took_king_mult=1.0131168126451606,
+        back_row_importance_factor=43.04383692865011,
+        back_row_weight=17.874331360077267,
+        backwards_backup_factor=45.622932127330245,
+        backwards_backup_weight=38.10038709306349,
+        center_control_factor=23.61850346296953,
+        center_control_weight=23.62445621620175,
+        kings_main_diagonal_weight=18.27923086275151,
+        men_side_diagonals_weight=11.050875827750238,
+        endgame_threshold=6,
+        double_corner_weight=115.76682955495899,
+        single_corner_weight=115.76682955495899,
+        kgw=0,
     )
 
     CONTENDER = partial(
@@ -158,6 +164,10 @@ def objective(trial):
         men_side_diagonals_weight=trial.suggest_float(
             "cont_men_side_diagonals_weight", 0, 20
         ),
+        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
+        double_corner_weight=trial.suggest_float("cont_double_corner_weight", 0, 200),
+        single_corner_weight=trial.suggest_float("cont_single_corner_weight", 0, 200),
+        kgw=trial.suggest_float("cont_kgw", 0, 5),
     )
 
     # Play the game
@@ -165,21 +175,26 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,
-        max_depth=20,
-        time_limit=1,
+        max_depth=100,
+        time_limit=7,
     )
 
     # Calculate the score based on the result
     if result["winner"] == "BLACK":  # Assuming BLACK is the CONTENDER
-        score = (result["black_men_left"] + result["black_kings_left"]) - (
+        print("\n\nCONTENDOR BEAT THE CHAMPION\n\n")
+        score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
-        if score > 0:
-            print("\n\nCONTENDOR BEAT THE CHAMPION\n\n")
-            winning_weights = trial.params
-            write_winning_weights_to_file(score, winning_weights)
+        winning_weights = trial.params
+        write_winning_weights_to_file(score, winning_weights)
+    elif result["winner"] == "WHITE ":
+        score = -1 * abs(result["black_men_left"] + result["black_kings_left"]) - (
+            result["white_men_left"] + result["white_kings_left"]
+        )
     else:
-        score = 0  # Loss or draw results in a score of 0
+        score = 0
+
+    score *= MAX_MOVES / result["move_count"]
 
     return score
 
