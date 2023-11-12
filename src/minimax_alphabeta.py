@@ -5,7 +5,7 @@ from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
 from heuristic import (
     new_heuristic,
-    wed_heuristic,
+    old_heuristic,
 )
 
 
@@ -30,9 +30,9 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
         else:
             # Here we reach the maximum depth, so we evaluate the position using the heuristic function
             if heuristic == "new_heuristic":
-                return new_heuristic(*position)
-            elif heuristic == "wed_heuristic":
-                return wed_heuristic(*position)
+                return new_heuristic(*position, current_player)
+            elif heuristic == "old_heuristic":
+                return old_heuristic(*position)
 
     if current_player == PlayerTurn.WHITE:
         max_eval = float("-inf")

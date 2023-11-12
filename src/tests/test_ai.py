@@ -10,7 +10,7 @@ sys.path.append(str(parent))
 
 
 from checkers import *
-from heuristic import wed_heuristic, wed_heuristic
+from heuristic import old_heuristic, old_heuristic
 from minimax_alphabeta import AI
 from util.fen_pdn_helper import *
 from util.helpers import *
@@ -47,7 +47,7 @@ def test_white_ai_chases_sitting_duck_with_king_for_win():
                 (WP, BP, K), current_player=PlayerTurn.WHITE, max_depth=10, time_limit=5
             )[0]
             print(f"ai move: {ai_move}")
-            print(f"HEURISTIC: {wed_heuristic(WP, BP, K)}")
+            print(f"HEURISTIC: {old_heuristic(WP, BP, K)}")
             WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.WHITE)
             turn = PlayerTurn.BLACK
 
@@ -91,7 +91,7 @@ def test_black_ai_chases_sitting_duck_with_king_for_win():
                 (WP, BP, K), current_player=PlayerTurn.BLACK, max_depth=10, time_limit=5
             )[0]
             print(f"ai move: {ai_move}")
-            print(f"HEURISTIC: {wed_heuristic(WP, BP, K)}")
+            print(f"HEURISTIC: {old_heuristic(WP, BP, K)}")
             print(ai_move)
             WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.BLACK)
             turn = PlayerTurn.WHITE
@@ -130,7 +130,7 @@ def test_black_ai_chases_sitting_duck_with_king_for_win():
 #                 (WP, BP, K), current_player=PlayerTurn.BLACK, max_depth=10, time_limit=5
 #             )[0]
 #             print(f"ai move: {ai_move}")
-#             print(f"HEURISTIC: {wed_heuristic(WP, BP, K)}")
+#             print(f"HEURISTIC: {old_heuristic(WP, BP, K)}")
 #             print(ai_move)
 #             WP, BP, K = do_move(WP, BP, K, ai_move, PlayerTurn.BLACK)
 #             turn = PlayerTurn.WHITE

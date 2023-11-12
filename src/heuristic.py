@@ -6,67 +6,126 @@ from util.masks import *
 import random
 
 
-def wed_heuristic(WP, BP, K):
-    val = 0
+def new_heuristic(WP, BP, K, turn=None):
+    # White aims to maximize this score while black aims to minimize it.
 
-    # Count the number of pawns and kings for both players
-    p1Pawns = count_bits(WP & ~K)
-    p2Pawns = count_bits(BP & ~K)
-    p1Kings = count_bits(WP & K)
-    p2Kings = count_bits(BP & K)
+    num_total_pieces = count_bits(WP) + count_bits(
+        BP
+    )  # Total number of pieces on the board.
 
-    # Basic piece values
-    val += (p2Pawns - p1Pawns) * 100
-    val += (p2Kings - p1Kings) * 155
+    # Count the number of each type of piece for white and black.
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
 
-    # Check if pawns are on the home row
-    p1Bottom = count_bits(WP & ~K & KING_ROW_BLACK & MASK_32)
-    p2Top = count_bits(BP & ~K & KING_ROW_WHITE & MASK_32)
-
-    # Middle box and mid-rows control
-    p1MidBox = count_bits(WP & CENTER_8)
-    p2MidBox = count_bits(BP & CENTER_8)
-    p1MidRows = count_bits(WP & MID_ROW_NOT_MID_BOX)
-    p2MidRows = count_bits(BP & MID_ROW_NOT_MID_BOX)
-
-    total_pieces = p1Pawns + p2Pawns + p1Kings + p2Kings
-    currentP1Pcs = p1Pawns + p1Kings
-    currentP2Pcs = p2Pawns + p2Kings
-
-    # End-game condition
-    end_game_triggered = (
-        total_pieces <= 10
-        or (currentP2Pcs * (2 / 3) >= currentP1Pcs)
-        or (currentP1Pcs * (2 / 3) >= currentP2Pcs)
-        or (total_pieces <= 14 and abs(p1Kings - p2Kings) > 0)
+    # Piece value weights should reflect the importance of kings over men.
+    piece_count_score = (500 * num_white_man + 750 * num_white_king) - (
+        500 * num_black_man + 750 * num_black_king
     )
 
-    if end_game_triggered:
-        if currentP2Pcs > currentP1Pcs:
-            val += (total_pieces - currentP1Pcs) * 30
-        elif currentP1Pcs > currentP2Pcs:
-            val -= (total_pieces - currentP2Pcs) * 30
-        # Kings are more valuable
-        val += p2Kings * 20
-        val -= p1Kings * 20
+    # Sum of the chebychev distances"
+    if num_total_pieces < 6:
+        EVAL = 0
+        sum_chebychev_distance = calculate_sum_distances(WP, BP)
+        if piece_count_score > 0:  # White has more weighted material.
+            EVAL = (
+                50 * sum_chebychev_distance
+            )  # White wants to minimize chevychev distance and get closer to black.
+
+        elif piece_count_score < 0:  # Black has more weighted material.
+            EVAL = (
+                50 * sum_chebychev_distance
+            )  # White wants to maximize chevychev distance and get further from black.
+        else:
+            # If the piece count is equal the player with more mobility should have the advantage. This will prevent giving up and forcing draws if/when applicable.
+            EVAL = 50 * mobility_diff_score(WP, BP, K)
+        return int(EVAL)
     else:
-        # Positional play adjustments for mid and late game
-        val += (p2Top * 50) + (p2MidBox * 50) + (p2MidRows * 10)
-        val -= (p1Bottom * 50) + (p1MidBox * 50) + (p1MidRows * 10)
+        # Mobility is defined as a weighted sum of the number of simple and jump moves white has vs. black. More mobility generally means more options.
+        mobility_score = 250 * mobility_diff_score(
+            WP, BP, K, jw=4
+        )  # jw is the weight of jumps vs. simple moves.
 
-    # Home row advantage
-    if p1Pawns > 0:
-        val += 40 * p2Top
-    if p2Pawns > 0:
-        val -= 40 * p1Bottom
+        # As the game progresses, the back row's importance diminishes since it prevents kinging.
+        # Early game, it is important to control the back row to prevent the opponent from kinging.
+        back_row_importance = (
+            num_total_pieces / 24
+        )  # Tapers off as the number of pieces decreases.
+        back_row_score = (
+            50
+            * back_row_importance
+            * (
+                count_bits(
+                    WP & ~K & MASK_32 & KING_ROW_BLACK
+                )  # Number of white pieces on the 8th rank.
+                - count_bits(
+                    BP & ~K & MASK_32 & KING_ROW_WHITE
+                )  # Number of black pieces on the 1st rank.
+            )
+        )
 
-    # Add some randomness
-    val += random.randint(0, 9)
+        # To be a "man with backwards backup" a piece must have only friendly pieces or walls directly behind them.
+        men_with_backwards_backup = 200 * (
+            calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
+        )
 
-    return val
+        # Refects the tradeoff between capturing and being captured wrt. the current turn.
+        capture_safety_score = 0
+        if turn == PlayerTurn.WHITE:
+            capture_safety_score += count_black_pieces_that_can_be_captured_by_white(
+                WP, BP, K
+            )  # White wants to capture as MANY black pieces as he can by MAXIMIZING this score.
+        else:  # turn == PlayerTurn.BLACK
+            capture_safety_score -= count_white_pieces_that_can_be_captured_by_black(
+                WP, BP, K
+            )  # Black is wants to capture as MANY white pieces as he can by MINIMIZING this score.
+
+        # Center control is crucial in the opening and mid-game for mobility and kinging paths.
+        center_control_importance = (
+            num_total_pieces / 24
+        )  # Tapers off as the number of pieces decreases.
+        center_score = (
+            50
+            * center_control_importance
+            * (
+                count_bits(WP & CENTER_8 & MASK_32)
+                - count_bits(BP & CENTER_8 & MASK_32)
+            )
+        )
+
+        # Kings positioned on the main diagonal can control more squares.
+        kings_on_main_diagonal = 20 * (
+            count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
+        )
+
+        # Men on side diagonals are less likely to be captured but also have reduced mobility.
+        men_on_side_diagonals = 10 * (
+            count_bits(WP & ~K & DOUBLE_DIAGONAL)
+            - count_bits(BP & ~K & DOUBLE_DIAGONAL)
+        )
+
+        # Combine all evaluations into a final score.
+        EVAL = (
+            piece_count_score
+            + back_row_score
+            + capture_safety_score
+            + center_score
+            # + men_with_backwards_backup
+            + mobility_score
+            + kings_on_main_diagonal
+            + men_on_side_diagonals
+        )
+
+        return int(EVAL)
 
 
-def new_heuristic(WP, BP, K):
+# ----------------- OLD HEURISTIC -----------------
+# ----------------- OLD HEURISTIC -----------------
+# ----------------- OLD HEURISTIC -----------------
+
+
+def old_heuristic(WP, BP, K):
     num_total_pieces = count_bits(WP) + count_bits(BP)
 
     num_white_man = count_bits(WP & ~K & MASK_32)
@@ -79,8 +138,8 @@ def new_heuristic(WP, BP, K):
     )  # white wants to maximize this
 
     back_row = 200 * (
-        count_bits(WP & MASK_32 & KING_ROW_BLACK)
-        - count_bits(BP & MASK_32 & KING_ROW_WHITE)
+        count_bits(WP & ~K & MASK_32 & KING_ROW_BLACK)
+        - count_bits(BP & ~K & MASK_32 & KING_ROW_WHITE)
     )
 
     capture_score = 300 * (
@@ -93,7 +152,7 @@ def new_heuristic(WP, BP, K):
     )  # white wants to maximize center control
 
     mobility_score = 200 * mobility_diff_score(
-        WP, BP, K
+        WP, BP, K, jw=2
     )  # white wants to maximize its mobility and minimize black's mobility
 
     kings_on_main_diagonal = 25 * (
@@ -104,11 +163,11 @@ def new_heuristic(WP, BP, K):
         count_bits(WP & ~K & DOUBLE_DIAGONAL) - count_bits(BP & ~K & DOUBLE_DIAGONAL)
     )
 
-    safety_score = 100 * (
+    safety_score = 200 * (
         calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
     )
 
-    final_eval = (
+    EVAL = (
         piece_count_score
         + back_row
         + capture_score
@@ -119,114 +178,82 @@ def new_heuristic(WP, BP, K):
         + safety_score
     )
 
-    if num_total_pieces < 6:  # less than 15 pieces on the board. midgame
-        chebychev_distance = calculate_sum_distances(WP, BP)
+    if num_total_pieces < 6:  # less than 6 pieces on the board. endgame
+        sum_chebychev_distance = calculate_sum_distances(WP, BP)
         if piece_count_score > 0:  # white has more weighted material
-            final_eval += (
-                -300 * chebychev_distance
+            EVAL = (
+                -1000 * sum_chebychev_distance
             )  # white wants to minimize chevychev distance and get closer to black
         else:  # white has less weighted material
-            final_eval += (
-                300 * chebychev_distance
+            EVAL = (
+                1000 * sum_chebychev_distance
             )  # # white wants to maximize chevychev distance and get further from black
 
-    # elif num_total_pieces > 20:  # if were still in opening stage.
-    #     final_eval += (
-    #         100
-    #         * (  # white wants to maximize blacks distance to promote and minimize its own
-    #             calculate_total_distance_to_promotion_black(BP & ~K)
-    #             - calculate_total_distance_to_promotion_white(WP & ~K)
-    #         )
-    #     )
-
-    return final_eval
+    return EVAL
 
 
-# def wed_heuristic(WP, BP, K):
-#     num_white_man = count_bits(WP & ~K & MASK_32)
-#     num_white_king = count_bits(WP & K & MASK_32)
-#     num_black_man = count_bits(BP & ~K & MASK_32)
-#     num_black_king = count_bits(BP & K & MASK_32)
-
-#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-#         500 * num_black_man + 775 * num_black_king
-#     )
-
-#     back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
-
-#     # mobility_score = mobility_diff_score(WP, BP, K)
-#     # promotion_score = calculate_total_distance_to_promotion_white(
-#     #     WP & ~K
-#     # ) - calculate_total_distance_to_promotion_black(BP & ~K)
-
-#     # chebychev_distance = calculate_sum_distances(WP, BP)
-
-#     capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
+# def cheat_two_move_score(WP, BP, K):
+#     return num_pieces_that_can_be_captured_by_white_if_he_gets_two_consecutive_jumps(
 #         WP, BP, K
-#     ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+#     ) - num_pieces_that_can_be_captured_by_black_if_he_gets_two_consecutive_jumps(
 #         WP, BP, K
 #     )
 
-#     return piece_count_score + back_row + capture_score
 
-
-# def wed_heuristic(WP, BP, K):
-#     num_white_man = count_bits(WP & ~K & MASK_32)
-#     num_white_king = count_bits(WP & K & MASK_32)
-#     num_black_man = count_bits(BP & ~K & MASK_32)
-#     num_black_king = count_bits(BP & K & MASK_32)
-
-#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-#         500 * num_black_man + 775 * num_black_king
-#     )  # white wants to maximize this
-
-#     back_row = 400 * (
-#         count_bits(WP & MASK_32 & KING_ROW_BLACK)
-#         - count_bits(BP & MASK_32 & KING_ROW_WHITE)
+# def num_pieces_that_can_be_captured_by_white_if_he_gets_two_consecutive_jumps(
+#     WP, BP, K
+# ):
+#     captures = 0
+#     # Get white's jump sequences (potential captures)
+#     white_first_moves = generate_legal_moves(WP, BP, K, PlayerTurn.WHITE)
+#     white_capture_moves = all_jump_sequences(
+#         WP, BP, K, get_jumpers_white(WP, BP, K), None, PlayerTurn.WHITE
 #     )
+#     if len(white_first_moves) == 0:
+#         return captures
+#     # print(f"first moves: {white_capture_moves}")
+#     for m in white_capture_moves:
+#         captures += len(m) - 1
+#     for first_move in white_first_moves:
+#         WP, BP, K = do_move(WP, BP, K, first_move, PlayerTurn.WHITE)
+#         white_second_capture_moves = all_jump_sequences(
+#             WP, BP, K, get_jumpers_white(WP, BP, K), None, PlayerTurn.WHITE
+#         )
+#         # print(f"second moves: {white_second_capture_moves}")
+#         if len(white_second_capture_moves) == 0:
+#             return captures
+#         for m in white_second_capture_moves:
+#             captures += len(m) - 1
 
-#     capture_score = 300 * (
-#         count_black_pieces_that_can_be_captured_by_white(WP, BP, K)
-#         - count_white_pieces_that_can_be_captured_by_black(WP, BP, K)
-#     )  # white wants to maximize number of black pieces that can be captured minus number of white pieces that can be captured
+#     return captures
 
-#     center_score = 25 * (
-#         count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
-#     )  # white wants to maximize center control
 
-#     mobility_score = 100 * mobility_diff_score(
-#         WP, BP, K
-#     )  # white wants to maximize its mobility and minimize black's mobility
+# def num_pieces_that_can_be_captured_by_black_if_he_gets_two_consecutive_jumps(
+#     WP, BP, K
+# ):
+#     captures = 0
+#     # Get white's jump sequences (potential captures)
+#     black_first_moves = generate_legal_moves(WP, BP, K, PlayerTurn.BLACK)
 
-#     # white wants to maximize blacks distance to promote and minimize its own
-#     # promotion_score = 100 * (
-#     #     calculate_total_distance_to_promotion_black(BP & ~K)
-#     #     - calculate_total_distance_to_promotion_white(WP & ~K)
-#     # )
+#     if len(black_first_moves) == 0:
+#         return captures
 
-#     final_eval = (
-#         piece_count_score
-#         + back_row
-#         + capture_score
-#         + center_score
-#         + mobility_score
-#         # + promotion_score
+#     black_capture_moves = all_jump_sequences(
+#         WP, BP, K, None, get_jumpers_black(WP, BP, K), PlayerTurn.BLACK
 #     )
+#     # print(f"first moves: {black_capture_moves}")
+#     for m in black_capture_moves:
+#         captures += len(m) - 1
+#     for first_move in black_first_moves:
+#         WP, BP, K = do_move(WP, BP, K, first_move, PlayerTurn.BLACK)
+#         black_second_capture_moves = all_jump_sequences(
+#             WP, BP, K, None, get_jumpers_black(WP, BP, K), PlayerTurn.BLACK
+#         )
+#         # print(f"second moves: {black_second_capture_moves}")
+#         for m in black_second_capture_moves:
+#             captures += len(m) - 1
 
-#     return final_eval
-
-
-def piece_count_heuristic(WP, BP, K):
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-
-    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-        500 * num_black_man + 775 * num_black_king
-    )
-
-    return piece_count_score
+#     return captures
 
 
 def calculate_sum_distances(WP, BP):
@@ -245,7 +272,7 @@ def calculate_sum_distances(WP, BP):
     return total_distance
 
 
-def mobility_diff_score(WP, BP, K, jw=2):
+def mobility_diff_score(WP, BP, K, jw=4):
     # Get movers and jumpers for both white and black
     white_movers = get_movers_white(WP, BP, K)
     black_movers = get_movers_black(WP, BP, K)
@@ -443,8 +470,14 @@ def calculate_safe_black_pieces(BP, K):
 
 if __name__ == "__main__":
     WP, BP, K = setup_board_from_position_lists(
-        ["D4", "KD6", "B4", "B6", "A7", "C7", "C5", "E5"], ["KC3", "E7"]
+        ["B4", "B6", "C5", "D6", "F2", "F4"], ["KC3", "KE7"]
     )
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
-    print(calculate_safe_white_pieces(WP, K))
+    print(
+        num_pieces_that_can_be_captured_by_black_if_he_gets_two_consecutive_jumps(
+            WP, BP, K
+        )
+    )
+    print(count_white_pieces_that_can_be_captured_by_black(WP, BP, K))
+    # print(cheat_two_move_score(WP, BP, K))

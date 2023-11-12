@@ -66,7 +66,7 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {wed_heuristic(WP, BP, K)}")
+        print(f"HEURISTIC: {old_heuristic(WP, BP, K)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -150,7 +150,7 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="wed_heuristic",
+                    heuristic="old_heuristic",
                 )
 
             end_time = time.time()
@@ -229,7 +229,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="wed_heuristic"
+                heuristic="old_heuristic"
                 if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
             )
@@ -259,7 +259,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 )
 
         print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
-        print(f"WED Heuristic: {wed_heuristic(WP, BP, K)}")
+        print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 
