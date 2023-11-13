@@ -19,7 +19,7 @@ from util.helpers import *
 NET_TRIALS = 10
 MAX_MOVES = 100
 TIME_LIMIT = 2
-MAX_DEPTH = 20
+MAX_DEPTH = 2
 NUM_RANDOM_STARTING_TRIALS = 3
 
 
@@ -39,20 +39,20 @@ def AI_vs_AI_tuning(
     heuristic_black,
     max_depth=None,
     time_limit=None,
-    initial_board=None,
     one_piece_down=False,
+    two_piece_down=False,
 ):
     if time_limit is None:
         time_limit = 1
     if who_moves_first is None:
         who_moves_first = PlayerTurn.BLACK
 
-    if initial_board is None:
-        WP, BP, K = get_fresh_board()
-        if one_piece_down:
-            BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
-    else:
-        WP, BP, K = initial_board
+    WP, BP, K = get_fresh_board()
+    if one_piece_down:
+        BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
+    elif two_piece_down:
+        BP = remove_piece_by_pdntext(BP, "C3")
+        BP = remove_piece_by_pdntext(BP, "E3")
 
     current_player = who_moves_first
     move_count = 0
@@ -203,7 +203,7 @@ def objective(trial):
         score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
-        stress_result = AI_vs_AI_tuning(
+        stress_result_one = AI_vs_AI_tuning(
             PlayerTurn.BLACK,
             heuristic_white=CHAMPION,
             heuristic_black=CONTENDER,
@@ -211,9 +211,22 @@ def objective(trial):
             time_limit=TIME_LIMIT,
             one_piece_down=True,
         )
-        if stress_result["winner"] == "BLACK":
+        if stress_result_one["winner"] == "BLACK":
             print("\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH A PIECE DOWN\n")
-            score *= 2
+            score *= 4
+            stress_test_two = AI_vs_AI_tuning(
+                PlayerTurn.BLACK,
+                heuristic_white=CHAMPION,
+                heuristic_black=CONTENDER,
+                max_depth=MAX_DEPTH,
+                time_limit=TIME_LIMIT,
+                two_piece_down=True,
+            )
+            if stress_test_two["winner"] == "BLACK":
+                print(
+                    "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH TWO PIECES DOWN\n"
+                )
+                score *= 8
 
     elif result["winner"] == "WHITE":  # WHITE is the OG champion.
         score = -1 * (
@@ -230,48 +243,7 @@ def objective(trial):
 
 def run_tpe_study():
     # Use SQLite as a storage backend
-    storage_url = "sqlite:///tpe.db"
-    study = optuna.create_study(
-        direction="maximize",
-        storage=storage_url,
-        load_if_exists=True,
-        study_name="tpe_checkers",
-        sampler=optuna.samplers.TPESampler(
-            seed=10,
-            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-            prior_weight=2.0,
-            constant_liar=True,
-            multivariate=True,
-        ),
-    )
-
-    # Optuna's optimize function will automatically manage parallelization
-    study.optimize(
-        objective,
-        n_trials=NET_TRIALS,
-        n_jobs=-1,
-        show_progress_bar=True,
-    )
-
-    print("Best hyperparameters:", study.best_params)
-    completed_trials = [
-        t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
-    ]
-
-    # Filter successful trials
-    successful_trials = [t for t in completed_trials if t.value is not None]
-
-    # Choose the trial with the highest score
-    if successful_trials:
-        best_trial = max(successful_trials, key=lambda t: t.value)
-        print("\n\nDONE!\n\n")
-        print("Best successful trial hyperparameters:", best_trial.params)
-        print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
-
-
-def run_tpe_study():
-    # Use SQLite as a storage backend
-    storage_url = "sqlite:///tpe_final_again.db"
+    storage_url = "sqlite:///tpe_final_again_ak2k2.db"
     storage = storage = optuna.storages.RDBStorage(
         url=storage_url, engine_kwargs={"connect_args": {"timeout": 30}}
     )
@@ -280,11 +252,11 @@ def run_tpe_study():
         direction="maximize",
         storage=storage,
         load_if_exists=True,
-        study_name="tpe_checkers_final_again",
+        study_name="tpe_checkers_final_again_ak2k2",
         sampler=optuna.samplers.TPESampler(
             seed=123,
             n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-            prior_weight=5.0,
+            prior_weight=2.5,
             constant_liar=True,
             multivariate=True,
         ),
