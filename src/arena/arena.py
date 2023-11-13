@@ -15,7 +15,7 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-NET_TRIALS = 200
+NET_TRIALS = 100
 EARLY_STOP_DEPTH = 20
 MAX_MOVES = 60
 
@@ -235,27 +235,30 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,
-        early_stop_depth=9,
-        time_limit=TIME_LIMIT,
+        early_stop_depth=20,
+        time_limit=1,
     )
 
     # Calculate the score based on the result
-    if result["winner"] == "BLACK":  # Assuming BLACK is the CONTENDER
-        print("\nCONTENDOR BEAT THE CHAMPION\n")
+    if result["winner"] == "BLACK":  # BLACK is the CONTENDER
+        print("\nCONTENDOR BEAT THE CHAMPION AS BLACK GAME 1\n")
         score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
         stress_result_one = PLAY_TUNE(
             PlayerTurn.BLACK,
-            heuristic_white=CHAMPION,
-            heuristic_black=CONTENDER,
+            heuristic_white=CONTENDER,
+            heuristic_black=CHAMPION,
             max_depth=100,
             early_stop_depth=10,
             time_limit=TIME_LIMIT,
             one_piece_down=True,
+            contender_is_white=True,
         )
         if stress_result_one["winner"] == "BLACK":
-            print("\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH A PIECE DOWN\n")
+            print(
+                "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS WHITE AND WITH A PIECE DOWN\n"
+            )
             score *= 4
             stress_test_two = PLAY_TUNE(
                 PlayerTurn.BLACK,
@@ -268,7 +271,7 @@ def objective(trial):
             )
             if stress_test_two["winner"] == "BLACK":
                 print(
-                    "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH TWO PIECES DOWN\n"
+                    "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS BLACK WITH TWO PIECES DOWN\n"
                 )
                 score *= 8
 
@@ -285,8 +288,8 @@ def objective(trial):
         )
         if score > 1:
             score = 0  # draw is not good enough
-        else:
-            score *= 2
+        elif score < 0:
+            score *= 2  # draw is bad
 
     score *= MAX_MOVES / result["move_count"]
 
@@ -298,34 +301,19 @@ def objective(trial):
             time_limit=TIME_LIMIT,
             early_stop_depth=10,
             contender_is_white=True,
+            three_piece_down=True,
         )
-        if as_white["winner"] == "BLACK":
-            print("\nCONTENDOR LOST TO THE CHAMPION AS WHITE\n")
-            score == 0  # if the contender loses as white its uneven and not good enough
-        else:
-            print("\nCONTENDOR BEAT THE CHAMPION AS WHITE\n")
-            score *= 8  # reward for winning as black and white
-            as_white_stress_test_one = PLAY_TUNE(
-                PlayerTurn.WHITE,
-                heuristic_white=CONTENDER,
-                heuristic_black=CHAMPION,
-                early_stop_depth=100,
-                one_piece_down=True,
-                contender_is_white=True,
-            )
-            if (
-                as_white_stress_test_one["winner"] == "WHITE"
-                or as_white_stress_test_one["winner"] == "DRAW"
-            ):
-                print("\nCONTENDOR BEAT THE CHAMPION AS WHITE AND DOWN A PIECE\n")
-                score *= 10
+
+        if as_white["winner"] == "WHITE":
+            print("\nCONTENDOR BEAT THE CHAMPION WITH -3 piece DISADVANTAGE\n")
+            score *= 16  # reward for winning as black and white
 
     return score
 
 
 def run_tpe_study():
     # Use SQLite as a storage backend
-    storage_url = "sqlite:///tpe_final_again_ak2k2_assdsdxdm.db"
+    storage_url = "sqlite:///dbqmaf.db"
     storage = storage = optuna.storages.RDBStorage(
         url=storage_url, engine_kwargs={"connect_args": {"timeout": 30}}
     )

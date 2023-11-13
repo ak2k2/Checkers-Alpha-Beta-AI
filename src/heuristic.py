@@ -138,7 +138,9 @@ def evolve_base_B(
     )
 
     if num_total_pieces >= opening_thresh:  # OPENING
-        CENTER_CONTROL = (WP & CENTER_8) - (BP & CENTER_8) * center_control_weight
+        CENTER_CONTROL = (
+            count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
+        ) * center_control_weight
     else:
         CENTER_CONTROL = 0
 
@@ -426,7 +428,7 @@ def adjustment_factor(num_pieces, control_float):
 #     )
 
 
-def old_heuristic(WP, BP, K, turn=None):
+def old_heuristic(WP, BP, K, turn=None):  # trusty old heuristic
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
     num_black_man = count_bits(BP & ~K & MASK_32)
@@ -784,19 +786,11 @@ def test1():
 
 
 def test2():
-    WP, BP, K = get_empty_board()
-    BP = insert_piece_by_pdntext(BP, "C7")
-    BP = insert_piece_by_pdntext(BP, "C5")
-    # WP = insert_piece_by_pdntext(WP, "E5")
-    # WP = insert_piece_by_pdntext(WP, "B6")
-    K = insert_piece_by_pdntext(K, "B6")
-    WP = insert_piece_by_pdntext(WP, "G5")
-    WP = insert_piece_by_pdntext(WP, "H6")
-    # WP = insert_piece_by_pdntext(WP, "F6")
-    BP = insert_piece_by_pdntext(BP, "F4")
-    BP = insert_piece_by_pdntext(BP, "D2")
+    WP, BP, K = get_fresh_board()
+    WP = insert_piece_by_pdntext(WP, "E5")
+    WP = remove_piece_by_pdntext(WP, "F6")
+    BP = remove_piece_by_pdntext(BP, "E3")
 
-    # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
 
     # print(
@@ -812,11 +806,11 @@ def test2():
 
     # print(calculate_safe_white_pieces(WP, K))
     print(
-        f"BLACK TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.BLACK)}"
+        f"BLACK TO MOVE: {evolve_base_B(WP, BP, K, turn=PlayerTurn.BLACK)}"
     )  # it should be negative for black
     print("-" * 20)
     print(
-        f"WHITE TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)}"
+        f"WHITE TO MOVE: {evolve_base_B(WP, BP, K, turn=PlayerTurn.WHITE)}"
     )  # it should be negative for black
 
 
