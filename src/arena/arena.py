@@ -248,14 +248,14 @@ def objective(trial):
     return score
 
 
-if __name__ == "__main__":
+def run_tpe_study():
     # Use SQLite as a storage backend
-    storage_url = "sqlite:///example.db"
+    storage_url = "sqlite:///tpe.db"
     study = optuna.create_study(
         direction="maximize",
         storage=storage_url,
         load_if_exists=True,
-        study_name="tuningcheckerss",
+        study_name="tpe_checkers",
         sampler=optuna.samplers.TPESampler(
             seed=10, n_startup_trials=20, prior_weight=1.2
         ),
@@ -263,7 +263,12 @@ if __name__ == "__main__":
 
     # Optuna's optimize function will automatically manage parallelization
     study.optimize(
-        objective, n_trials=NUM_STARTING_TRIALS, n_jobs=-1, show_progress_bar=True
+        objective,
+        n_trials=NUM_STARTING_TRIALS,
+        n_jobs=-1,
+        show_progress_bar=True,
+        constant_liar=True,
+        multivariate=True,
     )
 
     print("Best hyperparameters:", study.best_params)
@@ -280,3 +285,41 @@ if __name__ == "__main__":
         print("\n\nDONE!\n\n")
         print("Best successful trial hyperparameters:", best_trial.params)
         print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
+
+
+def run_nsgaii_study():
+    # Use SQLite as a storage backend
+    storage_url = "sqlite:///nsg.db"
+    study = optuna.create_study(
+        direction="maximize",
+        storage=storage_url,
+        load_if_exists=True,
+        study_name="tpe_checkers_nsgai",
+        sampler=optuna.samplers.NSGAIIISampler(seed=10),
+    )
+
+    # Optuna's optimize function will automatically manage parallelization
+    study.optimize(
+        objective,
+        n_trials=NUM_STARTING_TRIALS,
+        n_jobs=-1,
+        show_progress_bar=True,
+    )
+
+    print("Best hyperparameters:", study.best_params)
+    completed_trials = [
+        t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
+    ]
+
+    # Filter successful trials
+    successful_trials = [t for t in completed_trials if t.value is not None]
+
+    # Choose the trial with the highest score
+    if successful_trials:
+        best_trial = max(successful_trials, key=lambda t: t.value)
+        print("\n\nDONE!\n\n")
+        print("Best successful trial hyperparameters:", best_trial.params)
+        print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
+
+
+run_nsgaii_study()
