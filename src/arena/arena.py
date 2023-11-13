@@ -15,10 +15,12 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
+
+NET_TRIALS = 100
 MAX_MOVES = 100
 TIME_LIMIT = 5
 MAX_DEPTH = 20
-NUM_STARTING_TRIALS = 20
+NUM_RANDOM_STARTING_TRIALS = 20
 
 
 def write_winning_weights_to_file(score, trial_params):
@@ -257,18 +259,20 @@ def run_tpe_study():
         load_if_exists=True,
         study_name="tpe_checkers",
         sampler=optuna.samplers.TPESampler(
-            seed=10, n_startup_trials=20, prior_weight=1.2
+            seed=10,
+            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+            prior_weight=2.0,
+            constant_liar=True,
+            multivariate=True,
         ),
     )
 
     # Optuna's optimize function will automatically manage parallelization
     study.optimize(
         objective,
-        n_trials=NUM_STARTING_TRIALS,
+        n_trials=NET_TRIALS,
         n_jobs=-1,
         show_progress_bar=True,
-        constant_liar=True,
-        multivariate=True,
     )
 
     print("Best hyperparameters:", study.best_params)
@@ -301,7 +305,7 @@ def run_nsgaii_study():
     # Optuna's optimize function will automatically manage parallelization
     study.optimize(
         objective,
-        n_trials=NUM_STARTING_TRIALS,
+        n_trials=NET_TRIALS,
         n_jobs=-1,
         show_progress_bar=True,
     )
@@ -322,4 +326,4 @@ def run_nsgaii_study():
         print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
 
 
-run_nsgaii_study()
+run_tpe_study()
