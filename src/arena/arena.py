@@ -15,8 +15,7 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-
-NET_TRIALS = 32
+NET_TRIALS = 64
 MAX_MOVES = 90
 TIME_LIMIT = 5
 MAX_DEPTH = 20
@@ -100,7 +99,6 @@ def AI_vs_AI_tuning(
         WP, BP, K = do_move(WP, BP, K, best_move, current_player)
         current_player = switch_player(current_player)
         move_count += 1
-        print_board(WP, BP, K)
 
     result = {
         "winner": None if not game_over else switch_player(current_player).name,
@@ -238,7 +236,7 @@ def run_tpe_study():
     study.optimize(
         objective,
         n_trials=NET_TRIALS,
-        n_jobs=1,
+        n_jobs=-1,
         show_progress_bar=True,
     )
 
