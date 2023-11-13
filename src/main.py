@@ -228,7 +228,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.BLACK
+                if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
             )
 

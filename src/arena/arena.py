@@ -16,10 +16,10 @@ from heuristic import *
 from util.helpers import *
 
 
-NET_TRIALS = 10
+NET_TRIALS = 32
 MAX_MOVES = 100
-TIME_LIMIT = 2
-MAX_DEPTH = 10
+TIME_LIMIT = 5
+MAX_DEPTH = 20
 NUM_RANDOM_STARTING_TRIALS = 3
 
 
@@ -116,44 +116,7 @@ def AI_vs_AI_tuning(
 
 
 def objective(trial):
-    # Initialize the CONTENDER
-    # CHAMPION = partial(
-    #     evolve_base_B,
-    #     man_weight=221.16517634218417,
-    #     king_weight=796.5566144637147,
-    #     chebychev_distance_weight=33.03129353308223,
-    #     verge_king_weight=22.23650010068536,
-    #     mobility_weight=96.05774298185752,
-    #     jump_weight=6.1915450814325155,
-    #     capture_safety_weight=100.4122019695803,
-    #     kinged_mult=6.990009530742195,
-    #     land_edge_mult=8.535678462318163,
-    #     took_king_mult=4.996558460665898,
-    #     back_row_importance_factor=-41.38374019780294,
-    #     back_row_weight=118.51889621145315,
-    #     backwards_backup_factor=-30.848845657429024,
-    #     backwards_backup_weight=83.87206305189319,
-    #     center_control_factor=-8.032755208608712,
-    #     center_control_weight=31.567795693577306,
-    #     kings_main_diagonal_weight=-32.453989920069844,
-    #     men_side_diagonals_weight=76.91067085490019,
-    #     endgame_threshold=9,
-    #     double_corner_weight=133.7288473924311,
-    #     single_corner_weight=34.38684084057926,
-    #     kgw=-0.47197781248849324,
-    #     mgw=3.6132652205727087,
-    #     maj_loss_thresh=0.05771824979127871,
-    #     attack_weight=8.742653188749493,
-    #     agw=0.03826827864720439,
-    #     mix_row_not_box_weight=157.65286584499088,
-    #     mrnbw=-4.983778283889592,
-    #     promotion_weight=128.56156093143366,
-    #     pgw=-0.6329411162600866,
-    #     cssw=-3.5655993169434708,
-    #     vkg=1.464460710636847,
-    #     mbgw=-4.195871570387243,
-    # )
-    CHAMPION = partial(old_heuristic)
+    CHAMPION = partial(evolve_base_B)
 
     CONTENDER = partial(
         evolve_base_B,
