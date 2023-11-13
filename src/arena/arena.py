@@ -213,13 +213,19 @@ def objective(trial):
 
     elif result["winner"] == "WHITE":  # WHITE is the OG champion.
         score = -1 * (
-            abs(result["black_men_left"] + result["black_kings_left"])
-            - (result["white_men_left"] + result["white_kings_left"])
+            abs(
+                (result["black_men_left"] + result["black_kings_left"])
+                - (result["white_men_left"] + result["white_kings_left"])
+            )
         )
     else:  # penalty for draw with less pieces left
         score = (result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
+        if score > 1:
+            score = 0  # draw is not good enough
+        else:
+            score *= 2
 
     score *= MAX_MOVES / result["move_count"]
 

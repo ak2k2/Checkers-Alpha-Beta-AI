@@ -18,10 +18,6 @@ class TimeOutException(Exception):
     pass
 
 
-def signal_handler(signum, frame):
-    raise TimeOutException()
-
-
 def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
     if not legal_moves or legal_moves == []:
         return None
