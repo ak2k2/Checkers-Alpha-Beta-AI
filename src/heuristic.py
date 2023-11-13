@@ -182,18 +182,18 @@ def evolve_base_B(
                 * double_corner_bonus_weight
             )
 
-    print(f"PIECE_COUNT: {PIECE_COUNT}")
-    print(f"BACK_ROW: {BACK_ROW}")
-    print(f"CAPTURE: {CAPTURE}")
-    print(f"MOBILITY: {MOBILITY}")
-    print(f"SAFETY_SCORE: {SAFETY_SCORE}")
-    print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
-    print(f"VERGE_KINGING: {VERGE_KINGING}")
-    print(f"CENTER_CONTROL: {CENTER_CONTROL}")
-    print(f"EDGE_CONTROL: {EDGE_CONTROL}")
-    print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
-    print(f"SUM_DISTANCE: {SUM_DISTANCE}")
-    print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
+    # print(f"PIECE_COUNT: {PIECE_COUNT}")
+    # print(f"BACK_ROW: {BACK_ROW}")
+    # print(f"CAPTURE: {CAPTURE}")
+    # print(f"MOBILITY: {MOBILITY}")
+    # print(f"SAFETY_SCORE: {SAFETY_SCORE}")
+    # print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
+    # print(f"VERGE_KINGING: {VERGE_KINGING}")
+    # print(f"CENTER_CONTROL: {CENTER_CONTROL}")
+    # print(f"EDGE_CONTROL: {EDGE_CONTROL}")
+    # print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
+    # print(f"SUM_DISTANCE: {SUM_DISTANCE}")
+    # print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
 
     return (
         PIECE_COUNT
