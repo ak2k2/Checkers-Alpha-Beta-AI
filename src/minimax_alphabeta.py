@@ -32,7 +32,7 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
         (
             move,
             heuristic_function(
-                *do_move(*position, move, current_player), current_player
+                *do_move(*position, move, current_player), turn=current_player
             ),
         )
         for move in legal_moves

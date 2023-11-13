@@ -16,11 +16,11 @@ from heuristic import *
 from util.helpers import *
 
 
-NET_TRIALS = 100
+NET_TRIALS = 10
 MAX_MOVES = 100
-TIME_LIMIT = 5
+TIME_LIMIT = 2
 MAX_DEPTH = 20
-NUM_RANDOM_STARTING_TRIALS = 20
+NUM_RANDOM_STARTING_TRIALS = 3
 
 
 def write_winning_weights_to_file(score, trial_params):
@@ -185,6 +185,7 @@ def objective(trial):
             "cont_double_corner_bonus_weight", 0, 300
         ),
         endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
+        turn_advantage_weight=trial.suggest_float("cont_turn_advantage_weight", 0, 200),
     )
 
     # Play the game
@@ -214,7 +215,7 @@ def objective(trial):
             print("\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH A PIECE DOWN\n")
             score *= 2
 
-    elif result["winner"] == "WHITE":  # WHITE the the OG champion.
+    elif result["winner"] == "WHITE":  # WHITE is the OG champion.
         score = -1 * (
             abs(result["black_men_left"] + result["black_kings_left"])
             - (result["white_men_left"] + result["white_kings_left"])
@@ -239,6 +240,51 @@ def run_tpe_study():
             seed=10,
             n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
             prior_weight=2.0,
+            constant_liar=True,
+            multivariate=True,
+        ),
+    )
+
+    # Optuna's optimize function will automatically manage parallelization
+    study.optimize(
+        objective,
+        n_trials=NET_TRIALS,
+        n_jobs=-1,
+        show_progress_bar=True,
+    )
+
+    print("Best hyperparameters:", study.best_params)
+    completed_trials = [
+        t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
+    ]
+
+    # Filter successful trials
+    successful_trials = [t for t in completed_trials if t.value is not None]
+
+    # Choose the trial with the highest score
+    if successful_trials:
+        best_trial = max(successful_trials, key=lambda t: t.value)
+        print("\n\nDONE!\n\n")
+        print("Best successful trial hyperparameters:", best_trial.params)
+        print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
+
+
+def run_tpe_study():
+    # Use SQLite as a storage backend
+    storage_url = "sqlite:///tpe_final_again.db"
+    storage = storage = optuna.storages.RDBStorage(
+        url=storage_url, engine_kwargs={"connect_args": {"timeout": 30}}
+    )
+
+    study = optuna.create_study(
+        direction="maximize",
+        storage=storage,
+        load_if_exists=True,
+        study_name="tpe_checkers_final_again",
+        sampler=optuna.samplers.TPESampler(
+            seed=123,
+            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+            prior_weight=5.0,
             constant_liar=True,
             multivariate=True,
         ),
@@ -303,4 +349,5 @@ def run_nsgaii_study():
         print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
 
 
-run_tpe_study()
+if __name__ == "__main__":
+    run_tpe_study()
