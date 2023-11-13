@@ -19,7 +19,7 @@ from util.helpers import *
 NET_TRIALS = 10
 MAX_MOVES = 100
 TIME_LIMIT = 2
-MAX_DEPTH = 2
+MAX_DEPTH = 10
 NUM_RANDOM_STARTING_TRIALS = 3
 
 
@@ -253,48 +253,14 @@ def run_tpe_study():
         storage=storage,
         load_if_exists=True,
         study_name="tpe_checkers_final_again_ak2k2",
-        sampler=optuna.samplers.TPESampler(
-            seed=123,
-            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-            prior_weight=2.5,
-            constant_liar=True,
-            multivariate=True,
-        ),
-    )
-
-    # Optuna's optimize function will automatically manage parallelization
-    study.optimize(
-        objective,
-        n_trials=NET_TRIALS,
-        n_jobs=-1,
-        show_progress_bar=True,
-    )
-
-    print("Best hyperparameters:", study.best_params)
-    completed_trials = [
-        t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
-    ]
-
-    # Filter successful trials
-    successful_trials = [t for t in completed_trials if t.value is not None]
-
-    # Choose the trial with the highest score
-    if successful_trials:
-        best_trial = max(successful_trials, key=lambda t: t.value)
-        print("\n\nDONE!\n\n")
-        print("Best successful trial hyperparameters:", best_trial.params)
-        print(f"\n\nBEST SCORE: {best_trial.value}\n\n")
-
-
-def run_nsgaii_study():
-    # Use SQLite as a storage backend
-    storage_url = "sqlite:///nsg.db"
-    study = optuna.create_study(
-        direction="maximize",
-        storage=storage_url,
-        load_if_exists=True,
-        study_name="tpe_checkers_nsgai",
-        sampler=optuna.samplers.NSGAIIISampler(seed=10),
+        # sampler=optuna.samplers.TPESampler(
+        #     seed=123,
+        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+        #     prior_weight=2.5,
+        #     constant_liar=True,
+        #     multivariate=True,
+        # ),
+        sampler=optuna.samplers.QMCSampler(seed=123),
     )
 
     # Optuna's optimize function will automatically manage parallelization
