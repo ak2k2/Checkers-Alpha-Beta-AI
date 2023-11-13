@@ -17,7 +17,7 @@ from util.helpers import *
 
 
 NET_TRIALS = 32
-MAX_MOVES = 100
+MAX_MOVES = 90
 TIME_LIMIT = 5
 MAX_DEPTH = 20
 NUM_RANDOM_STARTING_TRIALS = 3
@@ -116,7 +116,7 @@ def AI_vs_AI_tuning(
 
 
 def objective(trial):
-    CHAMPION = partial(evolve_base_B)
+    CHAMPION = partial(old_heuristic)
 
     CONTENDER = partial(
         evolve_base_B,
@@ -149,6 +149,9 @@ def objective(trial):
         ),
         endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
         turn_advantage_weight=trial.suggest_float("cont_turn_advantage_weight", 0, 200),
+        majority_loss_weight=trial.suggest_float("cont_majority_loss_weight", 0.2, 0.8),
+        verge_weight=trial.suggest_float("cont_verge_weight", 0, 200),
+        verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1.0),
     )
 
     # Play the game

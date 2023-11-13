@@ -15,27 +15,30 @@ def evolve_base_B(
     BP,
     K,
     turn=None,
-    man_weight=924.8301974232824,
-    man_growth_decay=0.566207621347588,
-    king_weight=948.4123871585256,
-    king_growth_decay=0.11077226558898712,
-    back_row_weight=61.65251852458119,
-    back_growth_decay=0.5753602659043653,
-    capture_weight=178.62097339631939,
-    capture_growth_decay=-0.22547984988507164,
-    kinged_mult=0.7059841753582891,
-    land_edge_mult=0.550690538781099,
-    took_king_mult=3.885332523627914,
-    distance_weight=7.557402062730678,
-    distance_growth_decay=-0.5248784934449677,
-    mobility_weight=297.35913052379993,
-    mobility_jump_mult=8.154737237613396,
-    mobility_growth_decay=-0.25458429398128435,
-    safety_weight=156.14058726959237,
-    safety_growth_decay=0.84461894381032,
-    double_corner_bonus_weight=12.587582160598954,
-    endgame_threshold=5,
-    turn_advantage_weight=170.34702804349135,
+    man_weight=931.25,
+    man_growth_decay=0.125,
+    king_weight=456.25,
+    king_growth_decay=0.375,
+    back_row_weight=243.75,
+    back_growth_decay=-0.875,
+    capture_weight=206.25,
+    capture_growth_decay=0.375,
+    kinged_mult=3.4375,
+    land_edge_mult=0.3125,
+    took_king_mult=4.6875,
+    distance_weight=31.25,
+    distance_growth_decay=-0.625,
+    mobility_weight=56.25,
+    mobility_jump_mult=6.0625,
+    mobility_growth_decay=-0.625,
+    safety_weight=168.75,
+    safety_growth_decay=-0.875,
+    double_corner_bonus_weight=206.25,
+    endgame_threshold=7,
+    turn_advantage_weight=187.5,
+    majority_loss_weight=0.6666666666666,
+    verge_weight=0.0,
+    verge_growth_decay=0.0,
 ):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
@@ -93,9 +96,20 @@ def evolve_base_B(
         )
         TURN_ADVANTAGE = -1 * num_captures * turn_advantage_weight
 
+    verge_king_adj_w = (
+        adjustment_factor(num_total_pieces, verge_growth_decay) * verge_weight
+    )
+    VERGE_KINGING = verge_king_adj_w * pieces_on_verge_of_kinging(WP, BP, K, turn=turn)
+
     is_endgame = num_total_pieces <= endgame_threshold
 
-    if is_endgame:
+    loosing_substantially = (num_black_man + num_black_king) < (
+        majority_loss_weight * (num_white_man + num_white_king)
+    ) or (num_white_man + num_white_king) < (
+        majority_loss_weight * (num_black_man + num_black_king)
+    )
+
+    if is_endgame or loosing_substantially:
         if num_white_king > num_black_king:  # white has more kings
             distance_adj_w = (
                 adjustment_factor(num_total_pieces, distance_weight)
@@ -114,7 +128,7 @@ def evolve_base_B(
                 * double_corner_bonus_weight
             )
 
-        else:  # black has more kings
+        elif num_black_king > num_white_king:  # black has more kings
             distance_adj_w = (
                 adjustment_factor(num_total_pieces, distance_weight)
                 * distance_growth_decay
@@ -126,10 +140,14 @@ def evolve_base_B(
 
             DOUBLE_CORNER_BONUS = (
                 (  # white wants to maximize number of kings on double corner
-                    BP & K & DOUBLE_CORNER & MASK_32
+                    WP & K & DOUBLE_CORNER & MASK_32
                 )
                 * double_corner_bonus_weight
             )
+        else:  # tied in number of kings or no kings
+            SUM_DISTANCE = 0
+            DOUBLE_CORNER_BONUS = 0
+
         # print(f"PIECE_COUNT: {PIECE_COUNT}")
         # print(f"BACK_ROW: {BACK_ROW}")
         # print(f"CAPTURE: {CAPTURE}")
@@ -146,6 +164,7 @@ def evolve_base_B(
             + MOBILITY
             + SAFETY_SCORE
             + TURN_ADVANTAGE
+            + VERGE_KINGING
             + SUM_DISTANCE
             + DOUBLE_CORNER_BONUS
         )
@@ -157,7 +176,13 @@ def evolve_base_B(
         # print(f"SAFETY_SCORE: {SAFETY_SCORE}")
         # print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
         return (
-            PIECE_COUNT + BACK_ROW + CAPTURE + MOBILITY + SAFETY_SCORE + TURN_ADVANTAGE
+            PIECE_COUNT
+            + BACK_ROW
+            + CAPTURE
+            + MOBILITY
+            + SAFETY_SCORE
+            + TURN_ADVANTAGE
+            + VERGE_KINGING
         )
 
 
@@ -202,7 +227,7 @@ def old_heuristic(WP, BP, K, turn=None):
         500 * num_black_man + 775 * num_black_king
     )
 
-    return piece_count_score
+    return piece_count_score + random.randint(-100, 100)
 
 
 # ----------------- ************* -----------------
@@ -210,7 +235,7 @@ def old_heuristic(WP, BP, K, turn=None):
 # ----------------- ************* -----------------
 
 
-def pieces_on_verge_of_kinging(WP, BP, K):
+def pieces_on_verge_of_kinging(WP, BP, K, turn=None):
     # Create a bitboard for empty squares
     empty_squares = ~(WP | BP) & MASK_32
 
