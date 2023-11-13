@@ -161,7 +161,9 @@ def objective(trial):
         verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1.0),
         opening_thresh=trial.suggest_int("cont_opening_thresh", 18, 24),
         center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 200),
-        edge_weight=trial.suggest_float("cont_edge_weight", 0, 200),
+        edge_weight=trial.suggest_float(
+            "cont_edge_weight", -200, 200
+        ),  # may want to penalize edges
         edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 1.0),
         kings_row_weight=trial.suggest_float("cont_kings_row_weight", 0, 200),
         kings_row_growth_decay=trial.suggest_float(
