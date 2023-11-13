@@ -196,6 +196,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
 
     if initial_board is None:
         WP, BP, K = get_fresh_board()
+        WP = remove_piece_by_pdntext(WP, "D6")
     else:
         WP, BP, K = initial_board
 
@@ -235,7 +236,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 heuristic="old_heuristic"
                 if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
-                early_stop_depth=3,
+                early_stop_depth=100,
             )
 
         end_time = time.time()

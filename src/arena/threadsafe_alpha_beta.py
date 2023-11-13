@@ -42,7 +42,7 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
         ]
 
     elif callable(heuristic):
-        # Directly use the callable heuristic function
+        # Directly use the callable heuristic function for tuning
         move_evaluations = [
             (move, heuristic(*do_move(*position, move, current_player), current_player))
             for move in legal_moves

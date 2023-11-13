@@ -15,13 +15,13 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-NET_TRIALS = 12
+NET_TRIALS = 200
 EARLY_STOP_DEPTH = 20
 MAX_MOVES = 60
 
 
-TIME_LIMIT = 5
-NUM_RANDOM_STARTING_TRIALS = 3
+TIME_LIMIT = 6
+NUM_RANDOM_STARTING_TRIALS = 5
 
 
 def write_winning_weights_to_file(score, trial_params):
@@ -43,6 +43,7 @@ def PLAY_TUNE(
     one_piece_down=False,
     two_piece_down=False,
     early_stop_depth=EARLY_STOP_DEPTH,
+    contender_is_white=False,
 ):
     if time_limit is None:
         time_limit = 1
@@ -53,11 +54,18 @@ def PLAY_TUNE(
         max_depth = 100
 
     WP, BP, K = get_fresh_board()
-    if one_piece_down:
-        BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
-    elif two_piece_down:
-        BP = remove_piece_by_pdntext(BP, "C3")
-        BP = remove_piece_by_pdntext(BP, "E3")
+    if not contender_is_white:
+        if one_piece_down:
+            BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
+        elif two_piece_down:
+            BP = remove_piece_by_pdntext(BP, "C3")
+            BP = remove_piece_by_pdntext(BP, "E3")
+    elif contender_is_white:
+        if one_piece_down:
+            WP = remove_piece_by_pdntext(WP, "D6")
+        elif two_piece_down:
+            WP = remove_piece_by_pdntext(WP, "D6")
+            WP = remove_piece_by_pdntext(WP, "F6")
 
     current_player = who_moves_first
     move_count = 0
@@ -201,13 +209,12 @@ def objective(trial):
         early_stop_depth=2,
     )
 
-    print(warmup_qualafier)
     if warmup_qualafier["winner"] == "WHITE" or warmup_qualafier["winner"] == "DRAW":
         print("\ncontendor passed the warmup:\n")
         score = 0
     elif warmup_qualafier["winner"] == "BLACK":
         print("\ncontendor lost the warmup:\n")
-        return -1000
+        return -10000
 
     pre_finals = PLAY_TUNE(
         PlayerTurn.BLACK,
@@ -228,7 +235,7 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,
-        early_stop_depth=4,
+        early_stop_depth=9,
         time_limit=TIME_LIMIT,
     )
 
@@ -290,6 +297,7 @@ def objective(trial):
             heuristic_black=CHAMPION,
             time_limit=TIME_LIMIT,
             early_stop_depth=10,
+            contender_is_white=True,
         )
         if as_white["winner"] == "BLACK":
             print("\nCONTENDOR LOST TO THE CHAMPION AS WHITE\n")
@@ -303,6 +311,7 @@ def objective(trial):
                 heuristic_black=CHAMPION,
                 early_stop_depth=100,
                 one_piece_down=True,
+                contender_is_white=True,
             )
             if (
                 as_white_stress_test_one["winner"] == "WHITE"
@@ -329,20 +338,20 @@ def run_tpe_study():
         storage=storage,
         load_if_exists=True,
         study_name=study_name,
-        sampler=optuna.samplers.TPESampler(
-            seed=123,
-            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-            prior_weight=2.5,
-            constant_liar=True,
-        ),
-        # sampler=optuna.samplers.QMCSampler(seed=123),
+        # sampler=optuna.samplers.TPESampler(
+        #     seed=123,
+        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+        #     prior_weight=3,
+        #     constant_liar=True,
+        # ),
+        sampler=optuna.samplers.NSGAIIISampler(),
     )
 
     # Optuna's optimize function will automatically manage parallelization
     study.optimize(
         objective,
         n_trials=NET_TRIALS,
-        n_jobs=1,
+        n_jobs=-1,
         show_progress_bar=True,
     )
 
