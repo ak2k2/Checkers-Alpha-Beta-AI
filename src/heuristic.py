@@ -9,39 +9,41 @@ def evolve_base_B(
     BP,
     K,
     turn=None,
-    man_weight=703.0013689332421,
-    king_weight=742.0181308525031,
-    chebychev_distance_weight=115.76682955495899,
-    verge_king_weight=56.67775009304168,
-    mobility_weight=50.1582997888212,
-    jump_weight=9.378160411934207,
-    capture_safety_weight=94.5652792759392,
-    kinged_mult=6.362973149622056,
-    land_edge_mult=0.38480787077298406,
-    took_king_mult=1.0131168126451606,
-    back_row_importance_factor=43.04383692865011,
-    back_row_weight=17.874331360077267,
-    backwards_backup_factor=45.622932127330245,
-    backwards_backup_weight=38.10038709306349,
-    center_control_factor=23.61850346296953,
-    center_control_weight=23.62445621620175,
-    kings_main_diagonal_weight=18.27923086275151,
-    men_side_diagonals_weight=11.050875827750238,
-    endgame_threshold=6,
-    double_corner_weight=115.76682955495899,
-    single_corner_weight=115.76682955495899,
-    kgw=0,
-    mgw=0,
-    maj_loss_thresh=0.6666666666666666,
-    attack_weight=0,
-    agw=0,
-    mix_row_not_box_weight=0,
-    mrnbw=0,
-    promotion_weight=0,
-    pgw=0,
-    cssw=0,
-    vkg=0,
-    mbgw=0,
+    man_weight=221.16517634218417,
+    king_weight=796.5566144637147,
+    chebychev_distance_weight=33.03129353308223,
+    verge_king_weight=22.23650010068536,
+    mobility_weight=96.05774298185752,
+    jump_weight=6.1915450814325155,
+    capture_safety_weight=100.4122019695803,
+    kinged_mult=6.990009530742195,
+    land_edge_mult=8.535678462318163,
+    took_king_mult=4.996558460665898,
+    back_row_importance_factor=-41.38374019780294,
+    back_row_weight=118.51889621145315,
+    backwards_backup_factor=-30.848845657429024,
+    backwards_backup_weight=83.87206305189319,
+    center_control_factor=-8.032755208608712,
+    center_control_weight=31.567795693577306,
+    kings_main_diagonal_weight=-32.453989920069844,
+    men_side_diagonals_weight=76.91067085490019,
+    endgame_threshold=9,
+    double_corner_weight=133.7288473924311,
+    single_corner_weight=34.38684084057926,
+    kgw=-0.47197781248849324,
+    mgw=3.6132652205727087,
+    maj_loss_thresh=0.05771824979127871,
+    attack_weight=8.742653188749493,
+    agw=0.03826827864720439,
+    mix_row_not_box_weight=157.65286584499088,
+    mrnbw=-4.983778283889592,
+    promotion_weight=128.56156093143366,
+    pgw=-0.6329411162600866,
+    cssw=-3.5655993169434708,
+    vkg=1.464460710636847,
+    mbgw=-4.195871570387243,
+    end_game_strength=0.005,
+    normalize_weird_stuff=10,
 ):
     num_total_pieces = count_bits(WP) + count_bits(BP)
 
@@ -60,427 +62,163 @@ def evolve_base_B(
         man_weight * num_black_man + king_weight * num_black_king
     )
 
-    if num_total_pieces <= endgame_threshold:
-        EVAL = piece_count_score
+    is_endgame = num_total_pieces <= endgame_threshold
+    if is_endgame:
+        END_W = piece_count_score
         sum_chebychev_distance = calculate_sum_distances(WP, BP)
         if piece_count_score > 0:
-            EVAL -= chebychev_distance_weight * sum_chebychev_distance
+            END_W -= chebychev_distance_weight * sum_chebychev_distance
             if count_bits(BP) < (maj_loss_thresh * count_bits(WP)):
-                EVAL -= (
+                END_W -= (
                     count_bits(BP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
                 )
-                EVAL += (
+                END_W += (
                     count_bits(BP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
                 )
         elif piece_count_score < 0:
-            EVAL += chebychev_distance_weight * sum_chebychev_distance
+            END_W += chebychev_distance_weight * sum_chebychev_distance
             if count_bits(WP) < (maj_loss_thresh * count_bits(BP)):
-                EVAL += (
+                END_W += (
                     count_bits(WP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
                 )
-                EVAL -= (
+                END_W -= (
                     count_bits(WP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
                 )
-        return int(EVAL)
+
+    verge_of_kinging = verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K)
+    verge_of_kinging += vkg * num_total_pieces
+
+    mobility_score = mobility_weight * mobility_diff_score(WP, BP, K, jw=jump_weight)
+    mobility_score += mbgw * num_total_pieces
+
+    capture_safety_score = 0
+    if turn == PlayerTurn.WHITE:
+        capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
+            WP,
+            BP,
+            K,
+            kinged_mult=kinged_mult,
+            land_edge_mult=land_edge_mult,
+            took_king_mult=took_king_mult,
+        )
+        capture_safety_score = capture_safety_weight * capture_safety_score
     else:
-        verge_of_kinging = verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K)
-        verge_of_kinging += vkg * num_total_pieces
-
-        mobility_score = mobility_weight * mobility_diff_score(
-            WP, BP, K, jw=jump_weight
+        capture_safety_score = count_white_pieces_that_can_be_captured_by_black(
+            WP,
+            BP,
+            K,
+            kinged_mult=kinged_mult,
+            land_edge_mult=land_edge_mult,
+            took_king_mult=took_king_mult,
         )
-        mobility_score += mbgw * num_total_pieces
+        capture_safety_score = -capture_safety_weight * capture_safety_score
 
-        capture_safety_score = 0
-        if turn == PlayerTurn.WHITE:
-            capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = capture_safety_weight * capture_safety_score
-        else:
-            capture_safety_score = count_white_pieces_that_can_be_captured_by_black(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = -capture_safety_weight * capture_safety_score
+    capture_safety_score += cssw * num_total_pieces
 
-        capture_safety_score += cssw * num_total_pieces
-
-        back_row_importance = (
-            num_total_pieces / back_row_importance_factor
-            if back_row_importance_factor != 0
-            else 1
+    back_row_importance = (
+        num_total_pieces / back_row_importance_factor
+        if back_row_importance_factor != 0
+        else 1
+    )
+    back_row_score = (
+        back_row_weight
+        * back_row_importance
+        * (
+            count_bits(WP & ~K & MASK_32 & KING_ROW_BLACK)
+            - count_bits(BP & ~K & MASK_32 & KING_ROW_WHITE)
         )
-        back_row_score = (
-            back_row_weight
-            * back_row_importance
-            * (
-                count_bits(WP & ~K & MASK_32 & KING_ROW_BLACK)
-                - count_bits(BP & ~K & MASK_32 & KING_ROW_WHITE)
-            )
-        )
-
-        backwards_backup_weight_adjusted = (
-            num_total_pieces / backwards_backup_factor
-            if backwards_backup_factor != 0
-            else 1
-        )
-        men_with_backwards_backup = (
-            backwards_backup_weight_adjusted
-            * backwards_backup_weight
-            * (calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K))
-        )
-
-        center_control_importance = (
-            num_total_pieces / center_control_factor
-            if center_control_factor != 0
-            else 1
-        )
-        center_score = (
-            center_control_weight
-            * center_control_importance
-            * (
-                count_bits(WP & CENTER_8 & MASK_32)
-                - count_bits(BP & CENTER_8 & MASK_32)
-            )
-        )
-        kings_on_main_diagonal = kings_main_diagonal_weight * (
-            count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
-        )
-        men_on_side_diagonals = men_side_diagonals_weight * (
-            count_bits(WP & ~K & DOUBLE_DIAGONAL)
-            - count_bits(BP & ~K & DOUBLE_DIAGONAL)
-        )
-
-        attack_weight += agw * num_total_pieces
-        attacking_pieces_score = attack_weight * (
-            count_bits(WP & ATTACK_ROWS_BLACK) - count_bits(BP & ATTACK_ROWS_WHITE)
-        )
-
-        mix_row_not_box_weight += mrnbw * num_total_pieces
-        mix_row_not_box_score = mix_row_not_box_weight * (
-            count_bits(WP & MID_ROW_NOT_MID_BOX) - count_bits(BP & MID_ROW_NOT_MID_BOX)
-        )
-
-        promotion_weight += pgw * num_total_pieces
-        promotion_boost = promotion_weight * (
-            calculate_total_distance_to_promotion_black(BP, K)
-            - calculate_total_distance_to_promotion_white(WP, K)
-        )
-
-        EVAL = (
-            piece_count_score
-            + back_row_score
-            + capture_safety_score
-            + center_score
-            + men_with_backwards_backup
-            + mobility_score
-            + kings_on_main_diagonal
-            + men_on_side_diagonals
-            + verge_of_kinging
-            + attacking_pieces_score
-            + mix_row_not_box_score
-            + promotion_boost
-        )
-
-        return int(EVAL)
-
-
-def evolve_base_A(
-    WP,
-    BP,
-    K,
-    turn=None,
-    man_weight=703.0013689332421,
-    king_weight=742.0181308525031,
-    chebychev_distance_weight=115.76682955495899,
-    verge_king_weight=56.67775009304168,
-    mobility_weight=50.1582997888212,
-    jump_weight=9.378160411934207,
-    capture_safety_weight=94.5652792759392,
-    kinged_mult=6.362973149622056,
-    land_edge_mult=0.38480787077298406,
-    took_king_mult=1.0131168126451606,
-    back_row_importance_factor=43.04383692865011,
-    back_row_weight=17.874331360077267,
-    backwards_backup_factor=45.622932127330245,
-    backwards_backup_weight=38.10038709306349,
-    center_control_factor=23.61850346296953,
-    center_control_weight=23.62445621620175,
-    kings_main_diagonal_weight=18.27923086275151,
-    men_side_diagonals_weight=11.050875827750238,
-    endgame_threshold=6,
-    double_corner_weight=115.76682955495899,
-    single_corner_weight=115.76682955495899,
-    kgw=0,
-):
-    num_total_pieces = count_bits(WP) + count_bits(BP)
-
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-
-    king_weight += (
-        kgw * num_total_pieces
-    )  # increase king weight as the game progresses?
-
-    piece_count_score = (man_weight * num_white_man + king_weight * num_white_king) - (
-        man_weight * num_black_man + king_weight * num_black_king
     )
 
-    if num_total_pieces <= endgame_threshold:
-        EVAL = piece_count_score
-        sum_chebychev_distance = calculate_sum_distances(WP, BP)
-        if piece_count_score > 0:
-            EVAL -= chebychev_distance_weight * sum_chebychev_distance
-            if count_bits(BP) < 2 / 3 * count_bits(WP):
-                EVAL -= (
-                    count_bits(BP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
-                )
-                EVAL += (
-                    count_bits(BP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
-                )
-        elif piece_count_score < 0:
-            EVAL += chebychev_distance_weight * sum_chebychev_distance
-            if count_bits(WP) < 2 / 3 * count_bits(BP):
-                EVAL += (
-                    count_bits(WP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
-                )
-                EVAL -= (
-                    count_bits(WP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
-                )
-        return int(EVAL)
-    else:
-        verge_of_kinging = verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K)
-        mobility_score = mobility_weight * mobility_diff_score(
-            WP, BP, K, jw=jump_weight
-        )
-        capture_safety_score = 0
-        if turn == PlayerTurn.WHITE:
-            capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = capture_safety_weight * capture_safety_score
-        else:
-            capture_safety_score = count_white_pieces_that_can_be_captured_by_black(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = -capture_safety_weight * capture_safety_score
-
-        back_row_importance = num_total_pieces / back_row_importance_factor
-        back_row_score = (
-            back_row_weight
-            * back_row_importance
-            * (
-                count_bits(WP & ~K & MASK_32 & KING_ROW_BLACK)
-                - count_bits(BP & ~K & MASK_32 & KING_ROW_WHITE)
-            )
-        )
-        backwards_backup_weight_adjusted = num_total_pieces / backwards_backup_factor
-        men_with_backwards_backup = (
-            backwards_backup_weight_adjusted
-            * backwards_backup_weight
-            * (calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K))
-        )
-        center_control_importance = num_total_pieces / center_control_factor
-        center_score = (
-            center_control_weight
-            * center_control_importance
-            * (
-                count_bits(WP & CENTER_8 & MASK_32)
-                - count_bits(BP & CENTER_8 & MASK_32)
-            )
-        )
-        kings_on_main_diagonal = kings_main_diagonal_weight * (
-            count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
-        )
-        men_on_side_diagonals = men_side_diagonals_weight * (
-            count_bits(WP & ~K & DOUBLE_DIAGONAL)
-            - count_bits(BP & ~K & DOUBLE_DIAGONAL)
-        )
-
-        EVAL = (
-            piece_count_score
-            + back_row_score
-            + capture_safety_score
-            + center_score
-            + men_with_backwards_backup
-            + mobility_score
-            + kings_on_main_diagonal
-            + men_on_side_diagonals
-            + verge_of_kinging
-        )
-
-        return int(EVAL)
-
-
-# ----------------- ************* -----------------
-# ----------------- NEW HEURISTIC -----------------
-# ----------------- ************* -----------------
-
-
-def new_heuristic(
-    WP,
-    BP,
-    K,
-    turn=None,
-    man_weight=173.95273726570554,
-    king_weight=762.497701649474,
-    chebychev_distance_weight=194.66090956218156,
-    verge_king_weight=190.7868333971115,
-    mobility_weight=33.34099452399477,
-    jump_weight=4.819434591168335,
-    capture_safety_weight=57.17763656005479,
-    kinged_mult=2.5849043979463793,
-    land_edge_mult=1.5501970585431368,
-    took_king_mult=7.979397420421903,
-    back_row_importance_factor=21.920411151937007,
-    back_row_weight=146.50887921072842,
-    backwards_backup_factor=32.7335765781782,
-    backwards_backup_weight=35.40914520220719,
-    center_control_factor=24.277549931366753,
-    center_control_weight=28.720168604104302,
-    kings_main_diagonal_weight=16.00377924839683,
-    men_side_diagonals_weight=11.441589438324682,
-    endgame_threshold=4,
-    double_corner_weight=87.27548004039183,
-    single_corner_weight=118.54442252447106,
-    kgw=1.450198154068636,
-):
-    num_total_pieces = count_bits(WP) + count_bits(BP)
-
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-
-    king_weight += (
-        kgw * num_total_pieces
-    )  # increase king weight as the game progresses?
-
-    piece_count_score = (man_weight * num_white_man + king_weight * num_white_king) - (
-        man_weight * num_black_man + king_weight * num_black_king
+    backwards_backup_weight_adjusted = (
+        num_total_pieces / backwards_backup_factor
+        if backwards_backup_factor != 0
+        else 1
+    )
+    men_with_backwards_backup = (
+        backwards_backup_weight_adjusted
+        * backwards_backup_weight
+        * (calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K))
     )
 
-    if num_total_pieces <= endgame_threshold:
-        EVAL = piece_count_score
-        sum_chebychev_distance = calculate_sum_distances(WP, BP)
-        if piece_count_score > 0:
-            EVAL -= chebychev_distance_weight * sum_chebychev_distance
-            if count_bits(BP) < 2 / 3 * count_bits(WP):
-                EVAL -= (
-                    count_bits(BP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
-                )
-                EVAL += (
-                    count_bits(BP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
-                )
-        elif piece_count_score < 0:
-            EVAL += chebychev_distance_weight * sum_chebychev_distance
-            if count_bits(WP) < 2 / 3 * count_bits(BP):
-                EVAL += (
-                    count_bits(WP & ~K & MASK_32 & DOUBLE_CORNER) * double_corner_weight
-                )
-                EVAL -= (
-                    count_bits(WP & ~K & MASK_32 & SINGLE_CORNER) * single_corner_weight
-                )
-        return int(EVAL)
-    else:
-        verge_of_kinging = verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K)
-        mobility_score = mobility_weight * mobility_diff_score(
-            WP, BP, K, jw=jump_weight
-        )
-        capture_safety_score = 0
-        if turn == PlayerTurn.WHITE:
-            capture_safety_score = count_black_pieces_that_can_be_captured_by_white(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = capture_safety_weight * capture_safety_score
-        else:
-            capture_safety_score = count_white_pieces_that_can_be_captured_by_black(
-                WP,
-                BP,
-                K,
-                kinged_mult=kinged_mult,
-                land_edge_mult=land_edge_mult,
-                took_king_mult=took_king_mult,
-            )
-            capture_safety_score = -capture_safety_weight * capture_safety_score
+    center_control_importance = (
+        num_total_pieces / center_control_factor if center_control_factor != 0 else 1
+    )
+    center_score = (
+        center_control_weight
+        * center_control_importance
+        * (count_bits(WP & CENTER_8 & MASK_32) - count_bits(BP & CENTER_8 & MASK_32))
+    )
+    kings_on_main_diagonal = kings_main_diagonal_weight * (
+        count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
+    )
+    men_on_side_diagonals = men_side_diagonals_weight * (
+        count_bits(WP & ~K & DOUBLE_DIAGONAL) - count_bits(BP & ~K & DOUBLE_DIAGONAL)
+    )
 
-        back_row_importance = num_total_pieces / back_row_importance_factor
-        back_row_score = (
-            back_row_weight
-            * back_row_importance
-            * (
-                count_bits(WP & ~K & MASK_32 & KING_ROW_BLACK)
-                - count_bits(BP & ~K & MASK_32 & KING_ROW_WHITE)
-            )
-        )
-        backwards_backup_weight_adjusted = num_total_pieces / backwards_backup_factor
-        men_with_backwards_backup = (
-            backwards_backup_weight_adjusted
-            * backwards_backup_weight
-            * (calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K))
-        )
-        center_control_importance = num_total_pieces / center_control_factor
-        center_score = (
-            center_control_weight
-            * center_control_importance
-            * (
-                count_bits(WP & CENTER_8 & MASK_32)
-                - count_bits(BP & CENTER_8 & MASK_32)
-            )
-        )
-        kings_on_main_diagonal = kings_main_diagonal_weight * (
-            count_bits(WP & K & MAIN_DIAGONAL) - count_bits(BP & K & MAIN_DIAGONAL)
-        )
-        men_on_side_diagonals = men_side_diagonals_weight * (
-            count_bits(WP & ~K & DOUBLE_DIAGONAL)
-            - count_bits(BP & ~K & DOUBLE_DIAGONAL)
-        )
+    attack_weight += agw * num_total_pieces
+    attacking_pieces_score = attack_weight * (
+        count_bits(WP & ATTACK_ROWS_BLACK) - count_bits(BP & ATTACK_ROWS_WHITE)
+    )
 
-        EVAL = (
-            piece_count_score
-            + back_row_score
-            + capture_safety_score
-            + center_score
-            + men_with_backwards_backup
-            + mobility_score
-            + kings_on_main_diagonal
-            + men_on_side_diagonals
-            + verge_of_kinging
-        )
+    mix_row_not_box_weight += mrnbw * num_total_pieces
+    mix_row_not_box_score = mix_row_not_box_weight * (
+        count_bits(WP & MID_ROW_NOT_MID_BOX) - count_bits(BP & MID_ROW_NOT_MID_BOX)
+    )
 
-        return int(EVAL)
+    promotion_weight += pgw * num_total_pieces
+    promotion_boost = promotion_weight * (
+        calculate_total_distance_to_promotion_black(BP, K)
+        - calculate_total_distance_to_promotion_white(WP, K)
+    )
 
+    EVAL = (
+        (piece_count_score * normalize_weird_stuff)
+        + back_row_score
+        + capture_safety_score
+        + center_score
+        + men_with_backwards_backup
+        + mobility_score
+        + kings_on_main_diagonal
+        + men_on_side_diagonals
+        + verge_of_kinging
+        + attacking_pieces_score
+        + mix_row_not_box_score
+        + promotion_boost
+        + (END_W * end_game_strength)
+        if is_endgame
+        else 0
+    )
+
+    return int(EVAL)
+
+
+new_heuristic = evolve_base_B
 
 # ----------------- ************* -----------------
 # ----------------- OLD HEURISTIC -----------------
 # ----------------- ************* -----------------
+
+
+def old_heuristic(WP, BP, K, turn=None):
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+
+    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+        500 * num_black_man + 775 * num_black_king
+    )
+
+    back_row = 10 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+
+    capture_score = 10 * (
+        count_black_pieces_that_can_be_captured_by_white(WP, BP, K)
+        - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+            WP, BP, K
+        )
+    )
+
+    return piece_count_score + back_row + capture_score
 
 
 # def old_heuristic(WP, BP, K, turn=None):
@@ -590,28 +328,6 @@ def new_heuristic(
 #         )
 
 #         return int(EVAL)
-
-
-def old_heuristic(WP, BP, K, turn=None):
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-
-    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-        500 * num_black_man + 775 * num_black_king
-    )
-
-    back_row = 200 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
-
-    capture_score = 100 * (
-        count_black_pieces_that_can_be_captured_by_white(WP, BP, K)
-        - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
-            WP, BP, K
-        )
-    )
-
-    return piece_count_score + back_row + capture_score
 
 
 # ----------------- ************* -----------------
@@ -961,9 +677,17 @@ def calculate_safe_black_pieces(BP, K):
 
 
 if __name__ == "__main__":
-    WP, BP, K = get_fresh_board()
+    WP, BP, K = get_empty_board()
+    WP = insert_piece_by_pdntext(WP, "D6")
+    WP = insert_piece_by_pdntext(WP, "E5")
+    BP = insert_piece_by_pdntext(BP, "C5")
+    WP = insert_piece_by_pdntext(WP, "C7")
+    BP = insert_piece_by_pdntext(BP, "B6")
+
+    # BP = insert_piece_by_pdntext(BP, "B2")
+    WP = insert_piece_by_pdntext(WP, "C3")
 
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
 
-    print(evolve_base_B(WP, BP, K, turn=PlayerTurn.BLACK))
+    print(evolve_base_B(WP, BP, K, turn=PlayerTurn.WHITE))

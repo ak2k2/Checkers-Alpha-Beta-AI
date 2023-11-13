@@ -15,9 +15,10 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-MAX_MOVES = 150
-TIME_LIMIT = 6
-MAX_DEPTH = 100
+MAX_MOVES = 100
+TIME_LIMIT = 5
+MAX_DEPTH = 20
+NUM_STARTING_TRIALS = 20
 
 
 def write_winning_weights_to_file(score, trial_params):
@@ -37,6 +38,7 @@ def AI_vs_AI_tuning(
     max_depth=None,
     time_limit=None,
     initial_board=None,
+    one_piece_down=False,
 ):
     if time_limit is None:
         time_limit = 1
@@ -45,6 +47,8 @@ def AI_vs_AI_tuning(
 
     if initial_board is None:
         WP, BP, K = get_fresh_board()
+        if one_piece_down:
+            BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
     else:
         WP, BP, K = initial_board
 
@@ -113,36 +117,39 @@ def objective(trial):
     # Initialize the CONTENDER
     # CHAMPION = partial(
     #     evolve_base_B,
-    #     man_weight=703.0013689332421,
-    #     king_weight=742.0181308525031,
-    #     chebychev_distance_weight=115.76682955495899,
-    #     verge_king_weight=56.67775009304168,
-    #     mobility_weight=50.1582997888212,
-    #     jump_weight=9.378160411934207,
-    #     capture_safety_weight=94.5652792759392,
-    #     kinged_mult=6.362973149622056,
-    #     land_edge_mult=0.38480787077298406,
-    #     took_king_mult=1.0131168126451606,
-    #     back_row_importance_factor=43.04383692865011,
-    #     back_row_weight=17.874331360077267,
-    #     backwards_backup_factor=45.622932127330245,
-    #     backwards_backup_weight=38.10038709306349,
-    #     center_control_factor=23.61850346296953,
-    #     center_control_weight=23.62445621620175,
-    #     kings_main_diagonal_weight=18.27923086275151,
-    #     men_side_diagonals_weight=11.050875827750238,
-    #     endgame_threshold=6,
-    #     double_corner_weight=115.76682955495899,
-    #     single_corner_weight=115.76682955495899,
-    #     kgw=0,
-    #     mgw=0,
-    #     maj_loss_thresh=0.6666666666666666,
-    #     attack_weight=0,
-    #     agw=0,
-    #     mix_row_not_box_weight=0,
-    #     mrnbw=0,
-    #     promotion_weight=0,
-    #     pgw=0,
+    #     man_weight=221.16517634218417,
+    #     king_weight=796.5566144637147,
+    #     chebychev_distance_weight=33.03129353308223,
+    #     verge_king_weight=22.23650010068536,
+    #     mobility_weight=96.05774298185752,
+    #     jump_weight=6.1915450814325155,
+    #     capture_safety_weight=100.4122019695803,
+    #     kinged_mult=6.990009530742195,
+    #     land_edge_mult=8.535678462318163,
+    #     took_king_mult=4.996558460665898,
+    #     back_row_importance_factor=-41.38374019780294,
+    #     back_row_weight=118.51889621145315,
+    #     backwards_backup_factor=-30.848845657429024,
+    #     backwards_backup_weight=83.87206305189319,
+    #     center_control_factor=-8.032755208608712,
+    #     center_control_weight=31.567795693577306,
+    #     kings_main_diagonal_weight=-32.453989920069844,
+    #     men_side_diagonals_weight=76.91067085490019,
+    #     endgame_threshold=9,
+    #     double_corner_weight=133.7288473924311,
+    #     single_corner_weight=34.38684084057926,
+    #     kgw=-0.47197781248849324,
+    #     mgw=3.6132652205727087,
+    #     maj_loss_thresh=0.05771824979127871,
+    #     attack_weight=8.742653188749493,
+    #     agw=0.03826827864720439,
+    #     mix_row_not_box_weight=157.65286584499088,
+    #     mrnbw=-4.983778283889592,
+    #     promotion_weight=128.56156093143366,
+    #     pgw=-0.6329411162600866,
+    #     cssw=-3.5655993169434708,
+    #     vkg=1.464460710636847,
+    #     mbgw=-4.195871570387243,
     # )
     CHAMPION = partial(old_heuristic)
 
@@ -185,7 +192,7 @@ def objective(trial):
         single_corner_weight=trial.suggest_float("cont_single_corner_weight", 0, 200),
         kgw=trial.suggest_float("cont_kgw", -5, 5),
         mgw=trial.suggest_float("cont_mgw", -5, 5),
-        maj_loss_thresh=trial.suggest_float("cont_maj_loss_thresh", 0, 1),
+        maj_loss_thresh=trial.suggest_float("cont_maj_loss_thresh", 0.5, 0.8),
         attack_weight=trial.suggest_float("cont_attack_weight", 0, 200),
         agw=trial.suggest_float("cont_agw", -5, 5),
         mix_row_not_box_weight=trial.suggest_float(
@@ -195,8 +202,10 @@ def objective(trial):
         promotion_weight=trial.suggest_float("cont_promotion_weight", 0, 200),
         pgw=trial.suggest_float("cont_pgw", -5, 5),
         cssw=trial.suggest_float("cont_cssw", -5, 5),
-        vkg=trial.suggest_float("cont_vkw", -5, 5),
+        vkg=trial.suggest_float("cont_vkg", -5, 5),
         mbgw=trial.suggest_float("cont_mbgw", -5, 5),
+        end_game_strength=trial.suggest_float("cont_end_game_strength", 0, 20),
+        normalize_weird_stuff=trial.suggest_float("cont_normalize_weird_stuff", 0, 20),
     )
 
     # Play the game
@@ -210,11 +219,22 @@ def objective(trial):
 
     # Calculate the score based on the result
     if result["winner"] == "BLACK":  # Assuming BLACK is the CONTENDER
-        print("\n\nCONTENDOR BEAT THE CHAMPION\n\n")
+        print("\nCONTENDOR BEAT THE CHAMPION\n")
         score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
-        winning_weights = trial.params
+        stress_result = AI_vs_AI_tuning(
+            PlayerTurn.BLACK,
+            heuristic_white=CHAMPION,
+            heuristic_black=CONTENDER,
+            max_depth=MAX_DEPTH,
+            time_limit=TIME_LIMIT,
+            one_piece_down=True,
+        )
+        if stress_result["winner"] == "BLACK":
+            print("\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH A PIECE DOWN\n")
+            score *= 2
+
     elif result["winner"] == "WHITE":  # WHITE the the OG champion.
         score = -1 * (
             abs(result["black_men_left"] + result["black_kings_left"])
@@ -235,11 +255,16 @@ if __name__ == "__main__":
         direction="maximize",
         storage=storage_url,
         load_if_exists=True,
-        study_name="tuningcheckers",
+        study_name="tuningcheckerss",
+        sampler=optuna.samplers.TPESampler(
+            seed=10, n_startup_trials=20, prior_weight=1.2
+        ),
     )
 
     # Optuna's optimize function will automatically manage parallelization
-    study.optimize(objective, n_trials=16, n_jobs=-1, show_progress_bar=True)
+    study.optimize(
+        objective, n_trials=NUM_STARTING_TRIALS, n_jobs=-1, show_progress_bar=True
+    )
 
     print("Best hyperparameters:", study.best_params)
     completed_trials = [

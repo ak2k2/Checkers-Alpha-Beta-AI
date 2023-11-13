@@ -3,7 +3,7 @@ import time
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import evolve_base, new_heuristic, old_heuristic
+from heuristic import new_heuristic, old_heuristic
 
 global NC
 NC = 0
@@ -25,8 +25,6 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
         heuristic_function = new_heuristic
     elif heuristic == "old_heuristic":
         heuristic_function = old_heuristic
-    elif heuristic == "evolve_base":
-        heuristic_function = evolve_base
     else:
         raise ValueError("Invalid heuristic function specified")
 
@@ -65,8 +63,6 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
                 return new_heuristic(*position, current_player)
             elif heuristic == "old_heuristic":
                 return old_heuristic(*position)
-            elif heuristic == "evolve_base":
-                return evolve_base(*position, current_player)
             else:
                 raise ValueError("Invalid heuristic function specified")
 
