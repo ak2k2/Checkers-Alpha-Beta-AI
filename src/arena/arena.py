@@ -191,11 +191,12 @@ def objective(trial):
         ),
     )
 
+    score = 0
+
     warmup_qualafier = PLAY_TUNE(
         PlayerTurn.BLACK,
         heuristic_white=CONTENDER,  # contender is white
         heuristic_black=CHAMPION,
-        max_depth=2,
         time_limit=1,
         early_stop_depth=2,
     )
@@ -206,6 +207,20 @@ def objective(trial):
         score = 0
     elif warmup_qualafier["winner"] == "BLACK":
         print("\ncontendor lost the warmup:\n")
+        return -1000
+
+    pre_finals = PLAY_TUNE(
+        PlayerTurn.BLACK,
+        heuristic_white=CONTENDER,  # contender is white
+        heuristic_black=CHAMPION,
+        early_stop_depth=4,
+    )
+
+    if pre_finals["winner"] == "WHITE" or pre_finals["winner"] == "DRAW":
+        print("\ncontendor passed the pre-finals:\n")
+        score = 0
+    elif pre_finals["winner"] == "BLACK":
+        print("\ncontendor lost the pre-finals:\n")
         return -1000
 
     # Play the first game
@@ -274,7 +289,7 @@ def objective(trial):
             heuristic_white=CONTENDER,
             heuristic_black=CHAMPION,
             time_limit=TIME_LIMIT,
-            early_stop_depth=9,
+            early_stop_depth=10,
         )
         if as_white["winner"] == "BLACK":
             print("\nCONTENDOR LOST TO THE CHAMPION AS WHITE\n")
