@@ -89,7 +89,7 @@ def AI_vs_AI_tuning(
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
                 else heuristic_white,
-                early_stop_depth=3,
+                early_stop_depth=9,
             )
 
         if best_move is None:
@@ -110,7 +110,14 @@ def AI_vs_AI_tuning(
     }
 
     if not game_over:
-        result["winner"] = "Draw"
+        result = {
+            "winner": "DRAW",
+            "white_men_left": count_bits(WP & ~K),
+            "white_kings_left": count_bits(WP & K),
+            "black_men_left": count_bits(BP & ~K),
+            "black_kings_left": count_bits(BP & K),
+            "move_count": move_count,
+        }
 
     return result
 
@@ -152,6 +159,14 @@ def objective(trial):
         majority_loss_weight=trial.suggest_float("cont_majority_loss_weight", 0.2, 0.8),
         verge_weight=trial.suggest_float("cont_verge_weight", 0, 200),
         verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1.0),
+        opening_thresh=trial.suggest_int("cont_opening_thresh", 18, 24),
+        center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 200),
+        edge_weight=trial.suggest_float("cont_edge_weight", 0, 200),
+        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 1.0),
+        kings_row_weight=trial.suggest_float("cont_kings_row_weight", 0, 200),
+        kings_row_growth_decay=trial.suggest_float(
+            "cont_kings_row_growth_decay", -1.0, 1.0
+        ),
     )
 
     # Play the game
@@ -199,8 +214,10 @@ def objective(trial):
             abs(result["black_men_left"] + result["black_kings_left"])
             - (result["white_men_left"] + result["white_kings_left"])
         )
-    else:
-        score = 0
+    else:  # penalty for draw with less pieces left
+        score = (result["black_men_left"] + result["black_kings_left"]) - (
+            result["white_men_left"] + result["white_kings_left"]
+        )
 
     score *= MAX_MOVES / result["move_count"]
 

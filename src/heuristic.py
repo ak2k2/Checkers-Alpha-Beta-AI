@@ -6,11 +6,229 @@ from util.helpers import *
 from util.masks import *
 
 
-def new_heuristic(WP, BP, K, turn=None):
+def evolve_base_B(WP, BP, K, turn=None):
     return 69
 
 
-def evolve_base_B(
+def new_heuristic(
+    WP,
+    BP,
+    K,
+    turn=None,
+    man_weight=957.5811251460777,
+    man_growth_decay=-0.15115790454133848,
+    king_weight=433.14917204282256,
+    king_growth_decay=0.7399494572394438,
+    back_row_weight=20.579980233494965,
+    back_growth_decay=0.7570857916700465,
+    capture_weight=276.77807641353667,
+    capture_growth_decay=0.6445276219928393,
+    kinged_mult=1.5429458724684892,
+    land_edge_mult=2.7210051893348988,
+    took_king_mult=0.2646526535147873,
+    distance_weight=47.39052329198919,
+    distance_growth_decay=-0.7878409471160763,
+    mobility_weight=152.605485274674,
+    mobility_jump_mult=1.900696403793077,
+    mobility_growth_decay=0.8907251330918446,
+    safety_weight=280.4631482755783,
+    safety_growth_decay=0.7819689035567297,
+    double_corner_bonus_weight=183.710575429351,
+    endgame_threshold=4,
+    turn_advantage_weight=194.52517778614336,
+    majority_loss_weight=0.3583053122186806,
+    verge_weight=152.32925047693627,
+    verge_growth_decay=-0.9798353338727599,
+    opening_thresh=20,  # keep this greater than 18
+    center_control_weight=0.0,
+    edge_weight=0.0,
+    edge_growth_decay=0.0,
+    kings_row_weight=0.0,
+    kings_row_growth_decay=0.0,
+):
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+    num_total_pieces = count_bits(WP) + count_bits(BP)
+
+    man_adj_w = adjustment_factor(num_total_pieces, man_growth_decay) * man_weight
+    king_adj_w = adjustment_factor(num_total_pieces, king_growth_decay) * king_weight
+
+    PIECE_COUNT = (king_adj_w * (num_white_king - num_black_king)) + (
+        man_adj_w * (num_white_man - num_black_man)
+    )
+
+    back_row_adj_w = (
+        adjustment_factor(num_total_pieces, back_growth_decay) * back_row_weight
+    )
+    BACK_ROW = back_row_adj_w * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+
+    capture_adj_w = (
+        adjustment_factor(num_total_pieces, capture_growth_decay) * capture_weight
+    )
+
+    CAPTURE = capture_adj_w * (
+        count_black_pieces_that_can_be_captured_by_white(
+            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
+        )
+        - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
+        )
+    )
+
+    mobility_adj_w = (
+        adjustment_factor(num_total_pieces, mobility_growth_decay) * mobility_weight
+    )
+
+    MOBILITY = mobility_adj_w * mobility_diff_score(WP, BP, K, jw=mobility_jump_mult)
+
+    safety_adj_w = (
+        adjustment_factor(num_total_pieces, safety_growth_decay) * safety_weight
+    )
+
+    SAFETY_SCORE = safety_adj_w * (
+        calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
+    )
+
+    if turn == PlayerTurn.WHITE:
+        num_captures = count_black_pieces_that_can_be_captured_by_white(
+            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
+        )
+        TURN_ADVANTAGE = num_captures * turn_advantage_weight
+    else:
+        num_captures = count_white_pieces_that_can_be_captured_by_black(
+            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
+        )
+        TURN_ADVANTAGE = -1 * num_captures * turn_advantage_weight
+
+    verge_king_adj_w = (
+        adjustment_factor(num_total_pieces, verge_growth_decay) * verge_weight
+    )
+    VERGE_KINGING = verge_king_adj_w * pieces_on_verge_of_kinging(WP, BP, K, turn=turn)
+
+    edge_adj_w = adjustment_factor(num_total_pieces, edge_growth_decay) * edge_weight
+    EDGE_CONTROL = edge_adj_w * ((WP & EDGES & MASK_32) - (BP & EDGES & MASK_32))
+
+    if (
+        num_total_pieces <= opening_thresh and num_total_pieces >= endgame_threshold
+    ):  # MIDGAME
+        kings_row_adj_w = (
+            adjustment_factor(num_total_pieces, kings_row_growth_decay)
+            * kings_row_weight
+        )
+        DISTANCE_TO_KINGS_ROW = calculate_total_distance_to_promotion_white(
+            WP, K
+        ) - calculate_total_distance_to_promotion_black(BP, K)
+    else:
+        DISTANCE_TO_KINGS_ROW = 0
+
+    loosing_substantially = (num_black_man + num_black_king) < (
+        majority_loss_weight * (num_white_man + num_white_king)
+    ) or (num_white_man + num_white_king) < (
+        majority_loss_weight * (num_black_man + num_black_king)
+    )
+
+    if num_total_pieces >= opening_thresh:  # OPENING
+        CENTER_CONTROL = (WP & CENTER_8) - (BP & CENTER_8) * center_control_weight
+    else:
+        CENTER_CONTROL = 0
+
+    if (
+        num_total_pieces <= endgame_threshold or loosing_substantially
+    ):  # ENDGAME / MAJORITY LOSS
+        if num_white_king > num_black_king:  # white has more kings
+            distance_adj_w = (
+                adjustment_factor(num_total_pieces, distance_weight)
+                * distance_growth_decay
+            ) * distance_weight
+
+            SUM_DISTANCE = (
+                -1 * distance_adj_w * calculate_sum_distances(WP, BP)
+            )  # white wants to minimize chevychev distance and get closer to black.
+
+            DOUBLE_CORNER_BONUS = (
+                -1
+                * (  # black wants to maximize number of kings on double corner
+                    BP & K & DOUBLE_CORNER & MASK_32
+                )
+                * double_corner_bonus_weight
+            )
+
+        elif num_black_king > num_white_king:  # black has more kings
+            distance_adj_w = (
+                adjustment_factor(num_total_pieces, distance_weight)
+                * distance_growth_decay
+            ) * distance_weight
+
+            SUM_DISTANCE = distance_adj_w * calculate_sum_distances(
+                WP, BP
+            )  # white wants to maximize chevychev distance and get further from black.
+
+            DOUBLE_CORNER_BONUS = (
+                (  # white wants to maximize number of kings on double corner
+                    WP & K & DOUBLE_CORNER & MASK_32
+                )
+                * double_corner_bonus_weight
+            )
+    else:
+        SUM_DISTANCE = 0
+        DOUBLE_CORNER_BONUS = 0
+
+    # print(f"PIECE_COUNT: {PIECE_COUNT}")
+    # print(f"BACK_ROW: {BACK_ROW}")
+    # print(f"CAPTURE: {CAPTURE}")
+    # print(f"MOBILITY: {MOBILITY}")
+    # print(f"SAFETY_SCORE: {SAFETY_SCORE}")
+    # print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
+    return (
+        PIECE_COUNT
+        + BACK_ROW
+        + CAPTURE
+        + MOBILITY
+        + SAFETY_SCORE
+        + TURN_ADVANTAGE
+        + VERGE_KINGING
+        + CENTER_CONTROL
+        + EDGE_CONTROL
+        + DISTANCE_TO_KINGS_ROW
+        + SUM_DISTANCE
+        + DOUBLE_CORNER_BONUS
+    )
+
+
+def adjustment_factor(num_pieces, control_float):
+    """
+    Calculates the growth/decay adjustment factor for the piece count score.
+
+    Args:
+    num_pieces (int): The number of pieces currently on the board.
+    control_float (float): The control float determining the growth/decay behavior.
+        A positive control float produces as positive rate of change for multiplier wrt. number of moves
+        A negative control float produces as negative rate of change for multiplier wrt. number of moves
+        A control float of 0 produces a constant multiplier wrt. number of moves
+
+    Returns:
+    float: The calculated adjustment factor.
+    """
+    # Ensuring the control_float does not cause extreme changes
+    # and avoiding division by zero
+    control_float = max(min(control_float, 1), -1)
+
+    # Quadratic relationship for smoother transition
+    multiplier = 1 + control_float * (1 - num_pieces / 24) ** 2
+
+    # Cap the multiplier to avoid excessive skewing (optional, adjust as needed)
+    # return max(min(multiplier, 2), 0.5)
+    return multiplier
+
+
+# ----------------- ************* -----------------
+# ----------------- OLD HEURISTIC -----------------
+# ----------------- ************* -----------------
+
+
+def old_heuristic(
     WP,
     BP,
     K,
@@ -186,48 +404,17 @@ def evolve_base_B(
         )
 
 
-def adjustment_factor(num_pieces, control_float):
-    """
-    Calculates the growth/decay adjustment factor for the piece count score.
+# def old_heuristic(WP, BP, K, turn=None):
+#     num_white_man = count_bits(WP & ~K & MASK_32)
+#     num_white_king = count_bits(WP & K & MASK_32)
+#     num_black_man = count_bits(BP & ~K & MASK_32)
+#     num_black_king = count_bits(BP & K & MASK_32)
 
-    Args:
-    num_pieces (int): The number of pieces currently on the board.
-    control_float (float): The control float determining the growth/decay behavior.
-        A positive control float produces as positive rate of change for multiplier wrt. number of moves
-        A negative control float produces as negative rate of change for multiplier wrt. number of moves
-        A control float of 0 produces a constant multiplier wrt. number of moves
+#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+#         500 * num_black_man + 775 * num_black_king
+#     )
 
-    Returns:
-    float: The calculated adjustment factor.
-    """
-    # Ensuring the control_float does not cause extreme changes
-    # and avoiding division by zero
-    control_float = max(min(control_float, 1), -1)
-
-    # Quadratic relationship for smoother transition
-    multiplier = 1 + control_float * (1 - num_pieces / 24) ** 2
-
-    # Cap the multiplier to avoid excessive skewing (optional, adjust as needed)
-    # return max(min(multiplier, 2), 0.5)
-    return multiplier
-
-
-# ----------------- ************* -----------------
-# ----------------- OLD HEURISTIC -----------------
-# ----------------- ************* -----------------
-
-
-def old_heuristic(WP, BP, K, turn=None):
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-
-    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-        500 * num_black_man + 775 * num_black_king
-    )
-
-    return piece_count_score + random.randint(-20, 20)
+#     return piece_count_score + random.randint(-20, 20)
 
 
 # ----------------- ************* -----------------
