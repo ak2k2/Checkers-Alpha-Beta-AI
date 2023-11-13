@@ -1,7 +1,11 @@
 from checkers import *
 from heuristic import *
-from minimax_alphabeta import *
+
+# from minimax_alphabeta import *
+from arena.threadsafe_alpha_beta import threadsafe_AI as AI
 from util.helpers import *
+
+import time
 
 
 def load_board():
@@ -228,8 +232,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
+                early_stop_depth=4,
             )
 
         end_time = time.time()

@@ -90,6 +90,7 @@ def AI_vs_AI_tuning(
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
                 else heuristic_white,
+                early_stop_depth=3,
             )
 
         if best_move is None:
@@ -99,6 +100,7 @@ def AI_vs_AI_tuning(
         WP, BP, K = do_move(WP, BP, K, best_move, current_player)
         current_player = switch_player(current_player)
         move_count += 1
+        print_board(WP, BP, K)
 
     result = {
         "winner": None if not game_over else switch_player(current_player).name,
@@ -213,27 +215,30 @@ def run_tpe_study():
     storage = storage = optuna.storages.RDBStorage(
         url=storage_url, engine_kwargs={"connect_args": {"timeout": 30}}
     )
+    # generate a random 8 char string
+    string = "abcdefghijklmnopqrstuvwxyz0123456789"
+    study_name = "".join(random.sample(string, 8))
 
     study = optuna.create_study(
         direction="maximize",
         storage=storage,
         load_if_exists=True,
-        study_name="tpe_checkers_final_again_ak2k2",
-        # sampler=optuna.samplers.TPESampler(
-        #     seed=123,
-        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-        #     prior_weight=2.5,
-        #     constant_liar=True,
-        #     multivariate=True,
-        # ),
-        sampler=optuna.samplers.QMCSampler(seed=123),
+        study_name=study_name,
+        sampler=optuna.samplers.TPESampler(
+            seed=123,
+            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+            prior_weight=2.5,
+            constant_liar=True,
+            multivariate=True,
+        ),
+        # sampler=optuna.samplers.QMCSampler(seed=123),
     )
 
     # Optuna's optimize function will automatically manage parallelization
     study.optimize(
         objective,
         n_trials=NET_TRIALS,
-        n_jobs=-1,
+        n_jobs=1,
         show_progress_bar=True,
     )
 

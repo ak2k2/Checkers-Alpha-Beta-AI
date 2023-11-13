@@ -227,7 +227,7 @@ def old_heuristic(WP, BP, K, turn=None):
         500 * num_black_man + 775 * num_black_king
     )
 
-    return piece_count_score + random.randint(-100, 100)
+    return piece_count_score + random.randint(-20, 20)
 
 
 # ----------------- ************* -----------------
