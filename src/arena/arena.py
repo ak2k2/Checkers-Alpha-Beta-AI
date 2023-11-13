@@ -15,10 +15,12 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-NET_TRIALS = 64
-MAX_MOVES = 90
+NET_TRIALS = 12
+EARLY_STOP_DEPTH = 20
+MAX_MOVES = 60
+
+
 TIME_LIMIT = 5
-MAX_DEPTH = 20
 NUM_RANDOM_STARTING_TRIALS = 3
 
 
@@ -32,7 +34,7 @@ def write_winning_weights_to_file(score, trial_params):
         file.write("\n\n")
 
 
-def AI_vs_AI_tuning(
+def PLAY_TUNE(
     who_moves_first,
     heuristic_white,
     heuristic_black,
@@ -40,11 +42,15 @@ def AI_vs_AI_tuning(
     time_limit=None,
     one_piece_down=False,
     two_piece_down=False,
+    early_stop_depth=EARLY_STOP_DEPTH,
 ):
     if time_limit is None:
         time_limit = 1
     if who_moves_first is None:
         who_moves_first = PlayerTurn.BLACK
+
+    if max_depth is None:
+        max_depth = 100
 
     WP, BP, K = get_fresh_board()
     if one_piece_down:
@@ -72,6 +78,17 @@ def AI_vs_AI_tuning(
                 "black_kings_left": count_bits(BP & K),
                 "move_count": move_count,
             }
+        elif (
+            num_black_pieces - num_white_pieces >= 5
+        ):  # if the challenger has a 4 piece advantage, it's a win
+            return {
+                "winner": "BLACK",
+                "white_men_left": count_bits(WP & ~K),
+                "white_kings_left": count_bits(WP & K),
+                "black_men_left": count_bits(BP & ~K),
+                "black_kings_left": count_bits(BP & K),
+                "move_count": move_count,
+            }
 
         if not legal_moves:
             game_over = True
@@ -84,12 +101,12 @@ def AI_vs_AI_tuning(
             best_move, depth_reached = threadsafe_AI(
                 (WP, BP, K),
                 current_player,
-                max_depth=MAX_DEPTH,
+                max_depth=max_depth,
                 time_limit=TIME_LIMIT,
                 heuristic=heuristic_black
                 if current_player == PlayerTurn.BLACK
                 else heuristic_white,
-                early_stop_depth=9,
+                early_stop_depth=early_stop_depth,
             )
 
         if best_move is None:
@@ -99,6 +116,9 @@ def AI_vs_AI_tuning(
         WP, BP, K = do_move(WP, BP, K, best_move, current_player)
         current_player = switch_player(current_player)
         move_count += 1
+        # print(f"Heuristic White: {heuristic_white(WP, BP, K)}")
+        # print(f"Heuristic Black: {heuristic_black(WP, BP, K)}")
+        # print_board(WP, BP, K)
 
     result = {
         "winner": None if not game_over else switch_player(current_player).name,
@@ -127,13 +147,13 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base_B,
-        man_weight=trial.suggest_float("cont_man_weight", 100, 2000),
+        man_weight=trial.suggest_float("cont_man_weight", 100, 3000),
         man_growth_decay=trial.suggest_float("cont_man_growth_decay", -1.0, 1.0),
-        king_weight=trial.suggest_float("cont_king_weight", 100, 2000),
+        king_weight=trial.suggest_float("cont_king_weight", 100, 3000),
         king_growth_decay=trial.suggest_float("cont_king_growth_decay", -1.0, 1.0),
-        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 300),
+        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 1000),
         back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 1.0),
-        capture_weight=trial.suggest_float("cont_capture_weight", 0, 300),
+        capture_weight=trial.suggest_float("cont_capture_weight", 0, 1000),
         capture_growth_decay=trial.suggest_float(
             "cont_capture_growth_decay", -1.0, 1.0
         ),
@@ -144,7 +164,7 @@ def objective(trial):
         distance_growth_decay=trial.suggest_float(
             "cont_distance_growth_decay", -1.0, 1.0
         ),
-        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 300),
+        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 1000),
         mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1, 10),
         mobility_growth_decay=trial.suggest_float(
             "cont_mobility_growth_decay", -1.0, 1.0
@@ -171,12 +191,29 @@ def objective(trial):
         ),
     )
 
-    # Play the game
-    result = AI_vs_AI_tuning(
+    warmup_qualafier = PLAY_TUNE(
+        PlayerTurn.BLACK,
+        heuristic_white=CONTENDER,  # contender is white
+        heuristic_black=CHAMPION,
+        max_depth=2,
+        time_limit=1,
+        early_stop_depth=2,
+    )
+
+    print(warmup_qualafier)
+    if warmup_qualafier["winner"] == "WHITE" or warmup_qualafier["winner"] == "DRAW":
+        print("\ncontendor passed the warmup:\n")
+        score = 0
+    elif warmup_qualafier["winner"] == "BLACK":
+        print("\ncontendor lost the warmup:\n")
+        return -1000
+
+    # Play the first game
+    result = PLAY_TUNE(
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,
-        max_depth=MAX_DEPTH,
+        early_stop_depth=4,
         time_limit=TIME_LIMIT,
     )
 
@@ -186,22 +223,24 @@ def objective(trial):
         score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
-        stress_result_one = AI_vs_AI_tuning(
+        stress_result_one = PLAY_TUNE(
             PlayerTurn.BLACK,
             heuristic_white=CHAMPION,
             heuristic_black=CONTENDER,
-            max_depth=MAX_DEPTH,
+            max_depth=100,
+            early_stop_depth=10,
             time_limit=TIME_LIMIT,
             one_piece_down=True,
         )
         if stress_result_one["winner"] == "BLACK":
             print("\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION WITH A PIECE DOWN\n")
             score *= 4
-            stress_test_two = AI_vs_AI_tuning(
+            stress_test_two = PLAY_TUNE(
                 PlayerTurn.BLACK,
                 heuristic_white=CHAMPION,
                 heuristic_black=CONTENDER,
-                max_depth=MAX_DEPTH,
+                max_depth=100,
+                early_stop_depth=100,
                 time_limit=TIME_LIMIT,
                 two_piece_down=True,
             )
@@ -229,12 +268,40 @@ def objective(trial):
 
     score *= MAX_MOVES / result["move_count"]
 
+    if score > 0:
+        as_white = PLAY_TUNE(
+            PlayerTurn.WHITE,
+            heuristic_white=CONTENDER,
+            heuristic_black=CHAMPION,
+            time_limit=TIME_LIMIT,
+            early_stop_depth=9,
+        )
+        if as_white["winner"] == "BLACK":
+            print("\nCONTENDOR LOST TO THE CHAMPION AS WHITE\n")
+            score == 0  # if the contender loses as white its uneven and not good enough
+        else:
+            print("\nCONTENDOR BEAT THE CHAMPION AS WHITE\n")
+            score *= 8  # reward for winning as black and white
+            as_white_stress_test_one = PLAY_TUNE(
+                PlayerTurn.WHITE,
+                heuristic_white=CONTENDER,
+                heuristic_black=CHAMPION,
+                early_stop_depth=100,
+                one_piece_down=True,
+            )
+            if (
+                as_white_stress_test_one["winner"] == "WHITE"
+                or as_white_stress_test_one["winner"] == "DRAW"
+            ):
+                print("\nCONTENDOR BEAT THE CHAMPION AS WHITE AND DOWN A PIECE\n")
+                score *= 10
+
     return score
 
 
 def run_tpe_study():
     # Use SQLite as a storage backend
-    storage_url = "sqlite:///tpe_final_again_ak2k2.db"
+    storage_url = "sqlite:///tpe_final_again_ak2k2_assdsdxdm.db"
     storage = storage = optuna.storages.RDBStorage(
         url=storage_url, engine_kwargs={"connect_args": {"timeout": 30}}
     )
@@ -252,7 +319,6 @@ def run_tpe_study():
             n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
             prior_weight=2.5,
             constant_liar=True,
-            multivariate=True,
         ),
         # sampler=optuna.samplers.QMCSampler(seed=123),
     )
@@ -261,7 +327,7 @@ def run_tpe_study():
     study.optimize(
         objective,
         n_trials=NET_TRIALS,
-        n_jobs=-1,
+        n_jobs=1,
         show_progress_bar=True,
     )
 
