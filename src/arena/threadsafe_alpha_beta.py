@@ -39,7 +39,8 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
             (
                 move,
                 heuristic_function(
-                    *do_move(*position, move, current_player), current_player
+                    *do_move(*position, move, current_player),
+                    current_player=current_player
                 ),
             )
             for move in legal_moves
@@ -78,11 +79,11 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="evolve_base
             if isinstance(heuristic, str):
                 # Here we reach the maximum depth, so we evaluate the position using the heuristic function
                 if heuristic == "new_heuristic":
-                    return new_heuristic(*position, current_player)
+                    return new_heuristic(*position, current_player=current_player)
                 elif heuristic == "old_heuristic":
-                    return old_heuristic(*position)
+                    return old_heuristic(*position, current_player=current_player)
                 elif heuristic == "evolve_base_B":
-                    return evolve_base_B(*position, current_player)
+                    return evolve_base_B(*position, current_player=current_player)
                 else:
                     raise ValueError("Invalid heuristic function specified")
             elif callable(heuristic):

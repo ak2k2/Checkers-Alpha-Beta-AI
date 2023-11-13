@@ -157,57 +157,34 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base_B,
-        man_weight=trial.suggest_float("cont_man_weight", 100, 1000),
-        king_weight=trial.suggest_float("cont_king_weight", 150, 1000),
-        chebychev_distance_weight=trial.suggest_float(
-            "cont_chebychev_distance_weight", 0, 200
+        man_weight=trial.suggest_float("cont_man_weight", 100, 2000),
+        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -1.0, 1.0),
+        king_weight=trial.suggest_float("cont_king_weight", 100, 2000),
+        king_growth_decay=trial.suggest_float("cont_king_growth_decay", -1.0, 1.0),
+        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 300),
+        back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 1.0),
+        capture_weight=trial.suggest_float("cont_capture_weight", 0, 300),
+        capture_growth_decay=trial.suggest_float(
+            "cont_capture_growth_decay", -1.0, 1.0
         ),
-        verge_king_weight=trial.suggest_float("cont_verge_king_weight", 0, 200),
-        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 200),
-        jump_weight=trial.suggest_float("cont_jump_weight", 0, 10),
-        capture_safety_weight=trial.suggest_float("cont_capture_safety_weight", 0, 200),
-        kinged_mult=trial.suggest_float("cont_kinged_mult", 0, 10),
-        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 0, 10),
-        took_king_mult=trial.suggest_float("cont_took_king_mult", 0, 10),
-        back_row_importance_factor=trial.suggest_float(
-            "cont_back_row_importance_factor", -50, 50
+        kinged_mult=trial.suggest_float("cont_kinged_mult", 0, 5.0),
+        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 0, 5.0),
+        took_king_mult=trial.suggest_float("cont_took_king_mult", 0, 5.0),
+        distance_weight=trial.suggest_float("cont_distance_weight", 0, 100),
+        distance_growth_decay=trial.suggest_float(
+            "cont_distance_growth_decay", -1.0, 1.0
         ),
-        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 150),
-        backwards_backup_factor=trial.suggest_float(
-            "cont_backwards_backup_factor", -50, 50
+        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 300),
+        mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1, 10),
+        mobility_growth_decay=trial.suggest_float(
+            "cont_mobility_growth_decay", -1.0, 1.0
         ),
-        backwards_backup_weight=trial.suggest_float(
-            "cont_backwards_backup_weight", 0, 100
+        safety_weight=trial.suggest_float("cont_safety_weight", 0, 300),
+        safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", -1.0, 1.0),
+        double_corner_bonus_weight=trial.suggest_float(
+            "cont_double_corner_bonus_weight", 0, 300
         ),
-        center_control_factor=trial.suggest_float(
-            "cont_center_control_factor", -50, 50
-        ),
-        center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 100),
-        kings_main_diagonal_weight=trial.suggest_float(
-            "cont_kings_main_diagonal_weight", -100, 100
-        ),
-        men_side_diagonals_weight=trial.suggest_float(
-            "cont_men_side_diagonals_weight", -100, 100
-        ),
-        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 3, 9),
-        double_corner_weight=trial.suggest_float("cont_double_corner_weight", 0, 200),
-        single_corner_weight=trial.suggest_float("cont_single_corner_weight", 0, 200),
-        kgw=trial.suggest_float("cont_kgw", -5, 5),
-        mgw=trial.suggest_float("cont_mgw", -5, 5),
-        maj_loss_thresh=trial.suggest_float("cont_maj_loss_thresh", 0.5, 0.8),
-        attack_weight=trial.suggest_float("cont_attack_weight", 0, 200),
-        agw=trial.suggest_float("cont_agw", -5, 5),
-        mix_row_not_box_weight=trial.suggest_float(
-            "cont_mix_row_not_box_weight", 0, 200
-        ),
-        mrnbw=trial.suggest_float("cont_mrnbw", -5, 5),
-        promotion_weight=trial.suggest_float("cont_promotion_weight", 0, 200),
-        pgw=trial.suggest_float("cont_pgw", -5, 5),
-        cssw=trial.suggest_float("cont_cssw", -5, 5),
-        vkg=trial.suggest_float("cont_vkg", -5, 5),
-        mbgw=trial.suggest_float("cont_mbgw", -5, 5),
-        end_game_strength=trial.suggest_float("cont_end_game_strength", 0, 20),
-        normalize_weird_stuff=trial.suggest_float("cont_normalize_weird_stuff", 0, 20),
+        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
     )
 
     # Play the game

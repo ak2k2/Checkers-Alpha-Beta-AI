@@ -257,8 +257,8 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 )
 
         print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
-        print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
-        print(f"EVOLVE1: {evolve_base_B(WP, BP, K)}")
+        # print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
+        # print(f"EVOLVE1: {evolve_base_B(WP, BP, K)}")
         print_board(WP, BP, K)
         print("-" * 50 + "\n")
 
