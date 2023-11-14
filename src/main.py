@@ -2,7 +2,7 @@ from checkers import *
 from heuristic import *
 
 # from minimax_alphabeta import *
-from arena.threadsafe_alpha_beta import threadsafe_AI as AI
+from minimax_alphabeta import AI
 from util.helpers import *
 
 import time
@@ -234,7 +234,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.BLACK
+                if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
                 early_stop_depth=100,
             )
@@ -263,10 +263,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
-        # print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
-        # print(f"EVOLVE1: {evolve_base_B(WP, BP, K)}")
         print_board(WP, BP, K)
+        print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
+        print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
         print("-" * 50 + "\n")
 
         current_player = switch_player(current_player)

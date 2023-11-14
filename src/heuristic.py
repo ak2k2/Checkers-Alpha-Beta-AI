@@ -6,11 +6,11 @@ from util.helpers import *
 from util.masks import *
 
 
-def new_heuristic(WP, BP, K, turn=None):
-    return 69
+# def new_heuristic(WP, BP, K, turn=None):
+#     return 69
 
 
-def evolve_base_B(
+def new_heuristic(
     WP,
     BP,
     K,
@@ -124,9 +124,9 @@ def evolve_base_B(
             adjustment_factor(num_total_pieces, kings_row_growth_decay)
             * kings_row_weight
         )
-        DISTANCE_TO_KINGS_ROW = (
-            kings_row_adj_w * calculate_total_distance_to_promotion_white(WP, K)
-            - calculate_total_distance_to_promotion_black(BP, K)
+        DISTANCE_TO_KINGS_ROW = kings_row_adj_w * (
+            calculate_total_distance_to_promotion_black(BP, K)
+            - calculate_total_distance_to_promotion_white(WP, K)
         )
     else:
         DISTANCE_TO_KINGS_ROW = 0
