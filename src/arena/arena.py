@@ -180,7 +180,7 @@ def objective(trial):
             "cont_capture_growth_decay", -1.0, 1.0
         ),
         kinged_mult=trial.suggest_float("cont_kinged_mult", 2.1, 3.2),
-        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 2, 6, 4.0),
+        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 2.6, 4.0),
         took_king_mult=trial.suggest_float("cont_took_king_mult", 2.7, 4.0),
         distance_weight=trial.suggest_int("cont_distance_weight", 0, 40),
         distance_growth_decay=trial.suggest_float("cont_distance_growth_decay", 0, 1.0),
