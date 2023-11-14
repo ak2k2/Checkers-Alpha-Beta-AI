@@ -6,11 +6,11 @@ from util.helpers import *
 from util.masks import *
 
 
-def new_heuristic(WP, BP, K, turn=None):
+def evolve_base_B(WP, BP, K, turn=None):
     return 100 * (count_bits(WP) - count_bits(BP)) + random.randint(0, 10)
 
 
-def evolve_base_B(
+def new_heuristic(
     WP,
     BP,
     K,
@@ -18,7 +18,7 @@ def evolve_base_B(
     man_weight=537,
     man_growth_decay=-0.4281918179959601,
     king_weight=767,
-    king_growth_decay=0.08566206457925264,
+    king_growth_decay=0.18566206457925264,
     back_row_weight=433,
     back_growth_decay=-0.3293593518395029,
     capture_weight=28,
@@ -28,14 +28,14 @@ def evolve_base_B(
     took_king_mult=3.967469205341885,
     distance_weight=94,
     distance_growth_decay=0.41113123717822037,
-    mobility_weight=48,
+    mobility_weight=28,
     mobility_jump_mult=2.475480348594868,
     mobility_growth_decay=0.47741446189421444,
     safety_weight=306,
     safety_growth_decay=0.44064305472191034,
     double_corner_bonus_weight=85,
     turn_advantage_weight=98,  # This parameter was not in your initial function definition
-    verge_weight=6,
+    verge_weight=100,
     verge_growth_decay=0.43223139573530184,
     center_control_weight=183,
     edge_weight=-66,
@@ -249,194 +249,6 @@ def old_heuristic(WP, BP, K, turn=None):
     )
 
     return piece_count_score + back_row + capture_score
-
-
-# def old_heuristic(
-#     WP,
-#     BP,
-#     K,
-#     turn=None,
-#     man_weight=830.626813121065,
-#     man_growth_decay=0.6626220134649203,
-#     king_weight=2089.0576481578714,
-#     king_growth_decay=-0.4044765517723363,
-#     back_row_weight=371.2937563800801,
-#     back_growth_decay=-0.27626818177029244,
-#     capture_weight=53.60771469653369,
-#     capture_growth_decay=0.5937019448758429,
-#     kinged_mult=3.092120706449105,
-#     land_edge_mult=3.329843409771888,
-#     took_king_mult=1.1541559965005888,
-#     distance_weight=30.455963377434735,
-#     distance_growth_decay=0.6346339022307796,
-#     mobility_weight=330.7892809568642,
-#     mobility_jump_mult=5.380924824632848,
-#     mobility_growth_decay=-0.2881193486220337,
-#     safety_weight=7.875583635868932,
-#     safety_growth_decay=0.011471137839038414,
-#     double_corner_bonus_weight=233.14698595613837,
-#     endgame_threshold=9,
-#     turn_advantage_weight=177.56687320354825,
-#     majority_loss_weight=0.36600752102404854,
-#     verge_weight=81.00234807852138,
-#     verge_growth_decay=0.031220778542601302,
-#     opening_thresh=22,
-#     center_control_weight=168.71659228455573,
-#     edge_weight=183.50393867064952,
-#     edge_growth_decay=-0.1165058526807734,
-#     kings_row_weight=145.37634461314647,
-#     kings_row_growth_decay=0.6523349940788987,
-# ):
-#     num_white_man = count_bits(WP & ~K & MASK_32)
-#     num_white_king = count_bits(WP & K & MASK_32)
-#     num_black_man = count_bits(BP & ~K & MASK_32)
-#     num_black_king = count_bits(BP & K & MASK_32)
-#     num_total_pieces = count_bits(WP) + count_bits(BP)
-#     SUM_DISTANCE = 0
-#     DOUBLE_CORNER_BONUS = 0
-
-#     man_adj_w = adjustment_factor(num_total_pieces, man_growth_decay) * man_weight
-#     king_adj_w = adjustment_factor(num_total_pieces, king_growth_decay) * king_weight
-
-#     PIECE_COUNT = (king_adj_w * (num_white_king - num_black_king)) + (
-#         man_adj_w * (num_white_man - num_black_man)
-#     )
-
-#     back_row_adj_w = (
-#         adjustment_factor(num_total_pieces, back_growth_decay) * back_row_weight
-#     )
-#     BACK_ROW = back_row_adj_w * (
-#         count_bits(WP & MASK_32 & KING_ROW_BLACK)  # WHITE HOME ROW
-#         - count_bits(BP & MASK_32 & KING_ROW_WHITE)  # BLACK HOME ROW
-#     )
-
-#     capture_adj_w = (
-#         adjustment_factor(num_total_pieces, capture_growth_decay) * capture_weight
-#     )
-
-#     CAPTURE = capture_adj_w * (
-#         count_black_pieces_that_can_be_captured_by_white(
-#             WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
-#         )
-#         - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
-#             WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
-#         )
-#     )
-
-#     mobility_adj_w = (
-#         adjustment_factor(num_total_pieces, mobility_growth_decay) * mobility_weight
-#     )
-
-#     MOBILITY = mobility_adj_w * mobility_diff_score(WP, BP, K, jw=mobility_jump_mult)
-
-#     safety_adj_w = (
-#         adjustment_factor(num_total_pieces, safety_growth_decay) * safety_weight
-#     )
-
-#     SAFETY_SCORE = safety_adj_w * (
-#         calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
-#     )
-
-#     if turn == PlayerTurn.WHITE:
-#         num_captures = count_black_pieces_that_can_be_captured_by_white(
-#             WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
-#         )
-#         TURN_ADVANTAGE = num_captures * turn_advantage_weight
-#     else:
-#         num_captures = count_white_pieces_that_can_be_captured_by_black(
-#             WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
-#         )
-#         TURN_ADVANTAGE = -1 * num_captures * turn_advantage_weight
-
-#     verge_king_adj_w = (
-#         adjustment_factor(num_total_pieces, verge_growth_decay) * verge_weight
-#     )
-#     VERGE_KINGING = verge_king_adj_w * pieces_on_verge_of_kinging(WP, BP, K, turn=turn)
-
-#     edge_adj_w = adjustment_factor(num_total_pieces, edge_growth_decay) * edge_weight
-#     EDGE_CONTROL = edge_adj_w * (
-#         count_bits(WP & EDGES & MASK_32) - count_bits(BP & EDGES & MASK_32)
-#     )
-
-#     if (
-#         num_total_pieces <= opening_thresh and num_total_pieces >= endgame_threshold
-#     ):  # MIDGAME
-#         kings_row_adj_w = (
-#             adjustment_factor(num_total_pieces, kings_row_growth_decay)
-#             * kings_row_weight
-#         )
-#         DISTANCE_TO_KINGS_ROW = kings_row_adj_w * (
-#             calculate_total_distance_to_promotion_black(BP, K)
-#             - calculate_total_distance_to_promotion_white(WP, K)
-#         )
-#     else:
-#         DISTANCE_TO_KINGS_ROW = 0
-
-#     loosing_substantially = (num_black_man + num_black_king) < (
-#         majority_loss_weight * (num_white_man + num_white_king)
-#     ) or (num_white_man + num_white_king) < (
-#         majority_loss_weight * (num_black_man + num_black_king)
-#     )
-
-#     if num_total_pieces >= opening_thresh:  # OPENING
-#         CENTER_CONTROL = (
-#             count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
-#         ) * center_control_weight
-#     else:
-#         CENTER_CONTROL = 0
-
-#     if (
-#         num_total_pieces <= endgame_threshold or loosing_substantially
-#     ):  # ENDGAME / MAJORITY LOSS
-#         if num_white_king > num_black_king:  # white has more kings
-#             distance_adj_w = (
-#                 adjustment_factor(num_total_pieces, distance_weight)
-#                 * distance_growth_decay
-#             ) * distance_weight
-
-#             SUM_DISTANCE = (
-#                 -1 * distance_adj_w * calculate_sum_distances(WP, BP)
-#             )  # white wants to minimize chevychev distance and get closer to black.
-
-#             DOUBLE_CORNER_BONUS = (
-#                 -1
-#                 * (  # black wants to maximize number of kings on double corner
-#                     BP & K & DOUBLE_CORNER & MASK_32
-#                 )
-#                 * double_corner_bonus_weight
-#             )
-
-#         elif num_black_king > num_white_king:  # black has more kings
-#             distance_adj_w = (
-#                 adjustment_factor(num_total_pieces, distance_weight)
-#                 * distance_growth_decay
-#             ) * distance_weight
-
-#             SUM_DISTANCE = distance_adj_w * calculate_sum_distances(
-#                 WP, BP
-#             )  # white wants to maximize chevychev distance and get further from black.
-
-#             DOUBLE_CORNER_BONUS = (
-#                 (  # white wants to maximize number of kings on double corner
-#                     WP & K & DOUBLE_CORNER & MASK_32
-#                 )
-#                 * double_corner_bonus_weight
-#             )
-
-#     return (
-#         PIECE_COUNT
-#         + BACK_ROW
-#         + CAPTURE
-#         + MOBILITY
-#         + SAFETY_SCORE
-#         + TURN_ADVANTAGE
-#         + VERGE_KINGING
-#         + CENTER_CONTROL
-#         + EDGE_CONTROL
-#         + DISTANCE_TO_KINGS_ROW
-#         + SUM_DISTANCE
-#         + DOUBLE_CORNER_BONUS
-#     )
 
 
 # ----------------- ************* -----------------
@@ -806,7 +618,9 @@ def test1():
 
 
 def test2():
-    WP, BP, K = setup_board_from_position_lists(["D4", "F4", "KD2"], ["KC5", "E5"])
+    WP, BP, K = setup_board_from_position_lists(
+        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5"]
+    )
 
     print_board(WP, BP, K)
 
