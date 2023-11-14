@@ -8,46 +8,6 @@ from minimax_alphabeta import AI
 from util.helpers import *
 
 
-def load_board():
-    return setup_board_from_position_lists(["KB8", "KF8", "KH8"], ["D6"])
-
-
-def load_game_from_sable_file(file_path):
-    WP, BP, K = get_empty_board()
-
-    with open(file_path, "r") as file:
-        board_lines = file.readlines()
-
-    # We expect the first 8 lines to contain the board state.
-    for row, line in enumerate(board_lines[:8]):
-        # Extracting pieces from the text line
-        pieces = line.strip().split()
-
-        for col, piece in enumerate(pieces):
-            # Calculate the bit index
-            bit_index = (7 - row) * 4 + col
-
-            # Mapping the piece to the correct bitboard
-            if piece == "1":
-                WP = insert_piece(WP, bit_index)
-            elif piece == "2":
-                BP = insert_piece(BP, bit_index)
-            elif piece == "3":
-                WP = insert_piece(WP, bit_index)
-                K = insert_piece(K, bit_index)
-            elif piece == "4":
-                BP = insert_piece(BP, bit_index)
-                K = insert_piece(K, bit_index)
-
-    # The 9th line should contain the current player's turn.
-    current_player = int(board_lines[8].strip())
-
-    # The 10th line should contain the time limit for the computer's turn.
-    time_limit = int(board_lines[9].strip())
-
-    return WP, BP, K, current_player, time_limit
-
-
 def human_vs_human():
     WP, BP, K = get_fresh_board()
     current_player = PlayerTurn.BLACK
@@ -68,7 +28,7 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {old_heuristic(WP, BP, K, turn = current_player)}")
+        print(f"EVAL: {new_heuristic(WP, BP, K, turn = current_player)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -241,7 +201,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.BLACK
+                if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
             )

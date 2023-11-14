@@ -3,6 +3,9 @@ from util.masks import *
 
 
 def do_move(WP, BP, K, moves, player):
+    """
+    Returns a tuple of the new board state after the given player makes the given move.
+    """
     if len(moves) == 1:
         move = [(moves)]
     else:

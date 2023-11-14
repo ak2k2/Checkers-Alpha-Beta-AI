@@ -15,36 +15,36 @@ def evolve_base_B(
     BP,
     K,
     turn=None,
-    man_weight=518,
-    man_growth_decay=0.05075076729561673,
-    king_weight=1797,
-    king_growth_decay=0.35577399505327706,
-    back_row_weight=449,
-    back_growth_decay=-0.16351282149672264,
-    capture_weight=87,
-    capture_growth_decay=-0.4485116576928776,
-    kinged_mult=2.565011755912057,
-    land_edge_mult=2.8013560851557773,
-    took_king_mult=3.2602540234170085,
-    distance_weight=11,
-    distance_growth_decay=0.3128824481708722,
-    mobility_weight=32,
-    mobility_jump_mult=1.6457275537891167,
-    mobility_growth_decay=-0.2820130008069003,
-    safety_weight=55,
-    safety_growth_decay=0.7334971795544353,
-    double_corner_bonus_weight=60,
-    turn_advantage_weight=273,
-    majority_loss_weight=0.32449810430756343,
-    verge_weight=4,
-    verge_growth_decay=0.0939156496149729,
-    opening_thresh=20,
-    endgame_threshold=6,  # ADDED THIS MANUALLY
-    center_control_weight=87,
-    edge_weight=-9,
-    edge_growth_decay=-0.47569344197839103,
-    kings_row_weight=168,
-    kings_row_growth_decay=-0.6940729489354547,
+    man_weight=633,
+    man_growth_decay=0.05532479199235507,
+    king_weight=1974,
+    king_growth_decay=0.6281128022481891,
+    back_row_weight=288,
+    back_growth_decay=-0.77393692799844,
+    capture_weight=78,
+    capture_growth_decay=0.22923234075467658,
+    kinged_mult=2.9543198801612705,
+    land_edge_mult=2.948127299431921,
+    took_king_mult=3.3500571103721493,
+    distance_weight=14,
+    distance_growth_decay=0.7318025270179445,
+    mobility_weight=88,
+    mobility_jump_mult=2.415349189570022,
+    mobility_growth_decay=0.19778608261531327,
+    safety_weight=66,
+    safety_growth_decay=0.6178405403813861,
+    double_corner_bonus_weight=29,
+    turn_advantage_weight=580,
+    majority_loss_weight=0.2731222652933757,
+    verge_weight=36,
+    verge_growth_decay=0.5268782761022106,
+    opening_thresh=18,
+    endgame_threshold=6,
+    center_control_weight=92,
+    edge_weight=16,
+    edge_growth_decay=-0.2715004853330216,
+    kings_row_weight=1,
+    kings_row_growth_decay=-0.8971009780241169,
 ):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
@@ -181,18 +181,18 @@ def evolve_base_B(
                 * double_corner_bonus_weight
             )
 
-    # print(f"PIECE_COUNT: {PIECE_COUNT}")
-    # print(f"BACK_ROW: {BACK_ROW}")
-    # print(f"CAPTURE: {CAPTURE}")
-    # print(f"MOBILITY: {MOBILITY}")
-    # print(f"SAFETY_SCORE: {SAFETY_SCORE}")
-    # print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
-    # print(f"VERGE_KINGING: {VERGE_KINGING}")
-    # print(f"CENTER_CONTROL: {CENTER_CONTROL}")
-    # print(f"EDGE_CONTROL: {EDGE_CONTROL}")
-    # print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
-    # print(f"SUM_DISTANCE: {SUM_DISTANCE}")
-    # print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
+    print(f"PIECE_COUNT: {PIECE_COUNT}")
+    print(f"BACK_ROW: {BACK_ROW}")
+    print(f"CAPTURE: {CAPTURE}")
+    print(f"MOBILITY: {MOBILITY}")
+    print(f"SAFETY_SCORE: {SAFETY_SCORE}")
+    print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
+    print(f"VERGE_KINGING: {VERGE_KINGING}")
+    print(f"CENTER_CONTROL: {CENTER_CONTROL}")
+    print(f"EDGE_CONTROL: {EDGE_CONTROL}")
+    print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
+    print(f"SUM_DISTANCE: {SUM_DISTANCE}")
+    print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
 
     return (
         PIECE_COUNT
@@ -786,9 +786,12 @@ def calculate_safe_black_pieces(BP, K):
 
 
 def test1():
-    WP, BP, K = setup_board_from_position_lists(
-        ["KD6", "KC3", "KF6", "KC1", "KB6"], ["KG1", "KG7", "KH8"]
-    )
+    # WP, BP, K = setup_board_from_position_lists(
+    #     ["KD6", "KC3", "KF6", "KC1", "KB6"], ["KG1", "KG7", "KH8"]
+    # )
+    WP, BP, K, _, _ = load_game_from_sable_file("src/boards/sample-cb2.txt")
+    WP = remove_piece_by_pdntext(WP, "D6")
+    WP = insert_piece_by_pdntext(WP, "C7")
 
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
@@ -806,25 +809,17 @@ def test1():
 
 
 def test2():
-    WP, BP, K = get_fresh_board()
+    WP, BP, K = get_empty_board()
+
     WP = insert_piece_by_pdntext(WP, "E5")
-    WP = remove_piece_by_pdntext(WP, "F6")
-    BP = remove_piece_by_pdntext(BP, "E3")
+    K = insert_piece_by_pdntext(K, "E5")
+    BP = insert_piece_by_pdntext(BP, "D4")
+    BP = insert_piece_by_pdntext(BP, "D2")
+    BP = insert_piece_by_pdntext(BP, "F2")
+    K = insert_piece_by_pdntext(K, "D4")
 
     print_board(WP, BP, K)
 
-    # print(
-    #     count_black_pieces_that_can_be_captured_by_white(
-    #         WP, BP, K, took_king_mult=10, land_edge_mult=2, kinged_mult=10
-    #     )
-    # )
-    # print(
-    #     count_white_pieces_that_can_be_captured_by_black(
-    #         WP, BP, K, took_king_mult=10, land_edge_mult=2, kinged_mult=10
-    #     )
-    # )
-
-    # print(calculate_safe_white_pieces(WP, K))
     print(
         f"BLACK TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.BLACK)}"
     )  # it should be negative for black
@@ -832,18 +827,7 @@ def test2():
     print(
         f"WHITE TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)}"
     )  # it should be negative for black
-    print(f"negative factor (24,-1): {adjustment_factor(24, -1)}")
-    print(f"negative factor (15,-1): {adjustment_factor(15, -1)}")
-    print(f"negative factor (10,-1): {adjustment_factor(10, -1)}")
-    print(f"negative factor (5,-1): {adjustment_factor(5, -1)}")
-    print(f"negative factor (1,-1): {adjustment_factor(1, -1)}")
-
-    print(f"positive factor (24,1): {adjustment_factor(24, 1)}")
-    print(f"positive factor (15,1): {adjustment_factor(15, 1)}")
-    print(f"positive factor (10,1): {adjustment_factor(10, 1)}")
-    print(f"positive factor (5,1): {adjustment_factor(5, 1)}")
-    print(f"positive factor (1,1): {adjustment_factor(1, 1)}")
 
 
 if __name__ == "__main__":
-    test1()
+    test2()

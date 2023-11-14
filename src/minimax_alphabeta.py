@@ -95,7 +95,7 @@ def AI(
     max_depth,
     time_limit=5,
     heuristic="new_heuristic",
-    early_stop_depth=100,
+    early_stop_depth=999,
 ):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")

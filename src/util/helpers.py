@@ -45,6 +45,42 @@ class PlayerTurn(Enum):
     BLACK = 2
 
 
+def load_game_from_sable_file(file_path):
+    WP, BP, K = get_empty_board()
+
+    with open(file_path, "r") as file:
+        board_lines = file.readlines()
+
+    # We expect the first 8 lines to contain the board state.
+    for row, line in enumerate(board_lines[:8]):
+        # Extracting pieces from the text line
+        pieces = line.strip().split()
+
+        for col, piece in enumerate(pieces):
+            # Calculate the bit index
+            bit_index = (7 - row) * 4 + col
+
+            # Mapping the piece to the correct bitboard
+            if piece == "1":
+                WP = insert_piece(WP, bit_index)
+            elif piece == "2":
+                BP = insert_piece(BP, bit_index)
+            elif piece == "3":
+                WP = insert_piece(WP, bit_index)
+                K = insert_piece(K, bit_index)
+            elif piece == "4":
+                BP = insert_piece(BP, bit_index)
+                K = insert_piece(K, bit_index)
+
+    # The 9th line should contain the current player's turn.
+    current_player = int(board_lines[8].strip())
+
+    # The 10th line should contain the time limit for the computer's turn.
+    time_limit = int(board_lines[9].strip())
+
+    return WP, BP, K, current_player, time_limit
+
+
 def bitboard_to_pdn_positions(bitboard):
     pdn_positions = [bitindex_to_coords(index) for index in find_set_bits(bitboard)]
     return pdn_positions
