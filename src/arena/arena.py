@@ -17,7 +17,7 @@ from util.helpers import *
 
 NET_TRIALS = 300
 EARLY_STOP_DEPTH = 20
-MAX_MOVES = 80
+MAX_MOVES = 90
 
 
 TIME_LIMIT = 6
@@ -169,9 +169,9 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base_B,
-        man_weight=trial.suggest_int("cont_man_weight", 600, 900),
+        man_weight=trial.suggest_int("cont_man_weight", 500, 1200),
         man_growth_decay=trial.suggest_float("cont_man_growth_decay", -0.1, 0.1),
-        king_weight=trial.suggest_int("cont_king_weight", 1200, 2000),
+        king_weight=trial.suggest_int("cont_king_weight", 1100, 2300),
         king_growth_decay=trial.suggest_float("cont_king_growth_decay", 0.2, 1.0),
         back_row_weight=trial.suggest_int("cont_back_row_weight", 200, 600),
         back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 0),
@@ -182,12 +182,12 @@ def objective(trial):
         kinged_mult=trial.suggest_float("cont_kinged_mult", 2.1, 3.2),
         land_edge_mult=trial.suggest_float("cont_land_edge_mult", 2.6, 4.0),
         took_king_mult=trial.suggest_float("cont_took_king_mult", 2.7, 4.0),
-        distance_weight=trial.suggest_int("cont_distance_weight", 0, 40),
+        distance_weight=trial.suggest_int("cont_distance_weight", 0, 30),
         distance_growth_decay=trial.suggest_float("cont_distance_growth_decay", 0, 1.0),
         mobility_weight=trial.suggest_int("cont_mobility_weight", 0, 150),
         mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1.5, 4),
         mobility_growth_decay=trial.suggest_float(
-            "cont_mobility_growth_decay", -0.8, 0
+            "cont_mobility_growth_decay", -0.8, 0.5
         ),
         safety_weight=trial.suggest_int("cont_safety_weight", 0, 100),
         safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", 0, 1.0),
@@ -202,7 +202,7 @@ def objective(trial):
         opening_thresh=trial.suggest_int("cont_opening_thresh", 18, 24),
         center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 100),
         edge_weight=trial.suggest_int(
-            "cont_edge_weight", -200, 0
+            "cont_edge_weight", -100, 100
         ),  # may want to penalize edges
         edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 0),
         kings_row_weight=trial.suggest_int("cont_kings_row_weight", 0, 200),
@@ -235,7 +235,7 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,  # contender is black
-        early_stop_depth=4,
+        early_stop_depth=2,
         time_limit=1,
         one_piece_down=True,
     )
@@ -251,9 +251,9 @@ def objective(trial):
             heuristic_white=CONTENDER,  # contender is white
             heuristic_black=CHAMPION,
             max_depth=100,
-            early_stop_depth=100,
+            early_stop_depth=2,
             time_limit=4,
-            two_piece_down=True,
+            one_piece_down=True,
             contender_is_white=True,
         )
 
@@ -305,11 +305,15 @@ def run_tpe_study():
         storage=storage,
         load_if_exists=True,
         study_name=study_name,
-        sampler=optuna.samplers.TPESampler(
-            seed=12122223,
-            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-        ),
-        # sampler=optuna.samplers.NSGAIIISampler(),
+        # sampler=optuna.samplers.TPESampler(
+        #     seed=12122223,
+        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+        #     consider_prior=True,
+        #     prior_weight=3,
+        #     consider_magic_clip=True,
+        #     consider_endpoints=True,
+        # ),
+        sampler=optuna.samplers.NSGAIIISampler(),
     )
 
     # Optuna's optimize function will automatically manage parallelization

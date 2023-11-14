@@ -193,7 +193,7 @@ def AI_vs_AI(
     max_depth=20,
     time_limit=None,
     initial_board=None,
-    early_stop_depth=3,
+    early_stop_depth=5,
 ):
     if time_limit is None:
         time_limit = 5
@@ -241,7 +241,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
             )

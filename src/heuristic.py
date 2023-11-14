@@ -6,45 +6,45 @@ from util.helpers import *
 from util.masks import *
 
 
-def evolve_base_B(WP, BP, K, turn=None):
+def new_heuristic(WP, BP, K, turn=None):
     return 100 * (count_bits(WP) - count_bits(BP)) + random.randint(0, 10)
 
 
-def new_heuristic(
+def evolve_base_B(
     WP,
     BP,
     K,
     turn=None,
-    man_weight=846,
-    man_growth_decay=-0.06391419392169503,
-    king_weight=1998,
-    king_growth_decay=0.5338273313800478,
-    back_row_weight=355,
-    back_growth_decay=-0.9656932017524094,
-    capture_weight=150,
-    capture_growth_decay=0.6101024153593047,
-    kinged_mult=2.6491261712071887,
-    land_edge_mult=3.2985404559984834,
-    took_king_mult=2.3723031948039734,
-    distance_weight=20,  # make this optimal for endgame
-    distance_growth_decay=1.0,
-    mobility_weight=18,
-    mobility_jump_mult=2.0325348153712053,
-    mobility_growth_decay=-0.5104406412313335,
-    safety_weight=61,
-    safety_growth_decay=0.6296397316731904,
-    double_corner_bonus_weight=43,
-    endgame_threshold=7,
-    turn_advantage_weight=397,
-    majority_loss_weight=0,
-    verge_weight=24,
-    verge_growth_decay=-0.8782934201475908,
-    opening_thresh=23,
-    center_control_weight=66,
-    edge_weight=-103,
-    edge_growth_decay=-0.3049190835985922,
-    kings_row_weight=198,
-    kings_row_growth_decay=-0.4284882105970266,
+    man_weight=518,
+    man_growth_decay=0.05075076729561673,
+    king_weight=1797,
+    king_growth_decay=0.35577399505327706,
+    back_row_weight=449,
+    back_growth_decay=-0.16351282149672264,
+    capture_weight=87,
+    capture_growth_decay=-0.4485116576928776,
+    kinged_mult=2.565011755912057,
+    land_edge_mult=2.8013560851557773,
+    took_king_mult=3.2602540234170085,
+    distance_weight=11,
+    distance_growth_decay=0.3128824481708722,
+    mobility_weight=32,
+    mobility_jump_mult=1.6457275537891167,
+    mobility_growth_decay=-0.2820130008069003,
+    safety_weight=55,
+    safety_growth_decay=0.7334971795544353,
+    double_corner_bonus_weight=60,
+    turn_advantage_weight=273,
+    majority_loss_weight=0.32449810430756343,
+    verge_weight=4,
+    verge_growth_decay=0.0939156496149729,
+    opening_thresh=20,
+    endgame_threshold=6,  # ADDED THIS MANUALLY
+    center_control_weight=87,
+    edge_weight=-9,
+    edge_growth_decay=-0.47569344197839103,
+    kings_row_weight=168,
+    kings_row_growth_decay=-0.6940729489354547,
 ):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
