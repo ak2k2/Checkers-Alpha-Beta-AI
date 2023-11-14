@@ -67,24 +67,24 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
             else:
                 raise ValueError("Invalid heuristic function specified")
 
-    if current_player == PlayerTurn.WHITE:
+    if current_player == PlayerTurn.WHITE:  # MAXIMIZING PLAYER
         max_eval = float("-inf")
         for move in legal_moves:
             new_position = do_move(*position, move, current_player)
             eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.BLACK)
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
-            if beta <= alpha:
+            if beta <= alpha:  # Prune
                 break
         return max_eval
-    else:
+    else:  # MINIMIZING PLAYER
         min_eval = float("inf")
         for move in legal_moves:
             new_position = do_move(*position, move, current_player)
             eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.WHITE)
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
-            if beta <= alpha:
+            if beta <= alpha:  # Prune
                 break
         return min_eval
 

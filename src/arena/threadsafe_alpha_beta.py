@@ -35,7 +35,9 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
             (
                 move,
                 heuristic_function(
-                    *do_move(*position, move, current_player), turn=current_player
+                    *do_move(*position, move, current_player),
+                    turn=current_player,
+                    num_moves=len(legal_moves),
                 ),
             )
             for move in legal_moves
@@ -63,13 +65,18 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="evolve_base
 
     # Check if the game has ended (either by reaching a terminal state or by reaching the maximum depth)
     if (
-        depth == 0 or legal_moves == [] or not legal_moves
+        depth == 0 or not legal_moves
     ):  # If at max depth or no legal moves, then it's a terminal state or a leaf node
         global NC
         NC += 1
-        if not legal_moves or legal_moves == []:
-            # If there are no legal moves, then this player has lost
-            return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+        if not legal_moves:  # no legal moves for current player
+            # return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+            if current_player == PlayerTurn.WHITE:
+                return -1 * (
+                    1_000_000 - (depth * 1_000)
+                )  # Loose as slowly as possible and win as quickly as possible
+            else:
+                return 1_000_000 - (depth * 1_000)
         else:
             if isinstance(heuristic, str):
                 # Here we reach the maximum depth, so we evaluate the position using the heuristic function
@@ -78,7 +85,11 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="evolve_base
                 elif heuristic == "old_heuristic":
                     return old_heuristic(*position, turn=current_player)
                 elif heuristic == "evolve_base_B":
-                    return evolve_base_B(*position, turn=current_player)
+                    return evolve_base_B(
+                        *position,
+                        turn=current_player,
+                        num_moves=len(legal_moves),
+                    )
                 else:
                     raise ValueError("Invalid heuristic function specified")
             elif callable(heuristic):
