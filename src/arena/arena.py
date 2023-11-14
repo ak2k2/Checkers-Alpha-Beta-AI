@@ -101,10 +101,8 @@ def PLAY_TUNE(
     if endgame_test_2v1 or endgame_test_3v2:
         local_move_lim = 50
 
-    while move_count < MAX_MOVES and not game_over:
+    while move_count < local_move_lim and not game_over:
         legal_moves = generate_legal_moves(WP, BP, K, current_player)
-        num_white_pieces = count_bits(WP)
-        num_black_pieces = count_bits(BP)
 
         if not legal_moves:
             game_over = True
