@@ -17,7 +17,7 @@ from util.helpers import *
 
 NET_TRIALS = 100
 EARLY_STOP_DEPTH = 20
-MAX_MOVES = 70
+MAX_MOVES = 80
 
 
 TIME_LIMIT = 6
@@ -56,9 +56,11 @@ def PLAY_TUNE(
         max_depth = 100
 
     WP, BP, K = get_fresh_board()
-    if not contender_is_white:
+    if not contender_is_white:  # if the contender is black
         if one_piece_down:
-            BP = remove_piece_by_pdntext(BP, "C3")  # black should have a disadvantage
+            BP = remove_piece_by_pdntext(
+                BP, "C3"
+            )  # contender should have a disadvantage
         elif two_piece_down:
             BP = remove_piece_by_pdntext(BP, "C3")
             BP = remove_piece_by_pdntext(BP, "E3")
@@ -68,7 +70,9 @@ def PLAY_TUNE(
             BP = remove_piece_by_pdntext(BP, "E1")
     elif contender_is_white:
         if one_piece_down:
-            WP = remove_piece_by_pdntext(WP, "D6")
+            WP = remove_piece_by_pdntext(
+                WP, "D6"
+            )  # contender should have a disadvantage
         elif two_piece_down:
             WP = remove_piece_by_pdntext(WP, "D6")
             WP = remove_piece_by_pdntext(WP, "F6")
@@ -218,37 +222,24 @@ def objective(trial):
         time_limit=1,
         early_stop_depth=3,
         move_limit=120,
+        contender_is_white=True,
     )
 
-    if warmup_qualafier["winner"] == "WHITE":
+    if warmup_qualafier["winner"] == "WHITE":  # WHITE is the CONTENDER
         print("\ncontendor passed the warmup by WINNING:\n")
         score = 0
-    elif warmup_qualafier["winner"] == "BLACK":
+    elif warmup_qualafier["winner"] == "BLACK":  # BLACK is the CHAMPION
         print("\ncontendor lost the warmup:\n")
         return -10000
-
-    pre_finals = PLAY_TUNE(
-        PlayerTurn.BLACK,
-        heuristic_white=CONTENDER,  # contender is white
-        heuristic_black=CHAMPION,
-        early_stop_depth=4,
-        move_limit=80,
-    )
-
-    if pre_finals["winner"] == "WHITE" or pre_finals["winner"] == "DRAW":
-        print("\ncontendor passed the pre-finals:\n")
-        score = 0
-    elif pre_finals["winner"] == "BLACK":
-        print("\ncontendor lost the pre-finals:\n")
-        return -1000
 
     # Play the first game
     result = PLAY_TUNE(
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
-        heuristic_black=CONTENDER,
+        heuristic_black=CONTENDER,  # contender is black
         early_stop_depth=20,
         time_limit=1,
+        one_piece_down=True,
     )
 
     # Calculate the score based on the result
@@ -259,45 +250,37 @@ def objective(trial):
         )
         stress_result_one = PLAY_TUNE(
             PlayerTurn.BLACK,
-            heuristic_white=CONTENDER,
+            heuristic_white=CONTENDER,  # contender is white
             heuristic_black=CHAMPION,
             max_depth=100,
             early_stop_depth=10,
-            time_limit=TIME_LIMIT,
-            one_piece_down=True,
+            time_limit=4,
+            two_piece_down=True,
             contender_is_white=True,
         )
-        if stress_result_one["winner"] == "BLACK":
+
+        if stress_result_one["winner"] == "WHITE":  # WHITE is the CONTENDER
             print(
-                "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS WHITE AND WITH A PIECE DOWN\n"
+                "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS WHITE AND DOWN TWO PIECES\n"
             )
             score *= 4
-            if stress_result_one["move_count"] < 50:
+            if stress_result_one["move_count"] < 45:
+                score *= 10
+            elif stress_result_one["move_count"] < 55:
+                score *= 5
+            elif stress_result_one["move_count"] < 65:
                 score *= 2
+        elif stress_result_one["winner"] == "DRAW":
+            score *= 2  # draw is good enough with two piece disadvantage
 
-            stress_test_two = PLAY_TUNE(
-                PlayerTurn.BLACK,
-                heuristic_white=CHAMPION,
-                heuristic_black=CONTENDER,
-                max_depth=100,
-                early_stop_depth=100,
-                time_limit=TIME_LIMIT,
-                two_piece_down=True,
-            )
-            if stress_test_two["winner"] == "BLACK":
-                print(
-                    "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS BLACK WITH TWO PIECES DOWN\n"
-                )
-                score *= 16
-
-    elif result["winner"] == "WHITE":  # WHITE is the OG champion.
+    elif result["winner"] == "WHITE":  # THE CHAMPION won the first game
         score = -1 * (
             abs(
                 (result["black_men_left"] + result["black_kings_left"])
                 - (result["white_men_left"] + result["white_kings_left"])
             )
         )
-    else:  # penalty for draw with less pieces left
+    elif result["winner"] == "DRAW":
         score = (result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
@@ -305,25 +288,6 @@ def objective(trial):
             score = 0  # draw is not good enough
         elif score < 0:
             score *= 2  # draw is bad
-
-    score *= MAX_MOVES / result["move_count"]
-
-    if score > 0:
-        as_white = PLAY_TUNE(
-            PlayerTurn.WHITE,
-            heuristic_white=CONTENDER,
-            heuristic_black=CHAMPION,
-            time_limit=TIME_LIMIT,
-            early_stop_depth=10,
-            contender_is_white=True,
-            three_piece_down=True,
-        )
-
-        if as_white["winner"] == "WHITE":
-            print("\nCONTENDOR BEAT THE CHAMPION WITH -3 piece DISADVANTAGE\n")
-            score *= 32  # reward for winning as black and white
-            if as_white["move_count"] < 50:
-                score *= 2
 
     return score
 
