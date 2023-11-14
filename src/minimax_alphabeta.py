@@ -58,7 +58,12 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
         global NC
         NC += 1
         if legal_moves == [] or not legal_moves:
-            return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
+            if current_player == PlayerTurn.WHITE:
+                return -1 * (
+                    1_000_000 - (depth * 1_000)
+                )  # Loose as slowly as possible and win as quickly as possible
+            else:
+                return 1_000_000 - (depth * 1_000)
         else:
             if heuristic == "new_heuristic":
                 return new_heuristic(*position, turn=current_player)
