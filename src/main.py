@@ -201,7 +201,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
             )
@@ -232,13 +232,14 @@ def AI_vs_AI(
                     f"AI ({current_player.name}) hit the 'time limit' and reached depth {depth_reached}."
                 )
 
-        print_board(WP, BP, K)
-        print(f"NEW Heuristic: {new_heuristic(WP, BP, K, turn=current_player)}")
-        print(f"OLD Heuristic: {old_heuristic(WP, BP, K, turn=current_player)}")
-        print("-" * 50 + "\n")
-
         current_player = switch_player(current_player)
         move_count += 1
+
+        print_board(WP, BP, K)
+        print(f"NEW Heuristic: {new_heuristic(WP, BP, K, turn=current_player)}")
+        print(f"Current player: {current_player.name}")
+        print(f"OLD Heuristic: {old_heuristic(WP, BP, K, turn=current_player)}")
+        print("-" * 50 + "\n")
 
     if not game_over:
         print(f"GAME OVER in {move_count} moves! DRAW.")

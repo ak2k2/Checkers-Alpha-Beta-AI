@@ -15,36 +15,33 @@ def evolve_base_B(
     BP,
     K,
     turn=None,
-    man_weight=633,
-    man_growth_decay=0.05532479199235507,
-    king_weight=1974,
-    king_growth_decay=0.6281128022481891,
-    back_row_weight=288,
-    back_growth_decay=-0.77393692799844,
-    capture_weight=78,
-    capture_growth_decay=0.22923234075467658,
-    kinged_mult=2.9543198801612705,
-    land_edge_mult=2.948127299431921,
-    took_king_mult=3.3500571103721493,
-    distance_weight=14,
-    distance_growth_decay=0.7318025270179445,
-    mobility_weight=88,
-    mobility_jump_mult=2.415349189570022,
-    mobility_growth_decay=0.19778608261531327,
-    safety_weight=66,
-    safety_growth_decay=0.6178405403813861,
-    double_corner_bonus_weight=29,
-    turn_advantage_weight=580,
-    majority_loss_weight=0.2731222652933757,
-    verge_weight=36,
-    verge_growth_decay=0.5268782761022106,
-    opening_thresh=18,
-    endgame_threshold=6,
-    center_control_weight=92,
-    edge_weight=16,
-    edge_growth_decay=-0.2715004853330216,
-    kings_row_weight=1,
-    kings_row_growth_decay=-0.8971009780241169,
+    man_weight=506,
+    man_growth_decay=0.9274357933710591,
+    king_weight=858,
+    king_growth_decay=0.36589089405431774,
+    back_row_weight=230,
+    back_growth_decay=-0.7520122661642877,
+    capture_weight=28,
+    capture_growth_decay=-0.7889139581837501,
+    kinged_mult=2.4473189169292566,
+    land_edge_mult=1.9640275673124263,
+    took_king_mult=2.6164047316683128,
+    distance_weight=58,
+    distance_growth_decay=0.2247076002402585,
+    mobility_weight=86,
+    mobility_jump_mult=3.5119850488846844,
+    mobility_growth_decay=0.4472033497301432,
+    safety_weight=9,
+    safety_growth_decay=0.12133704770824871,
+    double_corner_bonus_weight=17,
+    turn_advantage_weight=88,
+    verge_weight=21,
+    verge_growth_decay=0.8586301552162687,
+    center_control_weight=174,
+    edge_weight=-40,
+    edge_growth_decay=0.18532925742313067,
+    kings_row_weight=133,
+    kings_row_growth_decay=-0.511006827394221,
 ):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
@@ -53,6 +50,8 @@ def evolve_base_B(
     num_total_pieces = count_bits(WP) + count_bits(BP)
     SUM_DISTANCE = 0
     DOUBLE_CORNER_BONUS = 0
+    opening_thresh = 18
+    endgame_threshold = 6
 
     man_adj_w = adjustment_factor(num_total_pieces, man_growth_decay) * man_weight
     king_adj_w = adjustment_factor(num_total_pieces, king_growth_decay) * king_weight
@@ -65,9 +64,14 @@ def evolve_base_B(
         adjustment_factor(num_total_pieces, back_growth_decay) * back_row_weight
     )
 
-    BACK_ROW = back_row_adj_w * (
-        count_bits(WP & MASK_32 & KING_ROW_BLACK)  # WHITE HOME ROW
-        - count_bits(BP & MASK_32 & KING_ROW_WHITE)  # BLACK HOME ROW
+    # added additional back row decay to make it less important in the mid/endgame
+    BACK_ROW = (
+        (num_total_pieces / 24)
+        * back_row_adj_w
+        * (
+            count_bits(WP & MASK_32 & KING_ROW_BLACK)  # WHITE HOME ROW
+            - count_bits(BP & MASK_32 & KING_ROW_WHITE)  # BLACK HOME ROW
+        )
     )
 
     capture_adj_w = (
@@ -112,6 +116,7 @@ def evolve_base_B(
     VERGE_KINGING = verge_king_adj_w * pieces_on_verge_of_kinging(WP, BP, K, turn=turn)
 
     edge_adj_w = adjustment_factor(num_total_pieces, edge_growth_decay) * edge_weight
+
     EDGE_CONTROL = edge_adj_w * (
         count_bits(WP & EDGES & MASK_32) - count_bits(BP & EDGES & MASK_32)
     )
@@ -130,12 +135,6 @@ def evolve_base_B(
     else:
         DISTANCE_TO_KINGS_ROW = 0
 
-    loosing_substantially = (num_black_man + num_black_king) < (
-        majority_loss_weight * (num_white_man + num_white_king)
-    ) or (num_white_man + num_white_king) < (
-        majority_loss_weight * (num_black_man + num_black_king)
-    )
-
     if num_total_pieces >= opening_thresh:  # OPENING
         CENTER_CONTROL = (
             count_bits(WP & CENTER_8) - count_bits(BP & CENTER_8)
@@ -143,9 +142,7 @@ def evolve_base_B(
     else:
         CENTER_CONTROL = 0
 
-    if (
-        num_total_pieces <= endgame_threshold or loosing_substantially
-    ):  # ENDGAME / MAJORITY LOSS
+    if num_total_pieces <= endgame_threshold:  # ENDGAME / MAJORITY LOSS
         if num_white_king > num_black_king:  # white has more kings
             distance_adj_w = (
                 adjustment_factor(num_total_pieces, distance_weight)
@@ -802,19 +799,14 @@ def test1():
         new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)
     )  # it should be positive for white
 
+    print(adjustment_factor(10, -1))
+
 
 # test1()
 
 
 def test2():
-    WP, BP, K = get_empty_board()
-
-    WP = insert_piece_by_pdntext(WP, "E5")
-    K = insert_piece_by_pdntext(K, "E5")
-    BP = insert_piece_by_pdntext(BP, "D4")
-    BP = insert_piece_by_pdntext(BP, "D2")
-    BP = insert_piece_by_pdntext(BP, "F2")
-    K = insert_piece_by_pdntext(K, "D4")
+    WP, BP, K = setup_board_from_position_lists(["D4", "F4", "KD2"], ["KC5", "E5"])
 
     print_board(WP, BP, K)
 
@@ -828,4 +820,4 @@ def test2():
 
 
 if __name__ == "__main__":
-    test1()
+    test2()

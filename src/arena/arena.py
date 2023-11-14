@@ -183,12 +183,9 @@ def objective(trial):
         double_corner_bonus_weight=trial.suggest_int(
             "cont_double_corner_bonus_weight", 0, 100
         ),
-        endgame_threshold=6,
         turn_advantage_weight=trial.suggest_int("cont_turn_advantage_weight", 0, 400),
-        majority_loss_weight=trial.suggest_float("cont_majority_loss_weight", 0.2, 0.8),
         verge_weight=trial.suggest_int("cont_verge_weight", 0, 50),
         verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1),
-        opening_thresh=18,
         center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 200),
         edge_weight=trial.suggest_int(
             "cont_edge_weight", -100, 100
@@ -269,8 +266,17 @@ def objective(trial):
                     one_piece_down=True,
                 )
                 if one_piece_down["winner"] == "BLACK":
-                    score *= 2
-
+                    score *= 32
+                    two_piece_down = PLAY_TUNE(
+                        PlayerTurn.BLACK,
+                        heuristic_white=CHAMPION,
+                        heuristic_black=CONTENDER,  # contender is black
+                        early_stop_depth=5,
+                        time_limit=3,
+                        two_piece_down=True,
+                    )
+                    if two_piece_down["winner"] == "BLACK":
+                        score *= 64
         return score
 
     else:
