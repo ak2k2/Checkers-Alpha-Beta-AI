@@ -68,7 +68,7 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"HEURISTIC: {old_heuristic(WP, BP, K)}")
+        print(f"HEURISTIC: {old_heuristic(WP, BP, K, turn = current_player)}")
 
         current_player = switch_player(current_player)
         move_count += 1
@@ -196,7 +196,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
 
     if initial_board is None:
         WP, BP, K = get_fresh_board()
-        WP = remove_piece_by_pdntext(WP, "D6")
+        # WP = remove_piece_by_pdntext(WP, "D6")
     else:
         WP, BP, K = initial_board
 
@@ -234,9 +234,9 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
-                early_stop_depth=100,
+                early_stop_depth=3,
             )
 
         end_time = time.time()
@@ -264,8 +264,8 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 )
 
         print_board(WP, BP, K)
-        print(f"NEW Heuristic: {new_heuristic(WP, BP, K)}")
-        print(f"OLD Heuristic: {old_heuristic(WP, BP, K)}")
+        print(f"NEW Heuristic: {new_heuristic(WP, BP, K, turn=current_player)}")
+        print(f"OLD Heuristic: {old_heuristic(WP, BP, K, turn=current_player)}")
         print("-" * 50 + "\n")
 
         current_player = switch_player(current_player)

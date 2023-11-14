@@ -1,7 +1,7 @@
-import signal
-import time
 import pathlib
+import signal
 import sys
+import time
 
 # Assuming checkers and heuristic modules are in the parent directory as in the first script
 parent = pathlib.Path(__file__).parent.parent.absolute()
@@ -61,9 +61,9 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
             return float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
         else:
             if heuristic == "new_heuristic":
-                return new_heuristic(*position, current_player)
+                return new_heuristic(*position, turn=current_player)
             elif heuristic == "old_heuristic":
-                return old_heuristic(*position)
+                return old_heuristic(*position, turn=current_player)
             else:
                 raise ValueError("Invalid heuristic function specified")
 
