@@ -789,9 +789,7 @@ def test1():
     # WP, BP, K = setup_board_from_position_lists(
     #     ["KD6", "KC3", "KF6", "KC1", "KB6"], ["KG1", "KG7", "KH8"]
     # )
-    WP, BP, K, _, _ = load_game_from_sable_file("src/boards/sample-cb2.txt")
-    WP = remove_piece_by_pdntext(WP, "D6")
-    WP = insert_piece_by_pdntext(WP, "C7")
+    WP, BP, K, _, _ = load_game_from_sable_file("src/boards/sample-cb3.txt")
 
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
@@ -830,4 +828,4 @@ def test2():
 
 
 if __name__ == "__main__":
-    test2()
+    test1()

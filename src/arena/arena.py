@@ -46,6 +46,8 @@ def PLAY_TUNE(
     early_stop_depth=EARLY_STOP_DEPTH,
     contender_is_white=False,
     move_limit=MAX_MOVES,
+    endgame_test_2v1=False,
+    endgame_test_3v2=False,
 ):
     if time_limit is None:
         time_limit = 1
@@ -80,37 +82,29 @@ def PLAY_TUNE(
             WP = remove_piece_by_pdntext(WP, "D6")
             WP = remove_piece_by_pdntext(WP, "F6")
             WP = remove_piece_by_pdntext(WP, "H8")
+    if endgame_test_2v1:
+        if not contender_is_white:
+            WP, BP, K = setup_board_from_position_lists(
+                ["KD4"], ["KB6", "KD6"]
+            )  # black is the contender and has 2 kings and white has 1 king
+    if endgame_test_3v2:
+        if not contender_is_white:
+            WP, BP, K = setup_board_from_position_lists(
+                ["KB6", "KF2"], ["KD6", "KE5", "KF4"]
+            )
 
     current_player = who_moves_first
     move_count = 0
     game_over = False
+    local_move_lim = MAX_MOVES
+
+    if endgame_test_2v1 or endgame_test_3v2:
+        local_move_lim = 50
 
     while move_count < MAX_MOVES and not game_over:
         legal_moves = generate_legal_moves(WP, BP, K, current_player)
         num_white_pieces = count_bits(WP)
         num_black_pieces = count_bits(BP)
-        if (
-            num_white_pieces - num_black_pieces >= 5
-        ):  # if the champion has a 4 piece advantage, it's a win
-            return {
-                "winner": "WHITE",
-                "white_men_left": count_bits(WP & ~K),
-                "white_kings_left": count_bits(WP & K),
-                "black_men_left": count_bits(BP & ~K),
-                "black_kings_left": count_bits(BP & K),
-                "move_count": move_count,
-            }
-        elif (
-            num_black_pieces - num_white_pieces >= 5
-        ):  # if the challenger has a 4 piece advantage, it's a win
-            return {
-                "winner": "BLACK",
-                "white_men_left": count_bits(WP & ~K),
-                "white_kings_left": count_bits(WP & K),
-                "black_men_left": count_bits(BP & ~K),
-                "black_kings_left": count_bits(BP & K),
-                "move_count": move_count,
-            }
 
         if not legal_moves:
             game_over = True
@@ -138,9 +132,6 @@ def PLAY_TUNE(
         WP, BP, K = do_move(WP, BP, K, best_move, current_player)
         current_player = switch_player(current_player)
         move_count += 1
-        # print(f"Heuristic White: {heuristic_white(WP, BP, K)}")
-        # print(f"Heuristic Black: {heuristic_black(WP, BP, K)}")
-        # print_board(WP, BP, K)
 
     result = {
         "winner": None if not game_over else switch_player(current_player).name,
@@ -169,42 +160,40 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base_B,
-        man_weight=trial.suggest_int("cont_man_weight", 500, 1200),
-        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -0.1, 0.1),
-        king_weight=trial.suggest_int("cont_king_weight", 1100, 2300),
-        king_growth_decay=trial.suggest_float("cont_king_growth_decay", 0.2, 1.0),
+        man_weight=trial.suggest_int("cont_man_weight", 400, 600),
+        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -1, 1),
+        king_weight=trial.suggest_int("cont_king_weight", 675, 875),
+        king_growth_decay=trial.suggest_float("cont_king_growth_decay", 0.0, 1.0),
         back_row_weight=trial.suggest_int("cont_back_row_weight", 200, 600),
         back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 0),
-        capture_weight=trial.suggest_int("cont_capture_weight", 0, 200),
+        capture_weight=trial.suggest_int("cont_capture_weight", 0, 50),
         capture_growth_decay=trial.suggest_float(
             "cont_capture_growth_decay", -1.0, 1.0
         ),
-        kinged_mult=trial.suggest_float("cont_kinged_mult", 2.1, 3.2),
-        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 2.6, 4.0),
-        took_king_mult=trial.suggest_float("cont_took_king_mult", 2.7, 4.0),
-        distance_weight=trial.suggest_int("cont_distance_weight", 0, 30),
+        kinged_mult=trial.suggest_float("cont_kinged_mult", 1.5, 3.2),
+        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 1.6, 3.2),
+        took_king_mult=trial.suggest_float("cont_took_king_mult", 1.7, 4.3),
+        distance_weight=trial.suggest_int("cont_distance_weight", 0, 100),
         distance_growth_decay=trial.suggest_float("cont_distance_growth_decay", 0, 1.0),
         mobility_weight=trial.suggest_int("cont_mobility_weight", 0, 150),
         mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1.5, 4),
-        mobility_growth_decay=trial.suggest_float(
-            "cont_mobility_growth_decay", -0.8, 0.5
-        ),
-        safety_weight=trial.suggest_int("cont_safety_weight", 0, 100),
+        mobility_growth_decay=trial.suggest_float("cont_mobility_growth_decay", 0, 1),
+        safety_weight=trial.suggest_int("cont_safety_weight", 0, 400),
         safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", 0, 1.0),
         double_corner_bonus_weight=trial.suggest_int(
             "cont_double_corner_bonus_weight", 0, 100
         ),
         endgame_threshold=6,
-        turn_advantage_weight=trial.suggest_int("cont_turn_advantage_weight", 0, 600),
+        turn_advantage_weight=trial.suggest_int("cont_turn_advantage_weight", 0, 400),
         majority_loss_weight=trial.suggest_float("cont_majority_loss_weight", 0.2, 0.8),
         verge_weight=trial.suggest_int("cont_verge_weight", 0, 50),
         verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1),
-        opening_thresh=trial.suggest_int("cont_opening_thresh", 18, 24),
-        center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 100),
+        opening_thresh=18,
+        center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 200),
         edge_weight=trial.suggest_int(
             "cont_edge_weight", -100, 100
         ),  # may want to penalize edges
-        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 0),
+        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 1),
         kings_row_weight=trial.suggest_int("cont_kings_row_weight", 0, 200),
         kings_row_growth_decay=trial.suggest_float(
             "cont_kings_row_growth_decay", -1.0, 0
@@ -235,8 +224,8 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,  # contender is black
-        early_stop_depth=2,
-        time_limit=1,
+        early_stop_depth=100,
+        time_limit=3,
         one_piece_down=True,
     )
 
@@ -246,48 +235,52 @@ def objective(trial):
         score = abs(result["black_men_left"] + result["black_kings_left"]) - (
             result["white_men_left"] + result["white_kings_left"]
         )
-        stress_result_one = PLAY_TUNE(
+
+        endgame1 = PLAY_TUNE(
             PlayerTurn.BLACK,
-            heuristic_white=CONTENDER,  # contender is white
-            heuristic_black=CHAMPION,
-            max_depth=100,
-            early_stop_depth=2,
-            time_limit=4,
-            one_piece_down=True,
-            contender_is_white=True,
+            heuristic_white=CHAMPION,
+            heuristic_black=CONTENDER,  # contender is black
+            early_stop_depth=5,
+            time_limit=3,
+            endgame_test_2v1=True,
         )
-
-        if stress_result_one["winner"] == "WHITE":  # WHITE is the CONTENDER
-            print(
-                "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS WHITE AND DOWN TWO PIECES\n"
-            )
+        if endgame1["winner"] == "BLACK":
+            print("\nCONTENDOR BEAT THE CHAMPION AS BLACK in 2v1 ENDGAME\n")
             score *= 4
-            if stress_result_one["move_count"] < 45:
-                score *= 10
-            elif stress_result_one["move_count"] < 55:
-                score *= 5
-            elif stress_result_one["move_count"] < 65:
-                score *= 2
-        elif stress_result_one["winner"] == "DRAW":
-            score *= 2  # draw is good enough with two piece disadvantage
 
-    elif result["winner"] == "WHITE":  # THE CHAMPION won the first game
+            endgame2 = PLAY_TUNE(
+                PlayerTurn.BLACK,
+                heuristic_white=CHAMPION,
+                heuristic_black=CONTENDER,  # contender is black
+                early_stop_depth=5,
+                time_limit=3,
+                endgame_test_3v2=True,
+            )
+            if endgame2["winner"] == "BLACK":
+                print("\nCONTENDOR BEAT THE CHAMPION AS BLACK in 3v2 ENDGAME\n")
+                score *= 16
+
+                one_piece_down = PLAY_TUNE(
+                    PlayerTurn.BLACK,
+                    heuristic_white=CHAMPION,
+                    heuristic_black=CONTENDER,  # contender is black
+                    early_stop_depth=5,
+                    time_limit=3,
+                    one_piece_down=True,
+                )
+                if one_piece_down["winner"] == "BLACK":
+                    score *= 2
+
+        return score
+
+    else:
         score = -1 * (
             abs(
                 (result["black_men_left"] + result["black_kings_left"])
                 - (result["white_men_left"] + result["white_kings_left"])
             )
         )
-    elif result["winner"] == "DRAW":
-        score = (result["black_men_left"] + result["black_kings_left"]) - (
-            result["white_men_left"] + result["white_kings_left"]
-        )
-        if score > 1:
-            score = 0  # draw is not good enough
-        elif score < 0:
-            score *= 2  # draw is bad
-
-    return score
+        return score
 
 
 def run_tpe_study():
@@ -305,15 +298,7 @@ def run_tpe_study():
         storage=storage,
         load_if_exists=True,
         study_name=study_name,
-        # sampler=optuna.samplers.TPESampler(
-        #     seed=12122223,
-        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-        #     consider_prior=True,
-        #     prior_weight=3,
-        #     consider_magic_clip=True,
-        #     consider_endpoints=True,
-        # ),
-        sampler=optuna.samplers.NSGAIIISampler(),
+        sampler=optuna.samplers.TPESampler(seed=12122223),
     )
 
     # Optuna's optimize function will automatically manage parallelization
