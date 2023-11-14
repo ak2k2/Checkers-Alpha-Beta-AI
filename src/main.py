@@ -1,11 +1,11 @@
+import time
+
 from checkers import *
 from heuristic import *
 
 # from minimax_alphabeta import *
 from minimax_alphabeta import AI
 from util.helpers import *
-
-import time
 
 
 def load_board():
@@ -78,7 +78,11 @@ def human_vs_human():
 
 # human_vs_AI(who_moves_first=PlayerTurn.BLACK, human_color=PlayerTurn.WHITE)
 def human_vs_AI(
-    who_moves_first=None, human_color=None, initial_board=None, time_limit=None
+    who_moves_first=None,
+    human_color=None,
+    initial_board=None,
+    time_limit=None,
+    early_stop_depth=5,
 ):
     if initial_board is None:
         (WP, BP, K) = get_fresh_board()
@@ -153,7 +157,7 @@ def human_vs_AI(
                     max_depth,
                     time_limit,
                     heuristic="new_heuristic",
-                    early_stop_depth=10,
+                    early_stop_depth=early_stop_depth,
                 )
 
             end_time = time.time()
@@ -175,11 +179,7 @@ def human_vs_AI(
                     print(f"AI hit the 'time limit' and reached depth {depth_reached}.")
 
         print_board(WP, BP, K)
-        print(f"EVAL (new heuristic): {new_heuristic(WP, BP, K)}")
-        print(f"Number of White Men: {count_bits(WP & ~K)}")
-        print(f"Number of White Kings: {count_bits(WP & K)}")
-        print(f"Number of Black Men: {count_bits(BP & ~K)}")
-        print(f"Number of Black Kings: {count_bits(BP & K)}")
+        print(f"EVAL: {new_heuristic(WP, BP, K, turn=current_player)}")
         print("-" * 50 + "\n")
 
         current_player = switch_player(current_player)
@@ -188,7 +188,13 @@ def human_vs_AI(
     print(f"\nGame lasted {move_count} moves.")
 
 
-def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None):
+def AI_vs_AI(
+    who_moves_first,
+    max_depth=20,
+    time_limit=None,
+    initial_board=None,
+    early_stop_depth=3,
+):
     if time_limit is None:
         time_limit = 5
     if who_moves_first is None:
@@ -197,6 +203,7 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
     if initial_board is None:
         WP, BP, K = get_fresh_board()
         # WP = remove_piece_by_pdntext(WP, "D6")
+        # WP = remove_piece_by_pdntext(WP, "F6")
     else:
         WP, BP, K = initial_board
 
@@ -236,11 +243,13 @@ def AI_vs_AI(who_moves_first, max_depth=20, time_limit=None, initial_board=None)
                 heuristic="old_heuristic"
                 if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
-                early_stop_depth=3,
+                early_stop_depth=early_stop_depth,
             )
 
         end_time = time.time()
-        elapsed_time = end_time - start_time
+        elapsed_time = (
+            end_time - start_time
+        )  # just to print out how long the AI took to make a move
 
         if best_move is None:
             print(

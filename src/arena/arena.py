@@ -169,47 +169,45 @@ def objective(trial):
 
     CONTENDER = partial(
         evolve_base_B,
-        man_weight=trial.suggest_float("cont_man_weight", 100, 3000),
-        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -1.0, 1.0),
-        king_weight=trial.suggest_float("cont_king_weight", 100, 3000),
-        king_growth_decay=trial.suggest_float("cont_king_growth_decay", -1.0, 1.0),
-        back_row_weight=trial.suggest_float("cont_back_row_weight", 0, 1000),
-        back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 1.0),
-        capture_weight=trial.suggest_float("cont_capture_weight", 0, 1000),
+        man_weight=trial.suggest_int("cont_man_weight", 600, 900),
+        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -0.1, 0.1),
+        king_weight=trial.suggest_int("cont_king_weight", 1200, 2000),
+        king_growth_decay=trial.suggest_float("cont_king_growth_decay", 0.2, 1.0),
+        back_row_weight=trial.suggest_int("cont_back_row_weight", 200, 600),
+        back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 0),
+        capture_weight=trial.suggest_int("cont_capture_weight", 0, 200),
         capture_growth_decay=trial.suggest_float(
             "cont_capture_growth_decay", -1.0, 1.0
         ),
-        kinged_mult=trial.suggest_float("cont_kinged_mult", 0, 5.0),
-        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 0, 5.0),
-        took_king_mult=trial.suggest_float("cont_took_king_mult", 0, 5.0),
-        distance_weight=trial.suggest_float("cont_distance_weight", 0, 100),
-        distance_growth_decay=trial.suggest_float(
-            "cont_distance_growth_decay", -1.0, 1.0
-        ),
-        mobility_weight=trial.suggest_float("cont_mobility_weight", 0, 1000),
-        mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1, 10),
+        kinged_mult=trial.suggest_float("cont_kinged_mult", 2.1, 3.2),
+        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 2, 6, 4.0),
+        took_king_mult=trial.suggest_float("cont_took_king_mult", 2.7, 4.0),
+        distance_weight=trial.suggest_int("cont_distance_weight", 0, 40),
+        distance_growth_decay=trial.suggest_float("cont_distance_growth_decay", 0, 1.0),
+        mobility_weight=trial.suggest_int("cont_mobility_weight", 0, 150),
+        mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1.5, 4),
         mobility_growth_decay=trial.suggest_float(
-            "cont_mobility_growth_decay", -1.0, 1.0
+            "cont_mobility_growth_decay", -0.8, 0
         ),
-        safety_weight=trial.suggest_float("cont_safety_weight", 0, 300),
-        safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", -1.0, 1.0),
-        double_corner_bonus_weight=trial.suggest_float(
-            "cont_double_corner_bonus_weight", 0, 300
+        safety_weight=trial.suggest_int("cont_safety_weight", 0, 100),
+        safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", 0, 1.0),
+        double_corner_bonus_weight=trial.suggest_int(
+            "cont_double_corner_bonus_weight", 0, 100
         ),
-        endgame_threshold=trial.suggest_int("cont_endgame_threshold", 4, 9),
-        turn_advantage_weight=trial.suggest_float("cont_turn_advantage_weight", 0, 200),
+        endgame_threshold=6,
+        turn_advantage_weight=trial.suggest_int("cont_turn_advantage_weight", 0, 600),
         majority_loss_weight=trial.suggest_float("cont_majority_loss_weight", 0.2, 0.8),
-        verge_weight=trial.suggest_float("cont_verge_weight", 0, 200),
-        verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1.0),
+        verge_weight=trial.suggest_int("cont_verge_weight", 0, 50),
+        verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1),
         opening_thresh=trial.suggest_int("cont_opening_thresh", 18, 24),
-        center_control_weight=trial.suggest_float("cont_center_control_weight", 0, 200),
-        edge_weight=trial.suggest_float(
-            "cont_edge_weight", -200, 200
+        center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 100),
+        edge_weight=trial.suggest_int(
+            "cont_edge_weight", -200, 0
         ),  # may want to penalize edges
-        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 1.0),
-        kings_row_weight=trial.suggest_float("cont_kings_row_weight", 0, 200),
+        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 0),
+        kings_row_weight=trial.suggest_int("cont_kings_row_weight", 0, 200),
         kings_row_growth_decay=trial.suggest_float(
-            "cont_kings_row_growth_decay", -1.0, 1.0
+            "cont_kings_row_growth_decay", -1.0, 0
         ),
     )
 
@@ -220,7 +218,7 @@ def objective(trial):
         heuristic_white=CONTENDER,  # contender is white
         heuristic_black=CHAMPION,
         time_limit=1,
-        early_stop_depth=3,
+        early_stop_depth=2,
         move_limit=120,
         contender_is_white=True,
     )
@@ -237,7 +235,7 @@ def objective(trial):
         PlayerTurn.BLACK,
         heuristic_white=CHAMPION,
         heuristic_black=CONTENDER,  # contender is black
-        early_stop_depth=20,
+        early_stop_depth=4,
         time_limit=1,
         one_piece_down=True,
     )
@@ -253,7 +251,7 @@ def objective(trial):
             heuristic_white=CONTENDER,  # contender is white
             heuristic_black=CHAMPION,
             max_depth=100,
-            early_stop_depth=10,
+            early_stop_depth=6,
             time_limit=4,
             two_piece_down=True,
             contender_is_white=True,
@@ -308,10 +306,8 @@ def run_tpe_study():
         load_if_exists=True,
         study_name=study_name,
         sampler=optuna.samplers.TPESampler(
-            seed=123,
+            seed=12122223,
             n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-            prior_weight=1.8,
-            constant_liar=True,
         ),
         # sampler=optuna.samplers.NSGAIIISampler(),
     )

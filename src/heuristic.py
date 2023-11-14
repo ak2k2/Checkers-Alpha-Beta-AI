@@ -6,45 +6,45 @@ from util.helpers import *
 from util.masks import *
 
 
-def new_heuristic(WP, BP, K, turn=None):
+def evolve_base_B(WP, BP, K, turn=None):
     return 100 * (count_bits(WP) - count_bits(BP)) + random.randint(0, 10)
 
 
-def evolve_base_B(
+def new_heuristic(
     WP,
     BP,
     K,
     turn=None,
-    man_weight=2526.0924647892375,
-    man_growth_decay=-0.18210984547874198,
-    king_weight=1927.5412160013307,
-    king_growth_decay=0.9952226416300494,
-    back_row_weight=482.04023730987444,
-    back_growth_decay=-0.39708297578903307,
-    capture_weight=736.9016060579373,
-    capture_growth_decay=0.5240395932413425,
-    kinged_mult=0.7866045533414052,
-    land_edge_mult=1.4327809886561114,
-    took_king_mult=4.9755371942745,
-    distance_weight=14.964022872223639,
-    distance_growth_decay=-0.7223793457479842,
-    mobility_weight=823.3166763508824,
-    mobility_jump_mult=6.242153427030721,
-    mobility_growth_decay=0.4829717812774059,
-    safety_weight=187.74134467519352,
-    safety_growth_decay=-0.4212692810250769,
-    double_corner_bonus_weight=100.13460408652847,
+    man_weight=846,
+    man_growth_decay=-0.06391419392169503,
+    king_weight=1998,
+    king_growth_decay=0.5338273313800478,
+    back_row_weight=355,
+    back_growth_decay=-0.9656932017524094,
+    capture_weight=150,
+    capture_growth_decay=0.6101024153593047,
+    kinged_mult=2.6491261712071887,
+    land_edge_mult=3.2985404559984834,
+    took_king_mult=2.3723031948039734,
+    distance_weight=20,  # make this optimal for endgame
+    distance_growth_decay=1.0,
+    mobility_weight=18,
+    mobility_jump_mult=2.0325348153712053,
+    mobility_growth_decay=-0.5104406412313335,
+    safety_weight=61,
+    safety_growth_decay=0.6296397316731904,
+    double_corner_bonus_weight=43,
     endgame_threshold=7,
-    turn_advantage_weight=4.76251641901591,
-    majority_loss_weight=0.4396186411065197,
-    verge_weight=112.26987766639681,
-    verge_growth_decay=-0.32238896972946085,
-    opening_thresh=21,
-    center_control_weight=199.45708422804495,
-    edge_weight=170.69443734737803,
-    edge_growth_decay=-0.2624846772711844,
-    kings_row_weight=95.05424865529446,
-    kings_row_growth_decay=-0.9948867790187481,
+    turn_advantage_weight=397,
+    majority_loss_weight=0,
+    verge_weight=24,
+    verge_growth_decay=-0.8782934201475908,
+    opening_thresh=23,
+    center_control_weight=66,
+    edge_weight=-103,
+    edge_growth_decay=-0.3049190835985922,
+    kings_row_weight=198,
+    kings_row_growth_decay=-0.4284882105970266,
 ):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
@@ -64,6 +64,7 @@ def evolve_base_B(
     back_row_adj_w = (
         adjustment_factor(num_total_pieces, back_growth_decay) * back_row_weight
     )
+
     BACK_ROW = back_row_adj_w * (
         count_bits(WP & MASK_32 & KING_ROW_BLACK)  # WHITE HOME ROW
         - count_bits(BP & MASK_32 & KING_ROW_WHITE)  # BLACK HOME ROW
@@ -74,11 +75,9 @@ def evolve_base_B(
     )
 
     CAPTURE = capture_adj_w * (
-        count_black_pieces_that_can_be_captured_by_white(
-            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
-        )
+        count_black_pieces_that_can_be_captured_by_white(WP, BP, K, 0, 0, 0)
         - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
-            WP, BP, K, kinged_mult, land_edge_mult, took_king_mult
+            WP, BP, K, 0, 0, 0
         )
     )
 
@@ -159,7 +158,7 @@ def evolve_base_B(
 
             DOUBLE_CORNER_BONUS = (
                 -1
-                * (  # black wants to maximize number of kings on double corner
+                * count_bits(  # black wants to maximize number of kings on double corner
                     BP & K & DOUBLE_CORNER & MASK_32
                 )
                 * double_corner_bonus_weight
@@ -176,24 +175,24 @@ def evolve_base_B(
             )  # white wants to maximize chevychev distance and get further from black.
 
             DOUBLE_CORNER_BONUS = (
-                (  # white wants to maximize number of kings on double corner
+                count_bits(  # white wants to maximize number of kings on double corner
                     WP & K & DOUBLE_CORNER & MASK_32
                 )
                 * double_corner_bonus_weight
             )
 
-    # print(f"PIECE_COUNT: {PIECE_COUNT}")
-    # print(f"BACK_ROW: {BACK_ROW}")
-    # print(f"CAPTURE: {CAPTURE}")
-    # print(f"MOBILITY: {MOBILITY}")
-    # print(f"SAFETY_SCORE: {SAFETY_SCORE}")
-    # print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
-    # print(f"VERGE_KINGING: {VERGE_KINGING}")
-    # print(f"CENTER_CONTROL: {CENTER_CONTROL}")
-    # print(f"EDGE_CONTROL: {EDGE_CONTROL}")
-    # print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
-    # print(f"SUM_DISTANCE: {SUM_DISTANCE}")
-    # print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
+    print(f"PIECE_COUNT: {PIECE_COUNT}")
+    print(f"BACK_ROW: {BACK_ROW}")
+    print(f"CAPTURE: {CAPTURE}")
+    print(f"MOBILITY: {MOBILITY}")
+    print(f"SAFETY_SCORE: {SAFETY_SCORE}")
+    print(f"TURN_ADVANTAGE: {TURN_ADVANTAGE}")
+    print(f"VERGE_KINGING: {VERGE_KINGING}")
+    print(f"CENTER_CONTROL: {CENTER_CONTROL}")
+    print(f"EDGE_CONTROL: {EDGE_CONTROL}")
+    print(f"DISTANCE_TO_KINGS_ROW: {DISTANCE_TO_KINGS_ROW}")
+    print(f"SUM_DISTANCE: {SUM_DISTANCE}")
+    print(f"DOUBLE_CORNER_BONUS: {DOUBLE_CORNER_BONUS}")
 
     return (
         PIECE_COUNT
@@ -216,15 +215,43 @@ def evolve_base_B(
 # ----------------- ************* -----------------
 
 
-def old_heuristic(WP, BP, K, turn=None):  # trusty old heuristic
+# def old_heuristic(WP, BP, K, turn=None):  # trusty old heuristic
+#     num_white_man = count_bits(WP & ~K & MASK_32)
+#     num_white_king = count_bits(WP & K & MASK_32)
+#     num_black_man = count_bits(BP & ~K & MASK_32)
+#     num_black_king = count_bits(BP & K & MASK_32)
+#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
+#         500 * num_black_man + 775 * num_black_king
+#     )
+#     return piece_count_score + random.randint(-20, 20)
+
+
+def old_heuristic(WP, BP, K, turn=None):
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
     num_black_man = count_bits(BP & ~K & MASK_32)
     num_black_king = count_bits(BP & K & MASK_32)
+
     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
         500 * num_black_man + 775 * num_black_king
     )
-    return piece_count_score + random.randint(-20, 20)
+
+    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+
+    # mobility_score = mobility_diff_score(WP, BP, K)
+    # promotion_score = calculate_total_distance_to_promotion_white(
+    #     WP & ~K
+    # ) - calculate_total_distance_to_promotion_black(BP & ~K)
+
+    # chebychev_distance = calculate_sum_distances(WP, BP)
+
+    capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
+        WP, BP, K
+    ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
+        WP, BP, K
+    )
+
+    return piece_count_score + back_row + capture_score
 
 
 # def old_heuristic(
@@ -759,16 +786,9 @@ def calculate_safe_black_pieces(BP, K):
 
 
 def test1():
-    WP, BP, K = get_empty_board()
-    BP = insert_piece_by_pdntext(BP, "D6")
-    # WP = insert_piece_by_pdntext(WP, "E5")
-    WP = insert_piece_by_pdntext(WP, "C5")
-    WP = insert_piece_by_pdntext(WP, "C3")
-    WP = insert_piece_by_pdntext(WP, "C7")
-    # BP = insert_piece_by_pdntext(BP, "B6")
-
-    # BP = insert_piece_by_pdntext(BP, "B2")
-    BP = insert_piece_by_pdntext(BP, "C3")
+    WP, BP, K = setup_board_from_position_lists(
+        ["KD6", "KC3", "KF6", "KC1", "KB6"], ["KG1", "KG7", "KH8"]
+    )
 
     # WP, BP, K = get_fresh_board()
     print_board(WP, BP, K)
@@ -776,7 +796,7 @@ def test1():
     print(
         new_heuristic(WP, BP, K, turn=PlayerTurn.BLACK)
     )  # it should be negative for black
-
+    print("----------------------------------------")
     print(
         new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)
     )  # it should be positive for white
@@ -805,13 +825,13 @@ def test2():
     # )
 
     # print(calculate_safe_white_pieces(WP, K))
-    # print(
-    #     f"BLACK TO MOVE: {evolve_base_B(WP, BP, K, turn=PlayerTurn.BLACK)}"
-    # )  # it should be negative for black
-    # print("-" * 20)
-    # print(
-    #     f"WHITE TO MOVE: {evolve_base_B(WP, BP, K, turn=PlayerTurn.WHITE)}"
-    # )  # it should be negative for black
+    print(
+        f"BLACK TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.BLACK)}"
+    )  # it should be negative for black
+    print("-" * 20)
+    print(
+        f"WHITE TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)}"
+    )  # it should be negative for black
     print(f"negative factor (24,-1): {adjustment_factor(24, -1)}")
     print(f"negative factor (15,-1): {adjustment_factor(15, -1)}")
     print(f"negative factor (10,-1): {adjustment_factor(10, -1)}")
