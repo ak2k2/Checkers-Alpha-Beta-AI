@@ -15,7 +15,7 @@ from checkers import *
 from heuristic import *
 from util.helpers import *
 
-NET_TRIALS = 100
+NET_TRIALS = 300
 EARLY_STOP_DEPTH = 20
 MAX_MOVES = 80
 
@@ -251,7 +251,7 @@ def objective(trial):
             heuristic_white=CONTENDER,  # contender is white
             heuristic_black=CHAMPION,
             max_depth=100,
-            early_stop_depth=6,
+            early_stop_depth=100,
             time_limit=4,
             two_piece_down=True,
             contender_is_white=True,

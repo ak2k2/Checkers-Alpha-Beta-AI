@@ -241,7 +241,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.BLACK
+                if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
             )
