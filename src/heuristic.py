@@ -6,11 +6,11 @@ from util.helpers import *
 from util.masks import *
 
 
-def evolve_base_B(WP, BP, K, turn=None):
+def new_heuristic(WP, BP, K, turn=None):
     return 100 * (count_bits(WP) - count_bits(BP)) + random.randint(0, 10)
 
 
-def new_heuristic(
+def evolve_base_B(
     WP,
     BP,
     K,
