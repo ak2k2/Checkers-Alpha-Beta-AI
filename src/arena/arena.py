@@ -17,7 +17,7 @@ from util.helpers import *
 
 NET_TRIALS = 100
 EARLY_STOP_DEPTH = 20
-MAX_MOVES = 60
+MAX_MOVES = 70
 
 
 TIME_LIMIT = 6
@@ -42,8 +42,10 @@ def PLAY_TUNE(
     time_limit=None,
     one_piece_down=False,
     two_piece_down=False,
+    three_piece_down=False,
     early_stop_depth=EARLY_STOP_DEPTH,
     contender_is_white=False,
+    move_limit=MAX_MOVES,
 ):
     if time_limit is None:
         time_limit = 1
@@ -60,12 +62,20 @@ def PLAY_TUNE(
         elif two_piece_down:
             BP = remove_piece_by_pdntext(BP, "C3")
             BP = remove_piece_by_pdntext(BP, "E3")
+        elif three_piece_down:
+            BP = remove_piece_by_pdntext(BP, "C3")
+            BP = remove_piece_by_pdntext(BP, "E3")
+            BP = remove_piece_by_pdntext(BP, "E1")
     elif contender_is_white:
         if one_piece_down:
             WP = remove_piece_by_pdntext(WP, "D6")
         elif two_piece_down:
             WP = remove_piece_by_pdntext(WP, "D6")
             WP = remove_piece_by_pdntext(WP, "F6")
+        elif three_piece_down:
+            WP = remove_piece_by_pdntext(WP, "D6")
+            WP = remove_piece_by_pdntext(WP, "F6")
+            WP = remove_piece_by_pdntext(WP, "H8")
 
     current_player = who_moves_first
     move_count = 0
@@ -206,11 +216,12 @@ def objective(trial):
         heuristic_white=CONTENDER,  # contender is white
         heuristic_black=CHAMPION,
         time_limit=1,
-        early_stop_depth=2,
+        early_stop_depth=3,
+        move_limit=120,
     )
 
-    if warmup_qualafier["winner"] == "WHITE" or warmup_qualafier["winner"] == "DRAW":
-        print("\ncontendor passed the warmup:\n")
+    if warmup_qualafier["winner"] == "WHITE":
+        print("\ncontendor passed the warmup by WINNING:\n")
         score = 0
     elif warmup_qualafier["winner"] == "BLACK":
         print("\ncontendor lost the warmup:\n")
@@ -221,6 +232,7 @@ def objective(trial):
         heuristic_white=CONTENDER,  # contender is white
         heuristic_black=CHAMPION,
         early_stop_depth=4,
+        move_limit=80,
     )
 
     if pre_finals["winner"] == "WHITE" or pre_finals["winner"] == "DRAW":
@@ -260,6 +272,9 @@ def objective(trial):
                 "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS WHITE AND WITH A PIECE DOWN\n"
             )
             score *= 4
+            if stress_result_one["move_count"] < 50:
+                score *= 2
+
             stress_test_two = PLAY_TUNE(
                 PlayerTurn.BLACK,
                 heuristic_white=CHAMPION,
@@ -273,7 +288,7 @@ def objective(trial):
                 print(
                     "\nSTRESS TEST: CONTENDOR BEAT THE CHAMPION AS BLACK WITH TWO PIECES DOWN\n"
                 )
-                score *= 8
+                score *= 16
 
     elif result["winner"] == "WHITE":  # WHITE is the OG champion.
         score = -1 * (
@@ -306,7 +321,9 @@ def objective(trial):
 
         if as_white["winner"] == "WHITE":
             print("\nCONTENDOR BEAT THE CHAMPION WITH -3 piece DISADVANTAGE\n")
-            score *= 16  # reward for winning as black and white
+            score *= 32  # reward for winning as black and white
+            if as_white["move_count"] < 50:
+                score *= 2
 
     return score
 
@@ -326,13 +343,13 @@ def run_tpe_study():
         storage=storage,
         load_if_exists=True,
         study_name=study_name,
-        # sampler=optuna.samplers.TPESampler(
-        #     seed=123,
-        #     n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
-        #     prior_weight=3,
-        #     constant_liar=True,
-        # ),
-        sampler=optuna.samplers.NSGAIIISampler(),
+        sampler=optuna.samplers.TPESampler(
+            seed=123,
+            n_startup_trials=NUM_RANDOM_STARTING_TRIALS,
+            prior_weight=1.8,
+            constant_liar=True,
+        ),
+        # sampler=optuna.samplers.NSGAIIISampler(),
     )
 
     # Optuna's optimize function will automatically manage parallelization
