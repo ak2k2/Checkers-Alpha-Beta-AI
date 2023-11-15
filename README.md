@@ -40,5 +40,10 @@ The `adjustment_factor` function dynamically alters evaluation criteria weights,
   
 Follow the system prompts. Pytests are located in the tests directory. To run them: '$pytest'
 
+## Mentions
+
+(Everything About Bitboards)[https://3dkingdoms.com/checkers/bitboards.htm]
+
+Worked closely with my classmate, Nicolette Thiro, to write test cases, perform bit manipulation, validate move generator, and more.
 
 
