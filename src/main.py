@@ -153,7 +153,7 @@ def AI_vs_AI(
     max_depth=20,
     time_limit=None,
     initial_board=None,
-    early_stop_depth=10,
+    early_stop_depth=999,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
 ):
     if time_limit is None:
         time_limit = 5
@@ -201,7 +201,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="old_heuristic"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
             )
@@ -236,9 +236,7 @@ def AI_vs_AI(
         move_count += 1
 
         print_board(WP, BP, K)
-        print(f"NEW Heuristic: {new_heuristic(WP, BP, K, turn=current_player)}")
-        print(f"Current player: {current_player.name}")
-        print(f"OLD Heuristic: {old_heuristic(WP, BP, K, turn=current_player)}")
+        print(f"EVAL: {new_heuristic(WP, BP, K, turn=current_player)}")
         print("-" * 50 + "\n")
 
     if not game_over:
