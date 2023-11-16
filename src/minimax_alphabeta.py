@@ -34,21 +34,27 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
     else:
         raise ValueError("Invalid heuristic function specified")
 
-    move_evaluations = [
-        (
-            move,
-            heuristic_function(
-                *do_move(*position, move, current_player), turn=current_player
-            ),
+    if (
+        len(legal_moves[0]) == 2
+    ):  # jump moves are presorted by ascending sequence length.
+        # if legal_moves[0] contains only two integers that means that there are only single jumps or only simple moves availible.
+        move_evaluations = [
+            (
+                move,
+                heuristic_function(
+                    *do_move(*position, move, current_player), turn=current_player
+                ),
+            )
+            for move in legal_moves
+        ]
+        move_evaluations.sort(  # sort the simple moves by heuristic function for higher probability of a/b prune
+            key=lambda x: x[1], reverse=current_player == PlayerTurn.WHITE
         )
-        for move in legal_moves
-    ]
-
-    move_evaluations.sort(
-        key=lambda x: x[1], reverse=current_player == PlayerTurn.WHITE
-    )
-    sorted_moves = [move for move, _ in move_evaluations]
-    return sorted_moves
+        sorted_moves = [move for move, _ in move_evaluations]
+        return sorted_moves
+    else:  # this branch implies that there is atleast one double jump move.
+        return legal_moves  # in this case the legal moves are already presorted by len so there is no need to sort on heuristic.
+        # we trust that multiple captures are a better indicator of a good move then the eval.
 
 
 def minimax(position, depth, alpha, beta, current_player, heuristic="new_heuristic"):

@@ -632,6 +632,8 @@ def test2():
         f"WHITE TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)}"
     )  # it should be negative for black
 
+    print(generate_legal_moves(WP, BP, K, turn=PlayerTurn.BLACK))
+
 
 if __name__ == "__main__":
     test2()
