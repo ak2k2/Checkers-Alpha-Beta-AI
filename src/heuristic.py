@@ -72,7 +72,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
 
     else:  # OPENING/MID GAME
         EVAL += (white_home * 50) + (white_center_box * 50) + (white_mid_row * 10)
-        EVAL += (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
+        EVAL -= (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
 
     if num_black_man > 0:  # black still has men
         EVAL += 40 * white_home  # white should stay home
