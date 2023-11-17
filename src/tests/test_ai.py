@@ -48,7 +48,8 @@ def test_white_ai_chases_sitting_duck_with_king_for_win():
                 current_player=PlayerTurn.WHITE,
                 max_depth=10,
                 time_limit=5,
-                heuristic="new_heuristic",
+                heuristic="smart",
+                global_board_state=(WP, BP, K),
             )[0]
             print(f"ai move: {ai_move}")
             print(f"HEURISTIC: {new_heuristic(WP, BP, K)}")
@@ -96,7 +97,8 @@ def test_black_ai_chases_sitting_duck_with_king_for_win():
                 current_player=PlayerTurn.BLACK,
                 max_depth=10,
                 time_limit=5,
-                heuristic="new_heuristic",
+                heuristic="smart",
+                global_board_state=(WP, BP, K),
             )[0]
             print(f"ai move: {ai_move}")
             print(f"HEURISTIC: {new_heuristic(WP, BP, K)}")

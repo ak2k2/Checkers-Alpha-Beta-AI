@@ -6,8 +6,89 @@ from util.helpers import *
 from util.masks import *
 
 
-def evolve_base_B(WP, BP, K, turn=None):
-    return 100 * (count_bits(WP) - count_bits(BP)) + random.randint(0, 10)
+def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
+    EVAL = 0
+    # Board that MinMax sees
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+    num_wps = num_white_man + num_white_king
+    num_bps = num_black_king + num_black_man
+    num_local_total_pcs = count_bits(WP) + count_bits(BP)
+
+    gwp, gbp, gk = global_board_state
+    num_global_white_men = count_bits(gwp & ~gk & MASK_32)
+    num_global_black_men = count_bits(gbp & ~gk & MASK_32)
+    num_global_white_king = count_bits(gwp & gk & MASK_32)
+    num_global_black_king = count_bits(gbp & gk & MASK_32)
+    num_global_white_pcs = num_global_white_men + num_global_white_king
+    num_global_black_pcs = num_global_black_men + num_global_black_king
+    num_global_total_pcs = num_global_white_pcs + num_global_black_pcs
+
+    # MATERIAL
+    EVAL += (155 * (num_white_king - num_black_king)) + (
+        100 * (num_white_man - num_black_man)
+    )
+
+    # HOME ROW
+    white_home = count_bits(
+        WP & MASK_32 & KING_ROW_BLACK
+    )  # white men or kings on home row
+    black_home = count_bits(
+        BP & MASK_32 & KING_ROW_WHITE
+    )  # black men or kings on home row
+
+    # MID BOX
+    white_center_box = count_bits(WP & MASK_32 & CENTER_8)
+    black_center_box = count_bits(BP & MASK_32 & CENTER_8)
+
+    # MID_ROW_NOT_MID_BOX
+    white_mid_row = count_bits(WP & MASK_32 & MID_ROW_NOT_MID_BOX)
+    black_mid_row = count_bits(BP & MASK_32 & MID_ROW_NOT_MID_BOX)
+
+    # ENDGAME
+    if (
+        (num_global_total_pcs <= 10)
+        or (
+            num_global_white_pcs * (2 / 3) >= num_global_black_pcs
+        )  # black is loosing badly
+        or (
+            num_global_black_pcs * (2 / 3) >= num_global_white_pcs
+        )  # white is loosing badly
+        or (
+            (num_global_total_pcs <= 14)
+            and (abs(num_global_white_king - num_global_black_king) > 0)
+        )  # quasi endgame
+    ):
+        # Encourage trading when ahead
+        if (num_global_white_pcs > num_global_black_pcs) and (num_wps > num_bps):
+            EVAL += (num_global_total_pcs - num_local_total_pcs) * 30
+        elif (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
+            EVAL -= (num_global_total_pcs - num_local_total_pcs) * 30
+
+        EVAL += num_white_king * 20
+        EVAL -= num_black_king * 20
+
+    else:  # OPENING/MID GAME
+        EVAL += (white_home * 50) + (white_center_box * 50) + (white_mid_row * 10)
+        EVAL += (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
+
+    if num_black_man > 0:  # black still has men
+        EVAL += 40 * white_home  # white should stay home
+
+    elif num_white_man > 0:  # white still has men
+        EVAL -= 40 * black_home  # black should stay home
+
+    if not legal_moves:  # delay loosing, expedite winning
+        if turn == PlayerTurn.WHITE:
+            EVAL -= 500 + (700 - (depth * 10))
+        elif turn == PlayerTurn.BLACK:
+            EVAL += 500 + (700 - (depth * 10))
+
+    EVAL += random.randint(0, 5)
+
+    return EVAL
 
 
 def new_heuristic(
@@ -15,6 +96,9 @@ def new_heuristic(
     BP,
     K,
     turn=None,
+    legal_moves=None,  # for cross compatability
+    depth=None,  # for cross compatability
+    global_board_state=None,  # for cross compatability
     man_weight=537,
     man_growth_decay=-0.4281918179959601,
     king_weight=767,
@@ -619,20 +703,18 @@ def test1():
 
 def test2():
     WP, BP, K = setup_board_from_position_lists(
-        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5"]
+        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5", "KG3", "KG5"]
     )
 
     print_board(WP, BP, K)
 
     print(
-        f"BLACK TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.BLACK)}"
+        f"BLACK TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.BLACK, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.BLACK), global_board_state=(WP,BP,K))}"
     )  # it should be negative for black
     print("-" * 20)
     print(
-        f"WHITE TO MOVE: {new_heuristic(WP, BP, K, turn=PlayerTurn.WHITE)}"
-    )  # it should be negative for black
-
-    print(generate_legal_moves(WP, BP, K, turn=PlayerTurn.BLACK))
+        f"WHITE TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.WHITE, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.WHITE), global_board_state=(WP,BP,K))}"
+    )
 
 
 if __name__ == "__main__":

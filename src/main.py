@@ -116,8 +116,9 @@ def human_vs_AI(
                     ai_color,
                     max_depth,
                     time_limit,
-                    heuristic="new_heuristic",
+                    heuristic="smart",
                     early_stop_depth=early_stop_depth,
+                    global_board_state=(WP, BP, K),
                 )
 
             end_time = time.time()
@@ -139,7 +140,9 @@ def human_vs_AI(
                     print(f"AI hit the 'time limit' and reached depth {depth_reached}.")
 
         print_board(WP, BP, K)
-        print(f"EVAL: {new_heuristic(WP, BP, K, turn=current_player)}")
+        print(
+            f"EVAL: {smart(WP, BP, K, turn=current_player, depth=1, global_board_state=(WP, BP, K), legal_moves=legal_moves)}"
+        )
         print("-" * 50 + "\n")
 
         current_player = switch_player(current_player)
@@ -153,7 +156,7 @@ def AI_vs_AI(
     max_depth=20,
     time_limit=None,
     initial_board=None,
-    early_stop_depth=999,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
+    early_stop_depth=100,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
 ):
     if time_limit is None:
         time_limit = 5
@@ -200,10 +203,11 @@ def AI_vs_AI(
                 current_player,
                 max_depth,
                 time_limit,
-                heuristic="old_heuristic"
+                heuristic="smart"
                 if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
+                global_board_state=(WP, BP, K),
             )
 
         end_time = time.time()

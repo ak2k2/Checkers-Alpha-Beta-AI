@@ -9,7 +9,7 @@ sys.path.append(str(parent))
 
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
-from heuristic import new_heuristic, old_heuristic
+from heuristic import smart, new_heuristic
 
 global NC
 NC = 0
@@ -24,13 +24,13 @@ def signal_handler(signum, frame):
 
 
 def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
-    if not legal_moves or legal_moves == []:
+    if not legal_moves:
         return None
 
-    if heuristic == "new_heuristic":
+    if heuristic == "smart":
+        heuristic_function = smart
+    elif heuristic == "new_heuristic":
         heuristic_function = new_heuristic
-    elif heuristic == "old_heuristic":
-        heuristic_function = old_heuristic
     else:
         raise ValueError("Invalid heuristic function specified")
 
@@ -38,11 +38,16 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
         len(legal_moves[0]) == 2
     ):  # jump moves are presorted by ascending sequence length.
         # if legal_moves[0] contains only two integers that means that there are only single jumps or only simple moves availible.
+        WP, BP, K = position
         move_evaluations = [
             (
                 move,
                 heuristic_function(
-                    *do_move(*position, move, current_player), turn=current_player
+                    *do_move(*position, move, current_player),
+                    turn=current_player,
+                    legal_moves=legal_moves,
+                    depth=1,
+                    global_board_state=(WP, BP, K)
                 ),
             )
             for move in legal_moves
@@ -57,32 +62,45 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, heuristic):
         # we trust that multiple captures are a better indicator of a good move then the eval.
 
 
-def minimax(position, depth, alpha, beta, current_player, heuristic="new_heuristic"):
+def minimax(
+    position,
+    depth,
+    alpha,
+    beta,
+    current_player,
+    heuristic="smart",
+    global_board_state=None,
+):
     legal_moves = generate_legal_moves(*position, current_player)
 
-    if depth == 0 or not legal_moves or legal_moves == []:
+    if depth == 0 or not legal_moves:
         global NC
         NC += 1
-        if legal_moves == [] or not legal_moves:
-            if current_player == PlayerTurn.WHITE:
-                return -1 * (
-                    1_000_000 - (depth * 1_000)
-                )  # Loose as slowly as possible and win as quickly as possible
-            else:
-                return 1_000_000 - (depth * 1_000)
+        if heuristic == "smart":
+            return smart(
+                *position,
+                turn=current_player,
+                legal_moves=legal_moves,
+                depth=depth,
+                global_board_state=global_board_state
+            )
+        elif heuristic == "new_heuristic":
+            return new_heuristic(*position, turn=current_player)
         else:
-            if heuristic == "new_heuristic":
-                return new_heuristic(*position, turn=current_player)
-            elif heuristic == "old_heuristic":
-                return old_heuristic(*position, turn=current_player)
-            else:
-                raise ValueError("Invalid heuristic function specified")
+            raise ValueError("Invalid heuristic function specified")
 
     if current_player == PlayerTurn.WHITE:  # MAXIMIZING PLAYER
         max_eval = float("-inf")
         for move in legal_moves:
             new_position = do_move(*position, move, current_player)
-            eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.BLACK)
+            eval = minimax(
+                new_position,
+                depth - 1,
+                alpha,
+                beta,
+                PlayerTurn.BLACK,
+                global_board_state=global_board_state,
+            )
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if beta <= alpha:  # Prune
@@ -92,7 +110,14 @@ def minimax(position, depth, alpha, beta, current_player, heuristic="new_heurist
         min_eval = float("inf")
         for move in legal_moves:
             new_position = do_move(*position, move, current_player)
-            eval = minimax(new_position, depth - 1, alpha, beta, PlayerTurn.WHITE)
+            eval = minimax(
+                new_position,
+                depth - 1,
+                alpha,
+                beta,
+                PlayerTurn.WHITE,
+                global_board_state=global_board_state,
+            )
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if beta <= alpha:  # Prune
@@ -105,8 +130,9 @@ def AI(
     current_player,
     max_depth,
     time_limit=5,
-    heuristic="new_heuristic",
+    heuristic="smart",
     early_stop_depth=999,
+    global_board_state=None,
 ):
     best_move = None
     best_score = float("-inf") if current_player == PlayerTurn.WHITE else float("inf")
@@ -131,7 +157,7 @@ def AI(
                 heuristic,
             )
 
-            if not legal_moves or legal_moves == []:
+            if not legal_moves:
                 return None, depth
 
             is_improved = False  # Flag to check if this depth provides a better score
@@ -147,10 +173,11 @@ def AI(
                     beta,
                     switch_player(current_player),
                     heuristic,
+                    global_board_state,
                 )
 
                 if (current_player == PlayerTurn.WHITE and score > best_score) or (
-                    current_player != PlayerTurn.WHITE and score < best_score
+                    current_player == PlayerTurn.BLACK and score < best_score
                 ):
                     best_score = score
                     best_move = move
