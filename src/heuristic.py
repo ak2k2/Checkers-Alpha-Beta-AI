@@ -15,7 +15,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
     num_black_king = count_bits(BP & K & MASK_32)
     num_wps = num_white_man + num_white_king
     num_bps = num_black_king + num_black_man
-    num_local_total_pcs = count_bits(WP) + count_bits(BP)
+    num_local_total_pcs = num_wps + num_bps
 
     gwp, gbp, gk = global_board_state
     num_global_white_men = count_bits(gwp & ~gk & MASK_32)
@@ -86,7 +86,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
         elif turn == PlayerTurn.BLACK:
             EVAL += 500 + (700 - (depth * 10))
 
-    EVAL += random.randint(0, 5)
+    EVAL += random.randint(0, 10)
 
     return EVAL
 
@@ -703,17 +703,17 @@ def test1():
 
 def test2():
     WP, BP, K = setup_board_from_position_lists(
-        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5", "KG3", "KG5"]
+        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5", "KG3"]
     )
 
     print_board(WP, BP, K)
 
     print(
-        f"BLACK TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.BLACK, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.BLACK), global_board_state=(WP,BP,K))}"
+        f"BLACK TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.BLACK, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.BLACK), global_board_state=get_fresh_board())}"
     )  # it should be negative for black
     print("-" * 20)
     print(
-        f"WHITE TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.WHITE, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.WHITE), global_board_state=(WP,BP,K))}"
+        f"WHITE TO MOVE: {smart(WP, BP, K, turn=PlayerTurn.WHITE, depth=1, legal_moves=generate_legal_moves(WP,BP,K, turn=PlayerTurn.WHITE), global_board_state=get_fresh_board())}"
     )
 
 
