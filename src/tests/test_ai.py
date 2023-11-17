@@ -10,7 +10,7 @@ sys.path.append(str(parent))
 
 
 from checkers import *
-from heuristic import new_heuristic, new_heuristic
+from heuristic import new_heuristic
 from minimax_alphabeta import AI
 from util.fen_pdn_helper import *
 from util.helpers import *

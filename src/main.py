@@ -204,7 +204,7 @@ def AI_vs_AI(
                 max_depth,
                 time_limit,
                 heuristic="smart"
-                if current_player == PlayerTurn.WHITE
+                if current_player == PlayerTurn.BLACK
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
                 global_board_state=(WP, BP, K),
