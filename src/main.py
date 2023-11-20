@@ -42,7 +42,7 @@ def human_vs_AI(
     human_color=None,
     initial_board=None,
     time_limit=None,
-    early_stop_depth=999,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
+    early_stop_depth=1,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
 ):
     if initial_board is None:
         (WP, BP, K) = get_fresh_board()
@@ -153,10 +153,10 @@ def human_vs_AI(
 
 def AI_vs_AI(
     who_moves_first,
-    max_depth=20,
+    max_depth=999,
     time_limit=None,
     initial_board=None,
-    early_stop_depth=100,  # number of depths to search without improvement before stopping (any value greater than like 20 will disable this feature)
+    early_stop_depth=2,
 ):
     if time_limit is None:
         time_limit = 5
@@ -199,12 +199,12 @@ def AI_vs_AI(
             best_move = legal_moves[0]
         else:
             best_move, depth_reached = AI(
-                (WP, BP, K),
-                current_player,
-                max_depth,
-                time_limit,
+                position=(WP, BP, K),
+                current_player=current_player,
+                max_depth=max_depth,
+                time_limit=time_limit,
                 heuristic="smart"
-                if current_player == PlayerTurn.BLACK
+                if current_player == PlayerTurn.WHITE
                 else "new_heuristic",
                 early_stop_depth=early_stop_depth,
                 global_board_state=(WP, BP, K),
