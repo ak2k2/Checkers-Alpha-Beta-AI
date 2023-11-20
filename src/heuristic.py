@@ -7,8 +7,7 @@ from util.masks import *
 
 
 def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
-    EVAL = 0
-    # Board that MinMax sees
+    # Board MiniMax is currently looking at.
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
     num_black_man = count_bits(BP & ~K & MASK_32)
@@ -17,6 +16,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
     num_bps = num_black_king + num_black_man
     num_local_total_pcs = num_wps + num_bps
 
+    # Board that Players are looking at.
     gwp, gbp, gk = global_board_state
     num_global_white_men = count_bits(gwp & ~gk & MASK_32)
     num_global_black_men = count_bits(gbp & ~gk & MASK_32)
@@ -26,6 +26,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
     num_global_black_pcs = num_global_black_men + num_global_black_king
     num_global_total_pcs = num_global_white_pcs + num_global_black_pcs
 
+    EVAL = 0
     # MATERIAL
     EVAL += (155 * (num_white_king - num_black_king)) + (
         100 * (num_white_man - num_black_man)
@@ -307,32 +308,89 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
 #     return piece_count_score + random.randint(-20, 20)
 
 
-def new_heuristic(WP, BP, K, turn=None):
+def new_heuristic(WP, BP, K, turn, legal_moves, depth, global_board_state):
+    EVAL = 0
+    # Board that MinMax sees
     num_white_man = count_bits(WP & ~K & MASK_32)
     num_white_king = count_bits(WP & K & MASK_32)
     num_black_man = count_bits(BP & ~K & MASK_32)
     num_black_king = count_bits(BP & K & MASK_32)
+    num_wps = num_white_man + num_white_king
+    num_bps = num_black_king + num_black_man
+    num_local_total_pcs = num_wps + num_bps
 
-    piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-        500 * num_black_man + 775 * num_black_king
+    gwp, gbp, gk = global_board_state
+    num_global_white_men = count_bits(gwp & ~gk & MASK_32)
+    num_global_black_men = count_bits(gbp & ~gk & MASK_32)
+    num_global_white_king = count_bits(gwp & gk & MASK_32)
+    num_global_black_king = count_bits(gbp & gk & MASK_32)
+    num_global_white_pcs = num_global_white_men + num_global_white_king
+    num_global_black_pcs = num_global_black_men + num_global_black_king
+    num_global_total_pcs = num_global_white_pcs + num_global_black_pcs
+
+    # MATERIAL
+    EVAL += (155 * (num_white_king - num_black_king)) + (
+        100 * (num_white_man - num_black_man)
     )
 
-    back_row = 400 * (count_bits(WP & MASK_32) - count_bits(BP & MASK_32))
+    # HOME ROW
+    white_home = count_bits(
+        WP & MASK_32 & KING_ROW_BLACK
+    )  # white men or kings on home row
+    black_home = count_bits(
+        BP & MASK_32 & KING_ROW_WHITE
+    )  # black men or kings on home row
 
-    # mobility_score = mobility_diff_score(WP, BP, K)
-    # promotion_score = calculate_total_distance_to_promotion_white(
-    #     WP & ~K
-    # ) - calculate_total_distance_to_promotion_black(BP & ~K)
+    # MID BOX
+    white_center_box = count_bits(WP & MASK_32 & CENTER_8)
+    black_center_box = count_bits(BP & MASK_32 & CENTER_8)
 
-    # chebychev_distance = calculate_sum_distances(WP, BP)
+    # MID_ROW_NOT_MID_BOX
+    white_mid_row = count_bits(WP & MASK_32 & MID_ROW_NOT_MID_BOX)
+    black_mid_row = count_bits(BP & MASK_32 & MID_ROW_NOT_MID_BOX)
 
-    capture_score = 300 * count_black_pieces_that_can_be_captured_by_white(
-        WP, BP, K
-    ) - count_white_pieces_that_can_be_captured_by_black(  # white wants to maximize this
-        WP, BP, K
-    )
+    # ENDGAME
+    if (
+        (num_global_total_pcs <= 10)
+        or (
+            num_global_white_pcs * (2 / 3) >= num_global_black_pcs
+        )  # black is loosing badly
+        or (
+            num_global_black_pcs * (2 / 3) >= num_global_white_pcs
+        )  # white is loosing badly
+        or (
+            (num_global_total_pcs <= 14)
+            and (abs(num_global_white_king - num_global_black_king) > 0)
+        )  # quasi endgame
+    ):
+        # Encourage trading when ahead
+        if (num_global_white_pcs > num_global_black_pcs) and (num_wps > num_bps):
+            EVAL += (num_global_total_pcs - num_local_total_pcs) * 30
+        elif (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
+            EVAL -= (num_global_total_pcs - num_local_total_pcs) * 30
 
-    return piece_count_score + back_row + capture_score
+        EVAL += num_white_king * 20
+        EVAL -= num_black_king * 20
+
+    else:  # OPENING/MID GAME
+        EVAL += (white_home * 50) + (white_center_box * 50) + (white_mid_row * 10)
+        EVAL -= (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
+
+    if num_black_man > 0:  # black still has men
+        EVAL += 40 * white_home  # white should stay home
+
+    elif num_white_man > 0:  # white still has men
+        EVAL -= 40 * black_home  # black should stay home
+
+    if not legal_moves:  # delay loosing, expedite winning
+        if turn == PlayerTurn.WHITE:
+            EVAL -= 500 + (700 - (depth * 10))
+        elif turn == PlayerTurn.BLACK:
+            EVAL += 500 + (700 - (depth * 10))
+
+    EVAL += random.randint(0, 10)
+
+    return EVAL
 
 
 # ----------------- ************* -----------------
