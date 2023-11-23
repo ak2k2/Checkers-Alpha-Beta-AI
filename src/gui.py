@@ -30,8 +30,8 @@ KINGS_MARK = hex_to_rgb("#2596BE")
 HIGHLIGHT_COLOR = (255, 255, 0)  # Yellow
 TRANSPARENCY = 40  # Alpha value, 0 is fully transparent, 255 is opaque
 
-CIRCLE_RADIUS = (SQUARE_SIZE // 2 - 10) * 0.2  # 20% of the piece's radius
-CIRCLE_COLOR = (128, 128, 128, 128)  # Grey with transparency
+CIRCLE_RADIUS = (SQUARE_SIZE // 2 - 10) * 0.3  # 20% of the piece's radius
+CIRCLE_COLOR = (80, 80, 80, 60)  # Grey with transparency
 
 
 def draw_board(win):
