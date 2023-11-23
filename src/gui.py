@@ -25,8 +25,13 @@ PLAYABLE_COLOR = hex_to_rgb("#D0AE8B")
 UNPLAYABLE_COLOR = hex_to_rgb("#976C40")
 WHITE = hex_to_rgb("#DEC5AB")
 BLACK = hex_to_rgb("#180000")
-HIGHLIGHT = (255, 255, 0)
 KINGS_MARK = hex_to_rgb("#2596BE")
+
+HIGHLIGHT_COLOR = (255, 255, 0)  # Yellow
+TRANSPARENCY = 40  # Alpha value, 0 is fully transparent, 255 is opaque
+
+CIRCLE_RADIUS = (SQUARE_SIZE // 2 - 10) * 0.2  # 20% of the piece's radius
+CIRCLE_COLOR = (128, 128, 128, 128)  # Grey with transparency
 
 
 def draw_board(win):
@@ -142,6 +147,20 @@ def main():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
     pygame.display.set_caption("Checkers AI")
+    # Create a Surface with per-pixel alpha
+    highlight_surface = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE)).convert_alpha()
+    highlight_surface.fill(
+        (*HIGHLIGHT_COLOR, TRANSPARENCY)
+    )  # Fill with transparent color
+
+    # Create a Surface for the legal move circles
+    circle_surface = pygame.Surface(
+        (CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2), pygame.SRCALPHA
+    )
+    pygame.draw.circle(
+        circle_surface, CIRCLE_COLOR, (CIRCLE_RADIUS, CIRCLE_RADIUS), CIRCLE_RADIUS
+    )
+
     WP, BP, K = get_fresh_board()
     # WP, BP, K = setup_board_from_position_lists(
     #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
@@ -278,22 +297,14 @@ def main():
         draw_indices(win)
 
         if selected_piece is not None:  # HIGHLIGHTING LOGIC
-            # adjusted_row = 7 - (selected_piece // 4)
-            # col = (selected_piece % 4) * 2
-            # if adjusted_row % 2 == 0:
-            #     col += 1
-
-            # pygame.draw.rect(
-            #     win,
-            #     HIGHLIGHT,
-            #     (
-            #         col * SQUARE_SIZE,
-            #         adjusted_row * SQUARE_SIZE,
-            #         SQUARE_SIZE,
-            #         SQUARE_SIZE,
-            #     ),
-            #     5,
-            # )
+            adjusted_row = 7 - (selected_piece // 4)
+            col = (selected_piece % 4) * 2
+            if adjusted_row % 2 == 0:
+                col += 1
+            win.blit(
+                highlight_surface,
+                (col * SQUARE_SIZE, adjusted_row * SQUARE_SIZE),
+            )
 
             for move in legal_moves:  # Highlight legal move paths
                 if isinstance(move, tuple) and move[0] == selected_piece:
@@ -302,35 +313,28 @@ def main():
                     if adjusted_row % 2 == 0:
                         col += 1
 
-                    pygame.draw.rect(
-                        win,
-                        HIGHLIGHT,
-                        (
-                            col * SQUARE_SIZE,
-                            adjusted_row * SQUARE_SIZE,
-                            SQUARE_SIZE,
-                            SQUARE_SIZE,
-                        ),
-                        5,
+                    circle_x = col * SQUARE_SIZE + SQUARE_SIZE // 2 - CIRCLE_RADIUS
+                    circle_y = (
+                        adjusted_row * SQUARE_SIZE + SQUARE_SIZE // 2 - CIRCLE_RADIUS
                     )
-                if isinstance(move, list) and move[0] == selected_piece:
+
+                    win.blit(circle_surface, (circle_x, circle_y))
+
+                elif isinstance(move, list) and move[0] == selected_piece:
                     for step in move[1:]:
                         adjusted_row = 7 - (step // 4)
                         col = (step % 4) * 2
                         if adjusted_row % 2 == 0:
                             col += 1
 
-                        pygame.draw.rect(
-                            win,
-                            HIGHLIGHT,
-                            (
-                                col * SQUARE_SIZE,
-                                adjusted_row * SQUARE_SIZE,
-                                SQUARE_SIZE,
-                                SQUARE_SIZE,
-                            ),
-                            5,
+                        circle_x = col * SQUARE_SIZE + SQUARE_SIZE // 2 - CIRCLE_RADIUS
+                        circle_y = (
+                            adjusted_row * SQUARE_SIZE
+                            + SQUARE_SIZE // 2
+                            - CIRCLE_RADIUS
                         )
+
+                        win.blit(circle_surface, (circle_x, circle_y))
 
         pygame.display.update()
         clock.tick(60)
