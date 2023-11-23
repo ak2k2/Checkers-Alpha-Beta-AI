@@ -60,13 +60,16 @@ def draw_piece(win, row, col, color, offset=None):
         )
 
 
-def draw_king(win, row, col, color):
-    points = [
-        (col * SQUARE_SIZE + SQUARE_SIZE // 2, row * SQUARE_SIZE + 10),
-        (col * SQUARE_SIZE + 10, row * SQUARE_SIZE + SQUARE_SIZE - 10),
-        (col * SQUARE_SIZE + SQUARE_SIZE - 10, row * SQUARE_SIZE + SQUARE_SIZE - 10),
-    ]
-    pygame.draw.polygon(win, color, points)
+def draw_king(win, row, col, color, offset=None):
+    center_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
+    center_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
+
+    if offset:
+        center_x += offset[0]
+        center_y += offset[1]
+
+    pygame.draw.circle(win, color, (center_x, center_y), SQUARE_SIZE // 2 - 10)
+    pygame.draw.circle(win, (0, 0, 0), (center_x, center_y), SQUARE_SIZE // 8)
 
 
 def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
@@ -89,14 +92,15 @@ def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
 
             if dragging and index == selected_piece:
                 piece_color = WHITE if WP & MASK_32 & (1 << selected_piece) else BLACK
-                if K & MASK_32 & (1 << selected_piece):
-                    draw_king(win, row, col, piece_color)
-                else:
-                    piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
-                    piece_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
-                    offset_x = drag_pos[0] - piece_x
-                    offset_y = drag_pos[1] - piece_y
-                    draw_piece(win, row, col, piece_color, (offset_x, offset_y))
+                piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
+                piece_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
+                offset_x = drag_pos[0] - piece_x
+                offset_y = drag_pos[1] - piece_y
+                draw_king(
+                    win, row, col, piece_color, (offset_x, offset_y)
+                ) if K & MASK_32 & (1 << selected_piece) else draw_piece(
+                    win, row, col, piece_color, (offset_x, offset_y)
+                )
 
 
 def coordinates_to_bit(row, col):
