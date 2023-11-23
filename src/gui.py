@@ -126,18 +126,20 @@ def main():
                         else (BP & (1 << bit_index))
                     )
 
-                    if selected_piece is None and is_human_piece:
-                        # Select the piece if none is selected and it's a human player's piece
-                        legal_moves = generate_legal_moves(WP, BP, K, current_player)
-                        print(f"Legal moves: {legal_moves}")
-                        selected_piece = bit_index
-                        print(
-                            f"Selected piece: {selected_piece}, row: {row}, col: {col}"
-                        )
-                    elif selected_piece == bit_index:
-                        # Deselect if the same piece is clicked again
-                        print("Deselected the piece")
-                        selected_piece = None
+                    if is_human_piece:
+                        # If a different piece is clicked, update the selected_piece
+                        if selected_piece != bit_index:
+                            selected_piece = bit_index
+                            legal_moves = generate_legal_moves(
+                                WP, BP, K, current_player
+                            )
+                            print(
+                                f"Selected piece: {selected_piece}, row: {row}, col: {col}"
+                            )
+                        else:
+                            # Deselect if the same piece is clicked again
+                            selected_piece = None
+                            print("Deselected the piece")
                     elif selected_piece is not None:
                         # A piece is already selected and a new square is clicked
                         destination = bit_index
