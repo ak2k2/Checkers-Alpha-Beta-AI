@@ -106,7 +106,7 @@ def draw_king(win, row, col, color, offset=None):
     pygame.draw.circle(win, KINGS_MARK, (center_x, center_y), SQUARE_SIZE // 8)
 
 
-def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
+def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece, human_color=None):
     for row in range(ROWS):
         for col in range(COLS):
             index = (7 - row) * 4 + (col // 2)  # Moved index calculation here
@@ -125,7 +125,8 @@ def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
                         draw_piece(win, row, col, BLACK)
 
             if dragging and index == selected_piece:
-                piece_color = WHITE if WP & MASK_32 & (1 << selected_piece) else BLACK
+                # piece_color = WHITE if WP & MASK_32 & (1 << selected_piece) else BLACK
+                piece_color = WHITE if human_color == PlayerTurn.WHITE else BLACK
                 piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
                 piece_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
                 offset_x = drag_pos[0] - piece_x
@@ -197,33 +198,10 @@ def main():
                     )
 
                     if is_human_piece:  # Clicked on a human piece
-                        print(f"Clicked on piece at {row}, {col}")
-
-                        # temp_WP = (
-                        #     remove_piece(WP, bit_index)
-                        #     if human_color == PlayerTurn.WHITE
-                        #     else WP
-                        # )
-                        # temp_BP = (
-                        #     remove_piece(BP, bit_index)
-                        #     if human_color == PlayerTurn.BLACK
-                        #     else BP
-                        # )
-                        if (
-                            selected_piece is None or selected_piece != bit_index
-                        ):  # Selecting a fresh piece
-                            print(f"Selected a fresh piece at {row}, {col}")
-                            selected_piece = bit_index
-                            legal_moves = generate_legal_moves(
-                                WP, BP, K, current_player
-                            )
-                            print(f"Legal moves: {legal_moves}")
-                            dragging = True
-                            drag_pos = pos
-                        else:
-                            print(f"Deselected piece")
-                            selected_piece = None
-                            dragging = False
+                        dragging = True
+                        drag_pos = pos
+                        selected_piece = bit_index
+                        legal_moves = generate_legal_moves(WP, BP, K, current_player)
 
             elif (
                 event.type == pygame.MOUSEBUTTONUP and dragging
@@ -335,7 +313,16 @@ def main():
 
                         win.blit(circle_surface, (circle_x, circle_y))
 
-        draw_pieces(win, temp_WP, temp_BP, temp_K, dragging, drag_pos, selected_piece)
+        draw_pieces(
+            win,
+            temp_WP,
+            temp_BP,
+            temp_K,
+            dragging,
+            drag_pos,
+            selected_piece,
+            human_color,
+        )
 
         pygame.display.update()
         clock.tick(60)
