@@ -97,7 +97,6 @@ def find_jumped_pos(start_pos, end_pos):
             # Get the mask for the move to find the jumped square
             move_mask = MOVE_MASKS[DIRECTION_MAP[direction]]
             return move_mask[start_pos]
-    # Will never happen unless the start and end positions are invalid
     return None
 
 

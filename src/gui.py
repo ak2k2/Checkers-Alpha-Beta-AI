@@ -109,26 +109,19 @@ def coordinates_to_bit(row, col):
     return bit_index
 
 
-def get_move_from_click(legal_moves, row, col):
-    bit_index = coordinates_to_bit(row, col)
-    for move in legal_moves:
-        if move[0] == bit_index:
-            return move
-    return None
-
-
 def main():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Checkers AI")
-
     WP, BP, K = get_fresh_board()
+
+    # WP, BP, K = get_empty_board()
+
     human_color = PlayerTurn.WHITE
     current_player = PlayerTurn.BLACK
     selected_piece = None
     legal_moves = None
 
     dragging = False
-    drag_start_pos = None
     drag_pos = None
 
     running = True
@@ -137,11 +130,13 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN and current_player == human_color:
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN and current_player == human_color
+            ):  # Human's turn
                 pos = pygame.mouse.get_pos()
                 row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
 
-                if row % 2 != col % 2:
+                if row % 2 != col % 2:  # Clicked on a playable square
                     bit_index = coordinates_to_bit(row, col)
 
                     is_human_piece = (
@@ -150,16 +145,21 @@ def main():
                         else (BP & MASK_32 & (1 << bit_index))
                     )
 
-                    if is_human_piece:
-                        if selected_piece is None or selected_piece != bit_index:
+                    if is_human_piece:  # Clicked on a human piece
+                        print(f"Clicked on piece at {row}, {col}")
+                        if (
+                            selected_piece is None or selected_piece != bit_index
+                        ):  # Selecting a fresh piece
+                            print(f"Selected a fresh piece at {row}, {col}")
                             selected_piece = bit_index
                             legal_moves = generate_legal_moves(
                                 WP, BP, K, current_player
                             )
+                            print(f"Legal moves: {legal_moves}")
                             dragging = True
-                            drag_start_pos = pos
                             drag_pos = pos
                         else:
+                            print(f"Deselected piece")
                             selected_piece = None
                             dragging = False
 
@@ -167,7 +167,7 @@ def main():
                 end_pos = pygame.mouse.get_pos()
                 end_row, end_col = end_pos[1] // SQUARE_SIZE, end_pos[0] // SQUARE_SIZE
 
-                if end_row % 2 != end_col % 2:
+                if end_row % 2 != end_col % 2:  # Clicked on a playable square
                     destination = coordinates_to_bit(end_row, end_col)
                     if [selected_piece, destination] in legal_moves or (
                         selected_piece,
@@ -180,7 +180,6 @@ def main():
                         selected_piece = None
 
                 dragging = False
-                drag_start_pos = None
                 drag_pos = None
 
             elif event.type == pygame.MOUSEMOTION and dragging:
@@ -188,7 +187,6 @@ def main():
 
         draw_board(win)
         draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece)
-        remove_piece
 
         if selected_piece is not None and not dragging:
             adjusted_row = 7 - (selected_piece // 4)
@@ -210,7 +208,7 @@ def main():
 
         pygame.display.update()
 
-        if current_player != human_color:
+        if current_player != human_color:  # AI's turn
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
             if not legal_moves:
                 print("YOU WON!")
