@@ -140,11 +140,13 @@ def coordinates_to_bit(row, col):
 
 def main():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
     pygame.display.set_caption("Checkers AI")
     WP, BP, K = get_fresh_board()
     # WP, BP, K = setup_board_from_position_lists(
     #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
     # )
+    temp_WP, temp_BP, temp_K = WP, BP, K  # Temporary board states
 
     human_color = PlayerTurn.BLACK
     current_player = PlayerTurn.BLACK
@@ -177,6 +179,17 @@ def main():
 
                     if is_human_piece:  # Clicked on a human piece
                         print(f"Clicked on piece at {row}, {col}")
+
+                        # temp_WP = (
+                        #     remove_piece(WP, bit_index)
+                        #     if human_color == PlayerTurn.WHITE
+                        #     else WP
+                        # )
+                        # temp_BP = (
+                        #     remove_piece(BP, bit_index)
+                        #     if human_color == PlayerTurn.BLACK
+                        #     else BP
+                        # )
                         if (
                             selected_piece is None or selected_piece != bit_index
                         ):  # Selecting a fresh piece
@@ -195,7 +208,7 @@ def main():
 
             elif (
                 event.type == pygame.MOUSEBUTTONUP and dragging
-            ):  # Human's turn continued
+            ):  # Human is dragging a piece
                 end_pos = pygame.mouse.get_pos()
                 end_row, end_col = end_pos[1] // SQUARE_SIZE, end_pos[0] // SQUARE_SIZE
 
@@ -225,37 +238,81 @@ def main():
                         WP, BP, K = do_move(WP, BP, K, move_to_make, current_player)
                         current_player = switch_player(current_player)
                         selected_piece = None
-
+                        temp_WP, temp_BP, temp_K = (
+                            WP,
+                            BP,
+                            K,
+                        )  # reset temporary board states
+                    else:
+                        print("Invalid move!")
+                        temp_WP, temp_BP, temp_K = (
+                            WP,
+                            BP,
+                            K,
+                        )
+                else:  # Clicked on an unplayable square
+                    print("Invalid move!")
+                    temp_WP, temp_BP, temp_K = (
+                        WP,
+                        BP,
+                        K,
+                    )
                 dragging = False
                 drag_pos = None
 
             elif event.type == pygame.MOUSEMOTION and dragging:
                 drag_pos = pygame.mouse.get_pos()
+                temp_WP = (
+                    remove_piece(WP, bit_index)
+                    if human_color == PlayerTurn.WHITE
+                    else WP
+                )
+                temp_BP = (
+                    remove_piece(BP, bit_index)
+                    if human_color == PlayerTurn.BLACK
+                    else BP
+                )
 
         draw_board(win)
-        draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece)
+        draw_pieces(win, temp_WP, temp_BP, temp_K, dragging, drag_pos, selected_piece)
         draw_indices(win)
 
-        if selected_piece is not None and not dragging:
-            adjusted_row = 7 - (selected_piece // 4)
-            col = (selected_piece % 4) * 2
-            if adjusted_row % 2 == 0:
-                col += 1
+        if selected_piece is not None:  # HIGHLIGHTING LOGIC
+            # adjusted_row = 7 - (selected_piece // 4)
+            # col = (selected_piece % 4) * 2
+            # if adjusted_row % 2 == 0:
+            #     col += 1
 
-            pygame.draw.rect(
-                win,
-                HIGHLIGHT,
-                (
-                    col * SQUARE_SIZE,
-                    adjusted_row * SQUARE_SIZE,
-                    SQUARE_SIZE,
-                    SQUARE_SIZE,
-                ),
-                5,
-            )
+            # pygame.draw.rect(
+            #     win,
+            #     HIGHLIGHT,
+            #     (
+            #         col * SQUARE_SIZE,
+            #         adjusted_row * SQUARE_SIZE,
+            #         SQUARE_SIZE,
+            #         SQUARE_SIZE,
+            #     ),
+            #     5,
+            # )
 
-        if selected_piece is not None:
-            for move in legal_moves:
+            for move in legal_moves:  # Highlight legal move paths
+                if isinstance(move, tuple) and move[0] == selected_piece:
+                    adjusted_row = 7 - (move[1] // 4)
+                    col = (move[1] % 4) * 2
+                    if adjusted_row % 2 == 0:
+                        col += 1
+
+                    pygame.draw.rect(
+                        win,
+                        HIGHLIGHT,
+                        (
+                            col * SQUARE_SIZE,
+                            adjusted_row * SQUARE_SIZE,
+                            SQUARE_SIZE,
+                            SQUARE_SIZE,
+                        ),
+                        5,
+                    )
                 if isinstance(move, list) and move[0] == selected_piece:
                     for step in move[1:]:
                         adjusted_row = 7 - (step // 4)
@@ -276,6 +333,7 @@ def main():
                         )
 
         pygame.display.update()
+        clock.tick(60)
 
         if current_player != human_color:  # AI's turn
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
@@ -283,7 +341,7 @@ def main():
                 print("YOU WON!")
                 break
             if legal_moves:
-                best_move, depth_reached = AI(
+                best_move, _ = AI(
                     position=(WP, BP, K),
                     current_player=current_player,
                     time_limit=3,
@@ -292,6 +350,8 @@ def main():
                 )
                 WP, BP, K = do_move(WP, BP, K, best_move, current_player)
                 current_player = switch_player(current_player)
+
+            temp_WP, temp_BP, temp_K = WP, BP, K  # reset temporary board states
             time.sleep(1)
 
     pygame.quit()
