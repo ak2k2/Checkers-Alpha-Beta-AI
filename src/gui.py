@@ -293,7 +293,6 @@ def main():
                 )
 
         draw_board(win)
-        draw_pieces(win, temp_WP, temp_BP, temp_K, dragging, drag_pos, selected_piece)
         draw_indices(win)
 
         if selected_piece is not None:  # HIGHLIGHTING LOGIC
@@ -335,6 +334,8 @@ def main():
                         )
 
                         win.blit(circle_surface, (circle_x, circle_y))
+
+        draw_pieces(win, temp_WP, temp_BP, temp_K, dragging, drag_pos, selected_piece)
 
         pygame.display.update()
         clock.tick(60)
