@@ -75,21 +75,21 @@ def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
             index = (7 - row) * 4 + (col // 2)  # Moved index calculation here
 
             if row % 2 != col % 2:
-                is_king = K & (1 << index)
-                if WP & (1 << index):
+                is_king = K & MASK_32 & (1 << index)
+                if WP & MASK_32 & (1 << index):
                     if is_king:
                         draw_king(win, row, col, WHITE)
                     else:
                         draw_piece(win, row, col, WHITE)
-                elif BP & (1 << index):
+                elif BP & MASK_32 & (1 << index):
                     if is_king:
                         draw_king(win, row, col, BLACK)
                     else:
                         draw_piece(win, row, col, BLACK)
 
             if dragging and index == selected_piece:
-                piece_color = WHITE if WP & (1 << selected_piece) else BLACK
-                if K & (1 << selected_piece):
+                piece_color = WHITE if WP & MASK_32 & (1 << selected_piece) else BLACK
+                if K & MASK_32 & (1 << selected_piece):
                     draw_king(win, row, col, piece_color)
                 else:
                     piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
@@ -141,9 +141,9 @@ def main():
                     bit_index = coordinates_to_bit(row, col)
 
                     is_human_piece = (
-                        (WP & (1 << bit_index))
+                        (WP & MASK_32 & (1 << bit_index))
                         if human_color == PlayerTurn.WHITE
-                        else (BP & (1 << bit_index))
+                        else (BP & MASK_32 & (1 << bit_index))
                     )
 
                     if is_human_piece:
