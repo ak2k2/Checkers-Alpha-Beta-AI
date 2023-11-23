@@ -1,5 +1,7 @@
 import time
+
 import pygame
+
 from checkers import *
 from heuristic import *
 from minimax_alphabeta import AI
@@ -24,6 +26,7 @@ UNPLAYABLE_COLOR = hex_to_rgb("#976C40")
 WHITE = hex_to_rgb("#DEC5AB")
 BLACK = hex_to_rgb("#180000")
 HIGHLIGHT = (255, 255, 0)
+KINGS_MARK = hex_to_rgb("#2596BE")
 
 
 def draw_board(win):
@@ -35,6 +38,32 @@ def draw_board(win):
                 PLAYABLE_COLOR,
                 (row * SQUARE_SIZE, col * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE),
             )
+
+
+def draw_indices(win):
+    font = pygame.font.SysFont("Arial", 24)
+    letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
+    numbers = ["1", "2", "3", "4", "5", "6", "7", "8"]
+
+    # Draw column letters
+    for i, letter in enumerate(letters):
+        text = font.render(letter, True, (0, 0, 0))
+        win.blit(
+            text,
+            (i * SQUARE_SIZE + SQUARE_SIZE // 2 - text.get_width() // 2, HEIGHT - 30),
+        )
+        win.blit(text, (i * SQUARE_SIZE + SQUARE_SIZE // 2 - text.get_width() // 2, 10))
+
+    # Draw row numbers
+    for i, number in enumerate(numbers):
+        text = font.render(number, True, (0, 0, 0))
+        win.blit(
+            text,
+            (WIDTH - 30, i * SQUARE_SIZE + SQUARE_SIZE // 2 - text.get_height() // 2),
+        )
+        win.blit(
+            text, (10, i * SQUARE_SIZE + SQUARE_SIZE // 2 - text.get_height() // 2)
+        )
 
 
 def draw_piece(win, row, col, color, offset=None):
@@ -69,7 +98,7 @@ def draw_king(win, row, col, color, offset=None):
         center_y += offset[1]
 
     pygame.draw.circle(win, color, (center_x, center_y), SQUARE_SIZE // 2 - 10)
-    pygame.draw.circle(win, (0, 0, 0), (center_x, center_y), SQUARE_SIZE // 8)
+    pygame.draw.circle(win, KINGS_MARK, (center_x, center_y), SQUARE_SIZE // 8)
 
 
 def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece):
@@ -113,10 +142,11 @@ def main():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Checkers AI")
     WP, BP, K = get_fresh_board()
+    # WP, BP, K = setup_board_from_position_lists(
+    #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
+    # )
 
-    # WP, BP, K = get_empty_board()
-
-    human_color = PlayerTurn.WHITE
+    human_color = PlayerTurn.BLACK
     current_player = PlayerTurn.BLACK
     selected_piece = None
     legal_moves = None
@@ -163,19 +193,36 @@ def main():
                             selected_piece = None
                             dragging = False
 
-            elif event.type == pygame.MOUSEBUTTONUP and dragging:
+            elif (
+                event.type == pygame.MOUSEBUTTONUP and dragging
+            ):  # Human's turn continued
                 end_pos = pygame.mouse.get_pos()
                 end_row, end_col = end_pos[1] // SQUARE_SIZE, end_pos[0] // SQUARE_SIZE
 
                 if end_row % 2 != end_col % 2:  # Clicked on a playable square
                     destination = coordinates_to_bit(end_row, end_col)
-                    if [selected_piece, destination] in legal_moves or (
-                        selected_piece,
-                        destination,
-                    ) in legal_moves:
-                        WP, BP, K = do_move(
-                            WP, BP, K, (selected_piece, destination), current_player
-                        )
+                    valid_move = False
+                    move_to_make = None
+
+                    for move in legal_moves:
+                        if isinstance(move, list):  # Handle multi-jump
+                            if move[0] == selected_piece and move[-1] == destination:
+                                valid_move = True
+                                move_to_make = move
+                                break
+                        elif move == [
+                            selected_piece,
+                            destination,
+                        ] or move == (
+                            selected_piece,
+                            destination,
+                        ):  # Handle single move/jump
+                            valid_move = True
+                            move_to_make = move
+                            break
+
+                    if valid_move:
+                        WP, BP, K = do_move(WP, BP, K, move_to_make, current_player)
                         current_player = switch_player(current_player)
                         selected_piece = None
 
@@ -187,6 +234,7 @@ def main():
 
         draw_board(win)
         draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece)
+        draw_indices(win)
 
         if selected_piece is not None and not dragging:
             adjusted_row = 7 - (selected_piece // 4)
@@ -206,6 +254,27 @@ def main():
                 5,
             )
 
+        if selected_piece is not None:
+            for move in legal_moves:
+                if isinstance(move, list) and move[0] == selected_piece:
+                    for step in move[1:]:
+                        adjusted_row = 7 - (step // 4)
+                        col = (step % 4) * 2
+                        if adjusted_row % 2 == 0:
+                            col += 1
+
+                        pygame.draw.rect(
+                            win,
+                            HIGHLIGHT,
+                            (
+                                col * SQUARE_SIZE,
+                                adjusted_row * SQUARE_SIZE,
+                                SQUARE_SIZE,
+                                SQUARE_SIZE,
+                            ),
+                            5,
+                        )
+
         pygame.display.update()
 
         if current_player != human_color:  # AI's turn
@@ -214,7 +283,13 @@ def main():
                 print("YOU WON!")
                 break
             if legal_moves:
-                best_move = random.choice(legal_moves)
+                best_move, depth_reached = AI(
+                    position=(WP, BP, K),
+                    current_player=current_player,
+                    time_limit=3,
+                    heuristic="smart",
+                    global_board_state=(WP, BP, K),
+                )
                 WP, BP, K = do_move(WP, BP, K, best_move, current_player)
                 current_player = switch_player(current_player)
             time.sleep(1)
