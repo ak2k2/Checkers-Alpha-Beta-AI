@@ -106,36 +106,36 @@ def draw_king(win, row, col, color, offset=None):
     pygame.draw.circle(win, KINGS_MARK, (center_x, center_y), SQUARE_SIZE // 8)
 
 
-def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece, human_color=None):
+def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece, human_color):
+    # Draw all non-dragged pieces first
     for row in range(ROWS):
         for col in range(COLS):
-            index = (7 - row) * 4 + (col // 2)  # Moved index calculation here
+            index = (7 - row) * 4 + (col // 2)
 
             if row % 2 != col % 2:
                 is_king = K & MASK_32 & (1 << index)
-                if WP & MASK_32 & (1 << index):
-                    if is_king:
-                        draw_king(win, row, col, WHITE)
-                    else:
-                        draw_piece(win, row, col, WHITE)
-                elif BP & MASK_32 & (1 << index):
-                    if is_king:
-                        draw_king(win, row, col, BLACK)
-                    else:
-                        draw_piece(win, row, col, BLACK)
+                if WP & MASK_32 & (1 << index) and index != selected_piece:
+                    draw_king(win, row, col, WHITE) if is_king else draw_piece(
+                        win, row, col, WHITE
+                    )
+                elif BP & MASK_32 & (1 << index) and index != selected_piece:
+                    draw_king(win, row, col, BLACK) if is_king else draw_piece(
+                        win, row, col, BLACK
+                    )
 
-            if dragging and index == selected_piece:
-                # piece_color = WHITE if WP & MASK_32 & (1 << selected_piece) else BLACK
-                piece_color = WHITE if human_color == PlayerTurn.WHITE else BLACK
-                piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
-                piece_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
-                offset_x = drag_pos[0] - piece_x
-                offset_y = drag_pos[1] - piece_y
-                draw_king(
-                    win, row, col, piece_color, (offset_x, offset_y)
-                ) if K & MASK_32 & (1 << selected_piece) else draw_piece(
-                    win, row, col, piece_color, (offset_x, offset_y)
-                )
+    # Then draw the dragged piece on top if any
+    if dragging and selected_piece is not None:
+        piece_color = WHITE if human_color == PlayerTurn.WHITE else BLACK
+        row, col = selected_piece // 4, selected_piece % 4
+        piece_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
+        piece_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
+        offset_x = drag_pos[0] - piece_x
+        offset_y = drag_pos[1] - piece_y
+
+        is_king = K & MASK_32 & (1 << selected_piece)
+        draw_king(
+            win, row, col, piece_color, (offset_x, offset_y)
+        ) if is_king else draw_piece(win, row, col, piece_color, (offset_x, offset_y))
 
 
 def coordinates_to_bit(row, col):
@@ -182,9 +182,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            if (
-                event.type == pygame.MOUSEBUTTONDOWN and current_player == human_color
-            ):  # Human's turn
+            if event.type == pygame.MOUSEBUTTONDOWN and current_player == human_color:
                 pos = pygame.mouse.get_pos()
                 row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
 
@@ -256,6 +254,7 @@ def main():
                     )
                 dragging = False
                 drag_pos = None
+                selected_piece = None
 
             elif event.type == pygame.MOUSEMOTION and dragging:
                 drag_pos = pygame.mouse.get_pos()
