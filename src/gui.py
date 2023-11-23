@@ -1,5 +1,6 @@
-import pygame
 import time
+
+import pygame
 
 from checkers import *
 from heuristic import *
@@ -7,7 +8,6 @@ from heuristic import *
 # from minimax_alphabeta import *
 from minimax_alphabeta import AI
 from util.helpers import *
-
 
 # Initialize Pygame
 pygame.init()
@@ -29,6 +29,7 @@ PLAYABLE_COLOR = hex_to_rgb("#D0AE8B")  # Unplayable squares
 UNPLAYABLE_COLOR = hex_to_rgb("#976C40")  # Playable squares
 WHITE = hex_to_rgb("#DEC5AB")
 BLACK = hex_to_rgb("#180000")
+HIGHLIGHT = (255, 255, 0)  # Yellow for highlighting selected piece
 
 
 def draw_board(win):
@@ -78,14 +79,32 @@ def draw_pieces(win, WP, BP, K):
                         draw_piece(win, row, col, BLACK)
 
 
+def coordinates_to_bit(row, col):
+    # Convert 2D board coordinates to a single-dimensional bit index
+    # Adjust row index to start from the bottom
+    adjusted_row = 7 - row
+    bit_index = adjusted_row * 4 + col // 2
+    return bit_index
+
+
+def get_move_from_click(legal_moves, row, col):
+    bit_index = coordinates_to_bit(row, col)
+    for move in legal_moves:
+        if move[0] == bit_index:
+            return move
+    return None
+
+
 def main():
     win = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Checkers AI")
+    # mouse_button_down = False
 
-    WP, BP, K = get_fresh_board()  # Get the initial board state
-    K = insert_piece_by_pdntext(K, "A3")
+    WP, BP, K = get_fresh_board()
     human_color = PlayerTurn.WHITE
     current_player = PlayerTurn.BLACK
+    selected_piece = None
+    legal_moves = None
 
     running = True
     while running:
@@ -93,45 +112,87 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+            if event.type == pygame.MOUSEBUTTONDOWN and current_player == human_color:
+                pos = pygame.mouse.get_pos()
+                row, col = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
+
+                if row % 2 != col % 2:  # Click on a playable square
+                    bit_index = coordinates_to_bit(row, col)
+
+                    # Check if the clicked square contains a human player's piece
+                    is_human_piece = (
+                        (WP & (1 << bit_index))
+                        if human_color == PlayerTurn.WHITE
+                        else (BP & (1 << bit_index))
+                    )
+
+                    if selected_piece is None and is_human_piece:
+                        # Select the piece if none is selected and it's a human player's piece
+                        legal_moves = generate_legal_moves(WP, BP, K, current_player)
+                        print(f"Legal moves: {legal_moves}")
+                        selected_piece = bit_index
+                        print(
+                            f"Selected piece: {selected_piece}, row: {row}, col: {col}"
+                        )
+                    elif selected_piece == bit_index:
+                        # Deselect if the same piece is clicked again
+                        print("Deselected the piece")
+                        selected_piece = None
+                    elif selected_piece is not None:
+                        # A piece is already selected and a new square is clicked
+                        destination = bit_index
+                        print(f"Destination: {destination}, row: {row}, col: {col}")
+                        if [selected_piece, destination] in legal_moves or (
+                            selected_piece,
+                            destination,
+                        ) in legal_moves:
+                            WP, BP, K = do_move(
+                                WP, BP, K, (selected_piece, destination), current_player
+                            )
+                            current_player = switch_player(current_player)
+                            selected_piece = None  # Reset selected piece after a move
+                        else:
+                            print("ILLEGAL move. Try again.")
+                            selected_piece = (
+                                None  # Reset selected piece if move is invalid
+                            )
+
         draw_board(win)
         draw_pieces(win, WP, BP, K)
+
+        # Highlight the selected piece
+        if selected_piece is not None:
+            # Convert bit index to Pygame board coordinates
+            adjusted_row = 7 - (selected_piece // 4)
+            col = (selected_piece % 4) * 2
+            if adjusted_row % 2 == 0:
+                col += 1
+
+            pygame.draw.rect(
+                win,
+                HIGHLIGHT,
+                (
+                    col * SQUARE_SIZE,
+                    adjusted_row * SQUARE_SIZE,
+                    SQUARE_SIZE,
+                    SQUARE_SIZE,
+                ),
+                5,
+            )
+
         pygame.display.update()
 
-        if current_player == human_color:  # Human's turn
+        # AI's turn
+        if current_player != human_color:
             legal_moves = generate_legal_moves(WP, BP, K, current_player)
-            if not legal_moves:  # Human lost
-                print("YOU LOOSE!")
-                break
-            else:
-                # Human's turn
-                # print("Choose your move by index: ")
-                # user_input = input("-> ")
-                # try:
-                #     selected_move_index = int(user_input)
-                #     if selected_move_index not in range(len(legal_moves)):
-                #         print("Invalid index selected. Try again...")
-                #     else:
-                #         break  # Break the loop if a valid index has been selected
-                # except ValueError:
-                #     print("Invalid input! Please enter a number.")
-                selected_move_index = 0
-                selected_move = legal_moves[selected_move_index]
-                print(f"Move chosen: {selected_move}")
-
-                print(f"Move chosen: {convert_move_list_to_pdn([selected_move])}")
-                WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
-                current_player = switch_player(current_player)
-
-        else:  # AI's turn
-            legal_moves = generate_legal_moves(WP, BP, K, current_player)
-            if not legal_moves:  # AI has lost
+            if not legal_moves:
                 print("YOU WON!")
                 break
             if legal_moves:
-                best_move = legal_moves[0]  # Simplified for demonstration
+                best_move = random.choice(legal_moves)
                 WP, BP, K = do_move(WP, BP, K, best_move, current_player)
                 current_player = switch_player(current_player)
-            time.sleep(1)  # Pause for a moment to simulate AI thinking
+            time.sleep(1)  # Simulate AI thinking
 
     pygame.quit()
 
