@@ -10,6 +10,7 @@ sys.path.append(str(parent))
 from checkers import *
 from checkers import PlayerTurn, do_move, generate_legal_moves
 from heuristic import smart as heuristic_function
+from heuristic import experiment
 
 global NC
 NC = 0
@@ -23,7 +24,7 @@ def signal_handler(signum, frame):
     raise TimeOutException()
 
 
-def sort_moves_by_heuristic(legal_moves, position, current_player):
+def sort_moves_by_heuristic(legal_moves, position, current_player, current_depth):
     if not legal_moves:
         return None
 
@@ -39,7 +40,7 @@ def sort_moves_by_heuristic(legal_moves, position, current_player):
                     *do_move(*position, move, current_player),
                     turn=current_player,
                     legal_moves=legal_moves,
-                    depth=0,
+                    depth=current_depth,
                     global_board_state=(WP, BP, K),
                 ),
             )
@@ -64,23 +65,34 @@ def minimax(
     current_depth=0,
     is_root=False,
     global_board_state=None,
+    heuristic=None,
 ):
     legal_moves = sort_moves_by_heuristic(
         generate_legal_moves(*position, current_player),
         position,
         current_player,
+        current_depth,
     )
     global NC
     NC += 1
 
     if depth == 0 or not legal_moves:
-        return None, heuristic_function(
-            *position,
-            turn=current_player,
-            legal_moves=legal_moves,
-            depth=current_depth,
-            global_board_state=global_board_state,
-        )
+        if heuristic is None or heuristic == "smart":
+            return None, heuristic_function(
+                *position,
+                turn=current_player,
+                legal_moves=legal_moves,
+                depth=current_depth,
+                global_board_state=global_board_state,
+            )
+        elif heuristic == "experiment":
+            return None, experiment(
+                *position,
+                turn=current_player,
+                legal_moves=legal_moves,
+                depth=current_depth,
+                global_board_state=global_board_state,
+            )
 
     best_move = None
     if current_player == PlayerTurn.WHITE:  # MAXIMIZING PLAYER
@@ -132,7 +144,7 @@ def AI(
     current_player,
     max_depth=9999,
     time_limit=5,
-    heuristic=None,
+    heuristic="smart",
     early_stop_depth=999,
     global_board_state=None,
 ):
@@ -163,6 +175,7 @@ def AI(
                 current_depth=current_depth,
                 is_root=True,
                 global_board_state=global_board_state,
+                heuristic=heuristic,
             )
 
             # Debugging information

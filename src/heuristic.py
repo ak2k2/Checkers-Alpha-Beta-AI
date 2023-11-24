@@ -5,6 +5,164 @@ from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
 
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+
+def experiment(
+    WP,
+    BP,
+    K,
+    turn,
+    legal_moves,
+    depth,
+    global_board_state,
+    man_weight=110,
+    king_weight=165,
+    trading_boost=30,
+    king_boost=20,
+    home_boost=50,
+    center_box=50,
+    mid_row=20,
+    defend_home_boost=40,
+    distance_weight=10,
+    safety_weight=5,
+    capture_weight=5,
+    verge_king_weight=20,
+    double_corner_king_reward=20,
+):
+    EVAL = 0  # evaluation score
+
+    # Board MiniMax is currently looking at.
+    num_white_man = count_bits(WP & ~K & MASK_32)
+    num_white_king = count_bits(WP & K & MASK_32)
+    num_black_man = count_bits(BP & ~K & MASK_32)
+    num_black_king = count_bits(BP & K & MASK_32)
+    num_wps = num_white_man + num_white_king
+    num_bps = num_black_king + num_black_man
+    num_local_total_pcs = num_wps + num_bps
+
+    # Board that Players are looking at.
+    gwp, gbp, gk = global_board_state
+    num_global_white_men = count_bits(gwp & ~gk & MASK_32)
+    num_global_black_men = count_bits(gbp & ~gk & MASK_32)
+    num_global_white_king = count_bits(gwp & gk & MASK_32)
+    num_global_black_king = count_bits(gbp & gk & MASK_32)
+    num_global_white_pcs = num_global_white_men + num_global_white_king
+    num_global_black_pcs = num_global_black_men + num_global_black_king
+    num_global_total_pcs = num_global_white_pcs + num_global_black_pcs
+
+    if not legal_moves:  # Lost game. Terminal State
+        if turn == PlayerTurn.WHITE:
+            EVAL -= 500 + (700 - (depth * 10))  # delay loosing, expedite winning
+        elif turn == PlayerTurn.BLACK:
+            EVAL += 500 + (700 - (depth * 10))
+
+    # MATERIAL
+    EVAL += (king_weight * (num_white_king - num_black_king)) + (
+        man_weight * (num_white_man - num_black_man)
+    )
+
+    # ENDGAME
+    if (
+        (num_global_total_pcs <= 10)
+        or (
+            num_global_white_pcs * (2 / 3) >= num_global_black_pcs
+        )  # black is loosing badly
+        or (
+            num_global_black_pcs * (2 / 3) >= num_global_white_pcs
+        )  # white is loosing badly
+        or (
+            (num_global_total_pcs <= 14)
+            and (abs(num_global_white_king - num_global_black_king) > 0)
+        )  # quasi endgame
+    ):
+        # Encourage trading when ahead
+        if (num_global_white_pcs > num_global_black_pcs) and (
+            num_wps > num_bps
+        ):  # white is ahead
+            EVAL += (num_global_total_pcs - num_local_total_pcs) * trading_boost
+            EVAL -= (
+                calculate_sum_distances(WP, BP, K) * distance_weight
+            )  # white is penalized for being far from black
+            EVAL -= double_corner_king_reward * count_bits(
+                BP & K & MASK_32 & DOUBLE_CORNER
+            )  # black is rewarded for having kings on double corner
+        elif (num_global_black_pcs > num_global_white_pcs) and (
+            num_bps > num_bps
+        ):  # black is ahead
+            EVAL -= (num_global_total_pcs - num_local_total_pcs) * trading_boost
+            EVAL += (
+                calculate_sum_distances(WP, BP, K) * distance_weight
+            )  # black is penalized for being far from white
+            EVAL += double_corner_king_reward * count_bits(
+                WP & K & MASK_32 & DOUBLE_CORNER
+            )  # white is rewarded for having kings on double corner
+
+        EVAL += num_white_king * king_boost
+        EVAL -= num_black_king * king_boost
+
+    else:  # OPENING & MID GAME
+        # HOME ROW
+        white_home = count_bits(WP & MASK_32 & KING_ROW_BLACK)
+        black_home = count_bits(BP & MASK_32 & KING_ROW_WHITE)
+
+        # MID BOX
+        white_center_box = count_bits(WP & MASK_32 & CENTER_8)
+        black_center_box = count_bits(BP & MASK_32 & CENTER_8)
+
+        # MID_ROW_NOT_MID_BOX
+        white_mid_row = count_bits(WP & MASK_32 & MID_ROW_NOT_MID_BOX)
+        black_mid_row = count_bits(BP & MASK_32 & MID_ROW_NOT_MID_BOX)
+
+        EVAL += (
+            (white_home * home_boost)
+            + (white_center_box * center_box)
+            + (white_mid_row * mid_row)
+        )
+        EVAL -= (
+            (black_home * home_boost)
+            + (black_center_box * center_box)
+            + (black_mid_row * mid_row)
+        )
+
+        if num_black_man > 0:  # black still has men
+            EVAL += defend_home_boost * white_home  # white should stay home
+
+        elif num_white_man > 0:  # white still has men
+            EVAL -= defend_home_boost * black_home  # black should stay home
+
+        # SAFETY SCORE
+        EVAL += safety_weight * (
+            calculate_safe_white_pieces(WP, K) - calculate_safe_black_pieces(BP, K)
+        )
+
+        # CAPTURE SCORE
+        EVAL += capture_weight * (
+            count_black_pieces_that_can_be_captured_by_white(
+                WP, BP, K, kinged_mult=6, land_edge_mult=1, took_king_mult=3
+            )
+            - count_white_pieces_that_can_be_captured_by_black(
+                WP, BP, K, kinged_mult=6, land_edge_mult=1, took_king_mult=2
+            )
+        )
+
+        # VERGE KINGING
+        EVAL += verge_king_weight * pieces_on_verge_of_kinging(WP, BP, K, turn=turn)
+
+        # DISTANCE TO KINGS ROW
+        EVAL += distance_weight * (
+            calculate_total_distance_to_promotion_black(BP, K)
+            - calculate_total_distance_to_promotion_white(WP, K)
+        )
+
+    EVAL += random.randint(0, 10)
+
+    # return get_nn_eval(WP, BP, K, turn, legal_moves, depth, global_board_state)
+
+    return EVAL
+
 
 def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
     # Board MiniMax is currently looking at.
@@ -293,107 +451,6 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
 
 
 # ----------------- ************* -----------------
-# ----------------- OLD HEURISTIC -----------------
-# ----------------- ************* -----------------
-
-
-# def old_heuristic(WP, BP, K, turn=None):  # trusty old heuristic
-#     num_white_man = count_bits(WP & ~K & MASK_32)
-#     num_white_king = count_bits(WP & K & MASK_32)
-#     num_black_man = count_bits(BP & ~K & MASK_32)
-#     num_black_king = count_bits(BP & K & MASK_32)
-#     piece_count_score = (500 * num_white_man + 775 * num_white_king) - (
-#         500 * num_black_man + 775 * num_black_king
-#     )
-#     return piece_count_score + random.randint(-20, 20)
-
-
-def new_heuristic(WP, BP, K, turn, legal_moves, depth, global_board_state):
-    EVAL = 0
-    # Board that MinMax sees
-    num_white_man = count_bits(WP & ~K & MASK_32)
-    num_white_king = count_bits(WP & K & MASK_32)
-    num_black_man = count_bits(BP & ~K & MASK_32)
-    num_black_king = count_bits(BP & K & MASK_32)
-    num_wps = num_white_man + num_white_king
-    num_bps = num_black_king + num_black_man
-    num_local_total_pcs = num_wps + num_bps
-
-    gwp, gbp, gk = global_board_state
-    num_global_white_men = count_bits(gwp & ~gk & MASK_32)
-    num_global_black_men = count_bits(gbp & ~gk & MASK_32)
-    num_global_white_king = count_bits(gwp & gk & MASK_32)
-    num_global_black_king = count_bits(gbp & gk & MASK_32)
-    num_global_white_pcs = num_global_white_men + num_global_white_king
-    num_global_black_pcs = num_global_black_men + num_global_black_king
-    num_global_total_pcs = num_global_white_pcs + num_global_black_pcs
-
-    # MATERIAL
-    EVAL += (155 * (num_white_king - num_black_king)) + (
-        100 * (num_white_man - num_black_man)
-    )
-
-    # HOME ROW
-    white_home = count_bits(
-        WP & MASK_32 & KING_ROW_BLACK
-    )  # white men or kings on home row
-    black_home = count_bits(
-        BP & MASK_32 & KING_ROW_WHITE
-    )  # black men or kings on home row
-
-    # MID BOX
-    white_center_box = count_bits(WP & MASK_32 & CENTER_8)
-    black_center_box = count_bits(BP & MASK_32 & CENTER_8)
-
-    # MID_ROW_NOT_MID_BOX
-    white_mid_row = count_bits(WP & MASK_32 & MID_ROW_NOT_MID_BOX)
-    black_mid_row = count_bits(BP & MASK_32 & MID_ROW_NOT_MID_BOX)
-
-    # ENDGAME
-    if (
-        (num_global_total_pcs <= 10)
-        or (
-            num_global_white_pcs * (2 / 3) >= num_global_black_pcs
-        )  # black is loosing badly
-        or (
-            num_global_black_pcs * (2 / 3) >= num_global_white_pcs
-        )  # white is loosing badly
-        or (
-            (num_global_total_pcs <= 14)
-            and (abs(num_global_white_king - num_global_black_king) > 0)
-        )  # quasi endgame
-    ):
-        # Encourage trading when ahead
-        if (num_global_white_pcs > num_global_black_pcs) and (num_wps > num_bps):
-            EVAL += (num_global_total_pcs - num_local_total_pcs) * 30
-        elif (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
-            EVAL -= (num_global_total_pcs - num_local_total_pcs) * 30
-
-        EVAL += num_white_king * 20
-        EVAL -= num_black_king * 20
-
-    else:  # OPENING/MID GAME
-        EVAL += (white_home * 50) + (white_center_box * 50) + (white_mid_row * 10)
-        EVAL -= (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
-
-    if num_black_man > 0:  # black still has men
-        EVAL += 40 * white_home  # white should stay home
-
-    elif num_white_man > 0:  # white still has men
-        EVAL -= 40 * black_home  # black should stay home
-
-    if not legal_moves:  # delay loosing, expedite winning
-        if turn == PlayerTurn.WHITE:
-            EVAL -= 500 + (700 - (depth * 10))
-        elif turn == PlayerTurn.BLACK:
-            EVAL += 500 + (700 - (depth * 10))
-
-    EVAL += random.randint(0, 10)
-
-    return EVAL
-
-
-# ----------------- ************* -----------------
 # ---------------- HELPER FUNCTIONS -----------------
 # ----------------- ************* -----------------
 
@@ -471,11 +528,12 @@ def pieces_on_verge_of_kinging(WP, BP, K, turn=None):
     return val
 
 
-def calculate_sum_distances(WP, BP):
+def calculate_sum_distances(WP, BP, K):
+    # distance between all pairs of kings
     total_distance = 0
-    for w_index in find_set_bits(WP):
+    for w_index in find_set_bits(WP & K):
         w_coords = bit_to_coordinates(w_index)
-        for b_index in find_set_bits(BP):
+        for b_index in find_set_bits(BP & K):
             # print(f"pair: {w_index}, {b_index}")
             b_coords = bit_to_coordinates(b_index)
             # print(f"coords: {w_coords}, {b_coords}")
@@ -525,26 +583,6 @@ def mobility_diff_score(WP, BP, K, jw=4):
     mobility_score = white_score - black_score
 
     return mobility_score
-
-
-def piece_count_diff_score(WP, BP, K):
-    # Count the number of men each player has
-    white_man_count = count_bits(WP & ~K & MASK_32)
-    black_man_count = count_bits(BP & ~K & MASK_32)
-
-    # Count the number of kings each player has
-    white_king_count = count_bits(WP & K & MASK_32)
-    black_king_count = count_bits(BP & K & MASK_32)
-
-    # Give kings a higher weight
-    white_score = white_man_count + 1.5 * white_king_count
-    black_score = black_man_count + 1.5 * black_king_count
-
-    # Calculate the difference
-    piece_count_score = white_score - black_score
-
-    # Positive score favors white, Negative score favors black
-    return piece_count_score
 
 
 def calculate_total_distance_to_promotion_white(bitboard, K):
@@ -776,4 +814,9 @@ def test2():
 
 
 if __name__ == "__main__":
-    test2()
+    WP, BP, K = setup_board_from_position_lists(
+        ["D4", "F4", "KD2", "D6", "F6"], ["KC5", "E5", "KG3", "KH8"]
+    )
+
+    print_board(WP, BP, K)
+    print(calculate_sum_distances(WP, BP, K))

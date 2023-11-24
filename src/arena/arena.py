@@ -154,45 +154,18 @@ def PLAY_TUNE(
 
 
 def objective(trial):
-    CHAMPION = partial(old_heuristic)
+    CHAMPION = partial(smart)
 
     CONTENDER = partial(
-        evolve_base_B,
-        man_weight=trial.suggest_int("cont_man_weight", 400, 600),
-        man_growth_decay=trial.suggest_float("cont_man_growth_decay", -1, 1),
-        king_weight=trial.suggest_int("cont_king_weight", 675, 875),
-        king_growth_decay=trial.suggest_float("cont_king_growth_decay", 0.0, 1.0),
-        back_row_weight=trial.suggest_int("cont_back_row_weight", 200, 600),
-        back_growth_decay=trial.suggest_float("cont_back_growth_decay", -1.0, 0),
-        capture_weight=trial.suggest_int("cont_capture_weight", 0, 50),
-        capture_growth_decay=trial.suggest_float(
-            "cont_capture_growth_decay", -1.0, 1.0
-        ),
-        kinged_mult=trial.suggest_float("cont_kinged_mult", 1.5, 3.2),
-        land_edge_mult=trial.suggest_float("cont_land_edge_mult", 1.6, 3.2),
-        took_king_mult=trial.suggest_float("cont_took_king_mult", 1.7, 4.3),
-        distance_weight=trial.suggest_int("cont_distance_weight", 0, 100),
-        distance_growth_decay=trial.suggest_float("cont_distance_growth_decay", 0, 1.0),
-        mobility_weight=trial.suggest_int("cont_mobility_weight", 0, 150),
-        mobility_jump_mult=trial.suggest_float("cont_mobility_jump_mult", 1.5, 4),
-        mobility_growth_decay=trial.suggest_float("cont_mobility_growth_decay", 0, 1),
-        safety_weight=trial.suggest_int("cont_safety_weight", 0, 400),
-        safety_growth_decay=trial.suggest_float("cont_safety_growth_decay", 0, 1.0),
-        double_corner_bonus_weight=trial.suggest_int(
-            "cont_double_corner_bonus_weight", 0, 100
-        ),
-        turn_advantage_weight=trial.suggest_int("cont_turn_advantage_weight", 0, 400),
-        verge_weight=trial.suggest_int("cont_verge_weight", 0, 50),
-        verge_growth_decay=trial.suggest_float("cont_verge_growth_decay", -1.0, 1),
-        center_control_weight=trial.suggest_int("cont_center_control_weight", 10, 200),
-        edge_weight=trial.suggest_int(
-            "cont_edge_weight", -100, 100
-        ),  # may want to penalize edges
-        edge_growth_decay=trial.suggest_float("cont_edge_growth_decay", -1.0, 1),
-        kings_row_weight=trial.suggest_int("cont_kings_row_weight", 0, 200),
-        kings_row_growth_decay=trial.suggest_float(
-            "cont_kings_row_growth_decay", -1.0, 0
-        ),
+        experiment,
+        man_weight=trial.suggest_int("cont_man_weight", 80, 120),
+        king_weight=trial.suggest_int("cont_king_weight", 120, 200),
+        trading_boost=trial.suggest_int("cont_trading_boost", 10, 60),
+        king_boost=trial.suggest_int("cont_king_boost", 10, 60),
+        home_boost=trial.suggest_int("cont_home_boost", 20, 80),
+        center_box=trial.suggest_int("cont_center_box", 20, 80),
+        mid_row=trial.suggest_int("cont_mid_row", 0, 40),
+        defend_home_boost=trial.suggest_int("cont_defend_home_boost", 20, 60),
     )
 
     score = 0

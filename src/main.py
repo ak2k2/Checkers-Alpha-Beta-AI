@@ -201,12 +201,10 @@ def AI_vs_AI(
             best_move, depth_reached = AI(
                 position=(WP, BP, K),
                 current_player=current_player,
-                max_depth=max_depth,
                 time_limit=time_limit,
                 heuristic="smart"
-                if current_player == PlayerTurn.WHITE
-                else "new_heuristic",
-                early_stop_depth=early_stop_depth,
+                if current_player == PlayerTurn.BLACK
+                else "experiment",
                 global_board_state=(WP, BP, K),
             )
 
@@ -240,7 +238,13 @@ def AI_vs_AI(
         move_count += 1
 
         print_board(WP, BP, K)
-        print(f"EVAL: {new_heuristic(WP, BP, K, turn=current_player)}")
+        print(
+            f"SMART (WHITE): {smart(WP,BP,K,turn=current_player,depth=0,global_board_state=(WP, BP, K),legal_moves=legal_moves)}"
+        )
+        print(
+            f"EXPERIMENT (BLACK): {experiment(WP,BP,K,turn=current_player,depth=0,global_board_state=(WP, BP, K),legal_moves=legal_moves)}"
+        )
+
         print("-" * 50 + "\n")
 
     if not game_over:
