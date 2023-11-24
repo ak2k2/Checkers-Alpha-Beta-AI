@@ -2,6 +2,8 @@
 
 An informed search-based checkers-playing agent written in Python.
 
+[![Run on Repl.it](https://replit.com/badge/github/ak2k2/Checkers-Alpha-Beta-AI)](https://replit.com/@ArmaanKapoor2/ak2k2-Checkers)
+
 ## Features
 
 - **Game Modes**: Supports Human vs Human, Human vs Computer, and Computer vs Computer.
