@@ -16,10 +16,19 @@ ROWS, COLS = 8, 8
 SQUARE_SIZE = WIDTH // COLS
 
 
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip("#")
-    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+# Load images
+black_king_img = pygame.image.load("src/assets/bk.png")
+white_king_img = pygame.image.load("src/assets/wk.png")
+black_pawn_img = pygame.image.load("src/assets/bm.png")
+white_pawn_img = pygame.image.load("src/assets/wm.png")
 
+# Scale images to fit the square size if necessary
+black_king_img = pygame.transform.scale(
+    black_king_img, (SQUARE_SIZE + 10, SQUARE_SIZE + 10)
+)
+white_king_img = pygame.transform.scale(white_king_img, (SQUARE_SIZE, SQUARE_SIZE))
+black_pawn_img = pygame.transform.scale(black_pawn_img, (SQUARE_SIZE, SQUARE_SIZE))
+white_pawn_img = pygame.transform.scale(white_pawn_img, (SQUARE_SIZE, SQUARE_SIZE))
 
 PLAYABLE_COLOR = hex_to_rgb("#D0AE8B")
 UNPLAYABLE_COLOR = hex_to_rgb("#976C40")
@@ -72,38 +81,31 @@ def draw_indices(win):
 
 
 def draw_piece(win, row, col, color, offset=None):
+    x = col * SQUARE_SIZE
+    y = row * SQUARE_SIZE
+
     if offset:
-        pygame.draw.circle(
-            win,
-            color,
-            (
-                col * SQUARE_SIZE + SQUARE_SIZE // 2 + offset[0],
-                row * SQUARE_SIZE + SQUARE_SIZE // 2 + offset[1],
-            ),
-            SQUARE_SIZE // 2 - 10,
-        )
+        x += offset[0]
+        y += offset[1]
+
+    if color == BLACK:
+        win.blit(black_pawn_img, (x, y))
     else:
-        pygame.draw.circle(
-            win,
-            color,
-            (
-                col * SQUARE_SIZE + SQUARE_SIZE // 2,
-                row * SQUARE_SIZE + SQUARE_SIZE // 2,
-            ),
-            SQUARE_SIZE // 2 - 10,
-        )
+        win.blit(white_pawn_img, (x, y))
 
 
 def draw_king(win, row, col, color, offset=None):
-    center_x = col * SQUARE_SIZE + SQUARE_SIZE // 2
-    center_y = row * SQUARE_SIZE + SQUARE_SIZE // 2
+    x = col * SQUARE_SIZE
+    y = row * SQUARE_SIZE
 
     if offset:
-        center_x += offset[0]
-        center_y += offset[1]
+        x += offset[0]
+        y += offset[1]
 
-    pygame.draw.circle(win, color, (center_x, center_y), SQUARE_SIZE // 2 - 10)
-    pygame.draw.circle(win, KINGS_MARK, (center_x, center_y), SQUARE_SIZE // 8)
+    if color == WHITE:
+        win.blit(white_king_img, (x, y))
+    else:
+        win.blit(black_king_img, (x, y))
 
 
 def draw_pieces(win, WP, BP, K, dragging, drag_pos, selected_piece, human_color):
@@ -163,13 +165,13 @@ def main():
     )
 
     WP, BP, K = get_fresh_board()
-    # WP, BP, K = setup_board_from_position_lists(
-    #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
-    # )
+    WP, BP, K = setup_board_from_position_lists(
+        white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
+    )
     temp_WP, temp_BP, temp_K = WP, BP, K  # Temporary board states
 
-    human_color = PlayerTurn.BLACK
-    current_player = PlayerTurn.BLACK
+    human_color = PlayerTurn.WHITE
+    current_player = PlayerTurn.WHITE
     selected_piece = None
     legal_moves = None
 

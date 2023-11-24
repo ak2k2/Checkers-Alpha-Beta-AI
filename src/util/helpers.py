@@ -252,3 +252,8 @@ def convert_move_list_to_pdn(move_list) -> None:
         coords = [bitindex_to_coords(index) for index in move]
         pdn_moves.append("->".join(coords))
     return pdn_moves
+
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
