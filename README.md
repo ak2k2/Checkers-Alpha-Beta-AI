@@ -2,7 +2,7 @@
 
 An informed search-based checkers-playing agent written in Python.
 
-[![Run on Repl.it](https://replit.com/badge/github/ak2k2/Checkers-Alpha-Beta-AI)]([https://replit.com/new/github/ak2k2/Checkers-Alpha-Beta-AI](https://replit.com/@ArmaanKapoor2/ak2k2-Checkers))
+[![Run on Repl.it](https://replit.com/badge/github/ak2k2/Checkers-Alpha-Beta-AI)](https://replit.com/new/github/ak2k2/Checkers-Alpha-Beta-AI)
 
 ## Features
 
