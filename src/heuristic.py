@@ -5,10 +5,6 @@ from util.fen_pdn_helper import *
 from util.helpers import *
 from util.masks import *
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
 
 def experiment(
     WP,
@@ -26,7 +22,7 @@ def experiment(
     center_box=50,
     mid_row=20,
     defend_home_boost=40,
-    distance_weight=10,
+    distance_weight=40,
     safety_weight=5,
     capture_weight=5,
     verge_king_weight=20,
@@ -130,7 +126,7 @@ def experiment(
         if num_black_man > 0:  # black still has men
             EVAL += defend_home_boost * white_home  # white should stay home
 
-        elif num_white_man > 0:  # white still has men
+        if num_white_man > 0:  # white still has men
             EVAL -= defend_home_boost * black_home  # black should stay home
 
         # SAFETY SCORE
@@ -157,9 +153,7 @@ def experiment(
             - calculate_total_distance_to_promotion_white(WP, K)
         )
 
-    EVAL += random.randint(0, 10)
-
-    # return get_nn_eval(WP, BP, K, turn, legal_moves, depth, global_board_state)
+    EVAL += random.randint(-5, 5)
 
     return EVAL
 
@@ -223,7 +217,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
         # Encourage trading when ahead
         if (num_global_white_pcs > num_global_black_pcs) and (num_wps > num_bps):
             EVAL += (num_global_total_pcs - num_local_total_pcs) * 30
-        elif (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
+        if (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
             EVAL -= (num_global_total_pcs - num_local_total_pcs) * 30
 
         EVAL += num_white_king * 20
@@ -233,19 +227,19 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
         EVAL += (white_home * 50) + (white_center_box * 50) + (white_mid_row * 10)
         EVAL -= (black_home * 50) + (black_center_box * 50) + (black_mid_row * 10)
 
-    if num_black_man > 0:  # black still has men
+    if num_global_black_pcs > 0:  # black still has men
         EVAL += 40 * white_home  # white should stay home
 
-    elif num_white_man > 0:  # white still has men
+    if num_global_white_pcs > 0:  # white still has men
         EVAL -= 40 * black_home  # black should stay home
 
     if not legal_moves:  # delay loosing, expedite winning
         if turn == PlayerTurn.WHITE:
             EVAL -= 500 + (700 - (depth * 10))
-        elif turn == PlayerTurn.BLACK:
+        if turn == PlayerTurn.BLACK:
             EVAL += 500 + (700 - (depth * 10))
 
-    EVAL += random.randint(0, 10)
+    EVAL += random.randint(-5, 5)
 
     return EVAL
 
@@ -819,4 +813,14 @@ if __name__ == "__main__":
     )
 
     print_board(WP, BP, K)
-    print(calculate_sum_distances(WP, BP, K))
+    print(
+        experiment(
+            WP,
+            BP,
+            K,
+            turn=PlayerTurn.BLACK,
+            depth=1,
+            legal_moves=generate_legal_moves(WP, BP, K, turn=PlayerTurn.BLACK),
+            global_board_state=get_fresh_board(),
+        )
+    )

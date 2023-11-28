@@ -165,6 +165,7 @@ def main():
     # WP, BP, K = setup_board_from_position_lists(
     #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
     # )
+    WP = remove_piece_by_pdntext(WP, "F6")
     temp_WP, temp_BP, temp_K = WP, BP, K  # Temporary board states
 
     human_color = PlayerTurn.WHITE
