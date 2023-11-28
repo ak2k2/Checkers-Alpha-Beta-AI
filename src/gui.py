@@ -165,10 +165,10 @@ def main():
     # WP, BP, K = setup_board_from_position_lists(
     #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
     # )
-    WP = remove_piece_by_pdntext(WP, "F6")
+    # WP = remove_piece_by_pdntext(WP, "F6")
     temp_WP, temp_BP, temp_K = WP, BP, K  # Temporary board states
 
-    human_color = PlayerTurn.WHITE
+    human_color = PlayerTurn.BLACK
     current_player = PlayerTurn.BLACK
     selected_piece = None
     legal_moves = None
@@ -335,7 +335,7 @@ def main():
                 best_move, _ = AI(
                     position=(WP, BP, K),
                     current_player=current_player,
-                    time_limit=1,
+                    time_limit=2,
                     heuristic="smart",
                     global_board_state=(WP, BP, K),
                 )
