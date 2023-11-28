@@ -14,18 +14,18 @@ def experiment(
     legal_moves,
     depth,
     global_board_state,
-    man_weight=110,
-    king_weight=165,
+    man_weight=100,
+    king_weight=155,
     trading_boost=30,
     king_boost=20,
     home_boost=50,
     center_box=50,
     mid_row=20,
     defend_home_boost=40,
-    distance_weight=40,
+    distance_weight=10,
     safety_weight=5,
     capture_weight=5,
-    verge_king_weight=20,
+    verge_king_weight=10,
     double_corner_king_reward=20,
 ):
     EVAL = 0  # evaluation score
@@ -51,9 +51,24 @@ def experiment(
 
     if not legal_moves:  # Lost game. Terminal State
         if turn == PlayerTurn.WHITE:
-            EVAL -= 500 + (700 - (depth * 10))  # delay loosing, expedite winning
-        elif turn == PlayerTurn.BLACK:
-            EVAL += 500 + (700 - (depth * 10))
+            EVAL -= 1000 + (700 - (depth * 20))  # delay loosing, expedite winning
+        if turn == PlayerTurn.BLACK:
+            EVAL += 1000 + (700 - (depth * 20))
+    else:
+        if turn == PlayerTurn.WHITE:
+            EVAL += (
+                count_black_pieces_that_can_be_captured_by_white(  # white wants to capture black
+                    WP, BP, K, kinged_mult=6, land_edge_mult=1, took_king_mult=3
+                )
+                * 10
+            )
+        if turn == PlayerTurn.BLACK:
+            EVAL -= (
+                count_white_pieces_that_can_be_captured_by_black(  # black wants to capture white
+                    WP, BP, K, kinged_mult=6, land_edge_mult=1, took_king_mult=2
+                )
+                * 10
+            )
 
     # MATERIAL
     EVAL += (king_weight * (num_white_king - num_black_king)) + (
@@ -74,6 +89,7 @@ def experiment(
             and (abs(num_global_white_king - num_global_black_king) > 0)
         )  # quasi endgame
     ):
+        EVAL = 0
         # Encourage trading when ahead
         if (num_global_white_pcs > num_global_black_pcs) and (
             num_wps > num_bps
@@ -98,6 +114,12 @@ def experiment(
 
         EVAL += num_white_king * king_boost
         EVAL -= num_black_king * king_boost
+
+        if not legal_moves:  # Lost game. Terminal State
+            if turn == PlayerTurn.WHITE:
+                EVAL -= 1000 + (700 - (depth * 20))  # delay loosing, expedite winning
+            if turn == PlayerTurn.BLACK:
+                EVAL += 1000 + (700 - (depth * 20))
 
     else:  # OPENING & MID GAME
         # HOME ROW
@@ -184,6 +206,12 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
         100 * (num_white_man - num_black_man)
     )
 
+    if not legal_moves:  # delay loosing, expedite winning
+        if turn == PlayerTurn.WHITE:
+            EVAL -= 500 + (700 - (depth * 10))
+        if turn == PlayerTurn.BLACK:
+            EVAL += 500 + (700 - (depth * 10))
+
     # HOME ROW
     white_home = count_bits(
         WP & MASK_32 & KING_ROW_BLACK
@@ -220,7 +248,7 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
         if (num_global_black_pcs > num_global_white_pcs) and (num_bps > num_bps):
             EVAL -= (num_global_total_pcs - num_local_total_pcs) * 30
 
-        EVAL += num_white_king * 20
+        EVAL += num_white_king * 20  # Kings more valuable in endgame
         EVAL -= num_black_king * 20
 
     else:  # OPENING/MID GAME
@@ -232,12 +260,6 @@ def smart(WP, BP, K, turn, legal_moves, depth, global_board_state):
 
     if num_global_white_pcs > 0:  # white still has men
         EVAL -= 40 * black_home  # black should stay home
-
-    if not legal_moves:  # delay loosing, expedite winning
-        if turn == PlayerTurn.WHITE:
-            EVAL -= 500 + (700 - (depth * 10))
-        if turn == PlayerTurn.BLACK:
-            EVAL += 500 + (700 - (depth * 10))
 
     EVAL += random.randint(-5, 5)
 
@@ -522,6 +544,15 @@ def pieces_on_verge_of_kinging(WP, BP, K, turn=None):
     return val
 
 
+def bit_to_coordinates(bit_index):
+    # Convert the single-dimensional bit index to 2D coordinates,
+    # taking into account that the board is only half filled
+    # and playable squares are zigzagged.
+    x = (bit_index % 4) * 2 + ((bit_index // 4) % 2)
+    y = bit_index // 4
+    return (x, y)
+
+
 def calculate_sum_distances(WP, BP, K):
     # distance between all pairs of kings
     total_distance = 0
@@ -611,15 +642,6 @@ def calculate_total_distance_to_promotion_black(bitboard, K):
             distance_sum += distance  # Distance for black is just the row number, since they move down the board
 
     return distance_sum
-
-
-def bit_to_coordinates(bit_index):
-    # Convert the single-dimensional bit index to 2D coordinates,
-    # taking into account that the board is only half filled
-    # and playable squares are zigzagged.
-    x = (bit_index % 4) * 2 + ((bit_index // 4) % 2)
-    y = bit_index // 4
-    return (x, y)
 
 
 def count_black_pieces_that_can_be_captured_by_white(
