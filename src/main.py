@@ -28,7 +28,6 @@ def human_vs_human():
         WP, BP, K = do_move(WP, BP, K, selected_move, current_player)
 
         print_board(WP, BP, K)
-        print(f"EVAL: {new_heuristic(WP, BP, K, turn = current_player)}")
 
         current_player = switch_player(current_player)
         move_count += 1
