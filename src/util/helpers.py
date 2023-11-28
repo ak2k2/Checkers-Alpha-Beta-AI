@@ -241,6 +241,40 @@ def print_board(WP, BP, kings) -> None:
     print("\n")
 
 
+def get_ascii_board(WP, BP, kings) -> str:
+    """
+    Returns a simple ASCII string representation of the board with HTML line breaks.
+    Regular pieces are lowercase, kings are uppercase.
+    """
+    board_str = ""
+
+    for row in range(8):
+        row_str = "|"
+        for col in range(8):
+            # Index from 32-bit board representation
+            index = (7 - row) * 4 + (col // 2)
+            is_king = kings & (1 << index)
+
+            if row % 2 != col % 2:
+                # Playable square
+                if WP & (1 << index):
+                    char = "(W)" if is_king else " w "
+                elif BP & (1 << index):
+                    char = "(B)" if is_king else " b "
+                else:
+                    char = "   "
+            else:
+                # Unplayable square
+                char = "   "
+
+            row_str += f" {char} |"
+
+        board_str += row_str
+        board_str += "<br>" + "+" + "----+" * 8 + "<br>"  # Use HTML line break
+
+    return board_str
+
+
 def convert_move_list_to_pdn(move_list) -> None:
     """
     Converts a list of move lists into PDN coordinates.
