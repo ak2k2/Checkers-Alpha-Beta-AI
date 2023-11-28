@@ -15,7 +15,6 @@ WIDTH, HEIGHT = 800, 800
 ROWS, COLS = 8, 8
 SQUARE_SIZE = WIDTH // COLS
 
-
 # Load images
 black_king_img = pygame.image.load("src/assets/bk.png")
 white_king_img = pygame.image.load("src/assets/wk.png")
@@ -23,9 +22,7 @@ black_pawn_img = pygame.image.load("src/assets/bm.png")
 white_pawn_img = pygame.image.load("src/assets/wm.png")
 
 # Scale images to fit the square size if necessary
-black_king_img = pygame.transform.scale(
-    black_king_img, (SQUARE_SIZE + 10, SQUARE_SIZE + 10)
-)
+black_king_img = pygame.transform.scale(black_king_img, (SQUARE_SIZE, SQUARE_SIZE))
 white_king_img = pygame.transform.scale(white_king_img, (SQUARE_SIZE, SQUARE_SIZE))
 black_pawn_img = pygame.transform.scale(black_pawn_img, (SQUARE_SIZE, SQUARE_SIZE))
 white_pawn_img = pygame.transform.scale(white_pawn_img, (SQUARE_SIZE, SQUARE_SIZE))
@@ -165,13 +162,13 @@ def main():
     )
 
     WP, BP, K = get_fresh_board()
-    WP, BP, K = setup_board_from_position_lists(
-        white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
-    )
+    # WP, BP, K = setup_board_from_position_lists(
+    #     white_positions=["KC1", "KE1"], black_positions=["F6", "F4", "D2", "F2"]
+    # )
     temp_WP, temp_BP, temp_K = WP, BP, K  # Temporary board states
 
     human_color = PlayerTurn.WHITE
-    current_player = PlayerTurn.WHITE
+    current_player = PlayerTurn.BLACK
     selected_piece = None
     legal_moves = None
 
@@ -337,7 +334,7 @@ def main():
                 best_move, _ = AI(
                     position=(WP, BP, K),
                     current_player=current_player,
-                    time_limit=3,
+                    time_limit=1,
                     heuristic="smart",
                     global_board_state=(WP, BP, K),
                 )
