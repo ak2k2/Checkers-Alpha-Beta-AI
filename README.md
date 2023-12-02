@@ -38,7 +38,8 @@ The `adjustment_factor` function dynamically alters evaluation criteria weights,
 
 ## Running the Program
 
-- '$python3 main.py' or '$pypy3 main.py' (faster)
+- TERMINAL UI: '$python3 src/main.py' or '$pypy3 src/main.py'
+- Pygame GUI: '$python3 src/gui.py
   
 Follow the system prompts. Pytests are located in the tests directory. To run them: '$pytest'
 
@@ -46,6 +47,6 @@ Follow the system prompts. Pytests are located in the tests directory. To run th
 
 - [Everything About Bitboards](https://3dkingdoms.com/checkers/bitboards.htm)
 
-- Worked closely with my classmate, Nicolette Thiro, to write test cases, perform bit manipulation, validate move generator, and more.
+- Worked with Nicolette Thiro, to write test cases for game logic and ab prune behaviour/
 
 
