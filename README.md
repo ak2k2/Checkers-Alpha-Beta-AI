@@ -1,7 +1,13 @@
 ___
-## Informed Search Based Engine
+## Informed Search Based Checkers Engine
 
-- Play [English Draughts](https://en.wikipedia.org/wiki/English_draughts)
+Play [English Draughts](https://en.wikipedia.org/wiki/English_draughts) against an engine.
+
+1. Clone Repository
+2. Terminal Mode: `$ python3 src/main.py`
+3. GUI Mode:
+   `$ pip install pygame` and `$ python3 src/gui.py`
+
 
 ___
 ## Programming Checkers in Python without abusing CPU and Memory.
