@@ -1,9 +1,8 @@
 ___
 ## Informed Search Based Engine
 
-- Play [English Draughts](https://en.wikipedia.org/wiki/English_draughts)  Against engine from the browser using the Replit below.
+- Play [English Draughts](https://en.wikipedia.org/wiki/English_draughts)
 
-[![Run on Repl.it](https://replit.com/badge/github/ak2k2/Checkers-Alpha-Beta-AI)
 ___
 ## Programming Checkers in Python without abusing CPU and Memory.
 
