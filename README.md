@@ -241,6 +241,6 @@ Follow the system prompts. Pytests are located in the tests directory. To run th
 
 - [Everything About Bitboards](https://3dkingdoms.com/checkers/bitboards.htm)
 
-- Worked with Nicolette Thiro, to write test cases for game logic and ab prune behaviour/
+- Static Evaluation Tricks inspired by Andrew Lorber
 
 
