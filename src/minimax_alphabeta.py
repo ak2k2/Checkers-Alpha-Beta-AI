@@ -51,7 +51,7 @@ def sort_moves_by_heuristic(legal_moves, position, current_player, current_depth
         )
         sorted_moves = [move for move, _ in move_evaluations]
         return sorted_moves
-    else:  # this branch implies that there is atleast one double jump move.
+    else:  # this branch    implies that there is atleast one double jump move.
         return legal_moves  # in this case the legal moves are already presorted by len so there is no need to sort on heuristic.
         # will assume that multiple captures are a better indicator of a good move then the eval.
 

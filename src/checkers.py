@@ -61,7 +61,7 @@ def generate_legal_moves(WP, BP, K, turn):
     """
     Returns a list of all legal moves for the given player. If no moves are available, returns None.
     """
-    if turn == PlayerTurn.WHITE:
+    if turn == PlayerTurn.WHITE:  # TODO CHANGE ENUM
         # Check for jump moves first
         white_jumpers = get_jumpers_white(WP, BP, K)
         if white_jumpers:
